@@ -71,7 +71,10 @@ def test_rate_limit_is_retried_then_succeeds() -> None:
     rows = list(_client().query(SITE, date(2026, 10, 1), date(2026, 10, 1), ["date", "query"]))
     assert len(rows) == 1
     trace = [
-        (getattr(c.response, "status_code", str(c.response)[:400]), json.loads(c.request.body or "")["startRow"])
+        (
+            getattr(c.response, "status_code", str(c.response)[:400]),
+            json.loads(c.request.body or "")["startRow"],
+        )
         for c in responses.calls
     ]
     assert trace == [(429, 0), (200, 0)]

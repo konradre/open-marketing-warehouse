@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import dlt
 import pytest
@@ -23,7 +24,7 @@ DATASET = "search_console"
 TODAY = date(2026, 10, 5)  # daily window 2026-09-25..10-04 covers the fixture days 10-01..03
 
 
-def _destination() -> dlt.Destination:  # type: ignore[type-arg]
+def _destination() -> Any:
     return dlt.destinations.clickhouse(
         credentials={
             "host": setting("OMW_CLICKHOUSE_HOST"),
@@ -113,17 +114,23 @@ def test_raw_stays_invisible_to_the_agent(
 def test_breakdowns_never_overcount_core_in_marts(
     loaded: tuple[dlt.Pipeline, FakeSearchConsoleClient], agent_client: Client
 ) -> None:
-    core = dict(
-        agent_client.query(f"SELECT date, sum(clicks) FROM marts.{DATASET}_core GROUP BY date").result_rows
-    )
+    core: dict[date, int] = {
+        day: clicks
+        for day, clicks in agent_client.query(
+            f"SELECT date, sum(clicks) FROM marts.{DATASET}_core GROUP BY date"
+        ).result_rows
+    }
     for name in ("queries", "pages", "query_page", "countries", "devices"):
         for day, clicks in agent_client.query(
             f"SELECT date, sum(clicks) FROM marts.{DATASET}_{name} GROUP BY date"
         ).result_rows:
             assert clicks <= core[day], (name, day)
-    devices = dict(
-        agent_client.query(f"SELECT date, sum(clicks) FROM marts.{DATASET}_devices GROUP BY date").result_rows
-    )
+    devices: dict[date, int] = {
+        day: clicks
+        for day, clicks in agent_client.query(
+            f"SELECT date, sum(clicks) FROM marts.{DATASET}_devices GROUP BY date"
+        ).result_rows
+    }
     assert devices == core
 
 
