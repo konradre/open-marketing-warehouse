@@ -45,11 +45,40 @@ make chat                       # LibreChat on 127.0.0.1:3080, with the warehous
 make observability              # Langfuse on 127.0.0.1:3000
 ```
 
+## Sources
+
+### Search Console
+
+`omw.sources.search_console` pulls `searchanalytics.query` into one table per grain (`core`, `queries`,
+`pages`, `query_page`, `countries`, `devices`) and exposes them as `marts.search_console_<grain>` views.
+
+**Search Console access** (one-time, per property):
+
+1. In Google Cloud, enable the *Google Search Console API* on a project and create a service account with
+   a JSON key (IAM & Admin > Service accounts > Keys). Save the file outside the repo.
+2. In Search Console, open the property > Settings > Users and permissions > Add user, and add the service
+   account's email (`...@...iam.gserviceaccount.com`) with *Full* or *Restricted* permission. Without this
+   step the API answers 403 and the sync stops with a message naming the property.
+3. Put the key path and the properties in `.dlt/secrets.toml` under `[sources.search_console]`
+   (`site_urls` exactly as Search Console names them: `sc-domain:example.com` or `https://example.com/`).
+
+Then:
+
+```bash
+uv run python -m omw.pipelines.search_console backfill   # the 16 months Google keeps, oldest first, 90-day chunks
+uv run python -m omw.pipelines.search_console daily      # re-fetch the last 10 days and replace them
+```
+
+The backfill is resumable: each chunk is its own load, a failed chunk stops the run and keeps the completed
+ones, and the next run continues from the last completed chunk (progress lives in the dlt state, next to
+the data). The daily sync replaces the whole `(property, search type, day)` slice it fetched, so Google's
+2–3 day restatement never leaves duplicates. A daily run that loads no `core` rows fails.
+
 ## Layout
 
 ```
 omw/            Python package: sources/, pacing/, pipelines/, checks/, metrics/
-sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants)
+sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), 10_* marts views
 deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config
 tests/          unit/ (no services), integration/ (ClickHouse + mcp-clickhouse), fixtures/<source>/
 ```

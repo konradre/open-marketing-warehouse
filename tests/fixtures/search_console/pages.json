@@ -1,0 +1,65 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "2026-10-01",
+    "https://example.test/widgets"
+   ],
+   "clicks": 70,
+   "impressions": 1400,
+   "ctr": 0.05,
+   "position": 4.0
+  },
+  {
+   "keys": [
+    "2026-10-01",
+    "https://example.test/widgets/sizes"
+   ],
+   "clicks": 30,
+   "impressions": 600,
+   "ctr": 0.05,
+   "position": 9.0
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "https://example.test/widgets"
+   ],
+   "clicks": 84,
+   "impressions": 1680,
+   "ctr": 0.05,
+   "position": 4.0
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "https://example.test/widgets/sizes"
+   ],
+   "clicks": 36,
+   "impressions": 720,
+   "ctr": 0.05,
+   "position": 9.0
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "https://example.test/widgets"
+   ],
+   "clicks": 63,
+   "impressions": 1260,
+   "ctr": 0.05,
+   "position": 4.0
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "https://example.test/widgets/sizes"
+   ],
+   "clicks": 27,
+   "impressions": 540,
+   "ctr": 0.05,
+   "position": 9.0
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}

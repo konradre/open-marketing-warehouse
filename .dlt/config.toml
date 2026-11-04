@@ -1,0 +1,11 @@
+# Non-secret dlt configuration (committed). Secrets live in .dlt/secrets.toml (never committed).
+
+[runtime]
+# No anonymous usage pings to dltHub from pipelines or tests.
+dlthub_telemetry = false
+log_level = "WARNING"
+
+[sources.search_console]
+# Defaults; override in secrets.toml next to the credentials.
+search_types = ["web"]
+data_state = "all"

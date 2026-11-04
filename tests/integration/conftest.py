@@ -19,6 +19,7 @@ REPO = Path(__file__).resolve().parents[2]
 DEFAULTS = {
     "OMW_CLICKHOUSE_HOST": "127.0.0.1",
     "OMW_CLICKHOUSE_HTTP_PORT": "8123",
+    "OMW_CLICKHOUSE_NATIVE_PORT": "9000",
     "OMW_ADMIN_PASSWORD": "admin-dev-password",
     "OMW_PIPELINE_PASSWORD": "pipeline-dev-password",
     "OMW_AGENT_PASSWORD": "agent-dev-password",

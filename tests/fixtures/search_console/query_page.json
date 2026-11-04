@@ -1,0 +1,104 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "2026-10-01",
+    "example widgets",
+    "https://example.test/widgets"
+   ],
+   "clicks": 40,
+   "impressions": 800,
+   "ctr": 0.05,
+   "position": 3.1
+  },
+  {
+   "keys": [
+    "2026-10-01",
+    "buy widgets online",
+    "https://example.test/widgets"
+   ],
+   "clicks": 30,
+   "impressions": 600,
+   "ctr": 0.05,
+   "position": 5.4
+  },
+  {
+   "keys": [
+    "2026-10-01",
+    "widget sizes",
+    "https://example.test/widgets/sizes"
+   ],
+   "clicks": 10,
+   "impressions": 200,
+   "ctr": 0.05,
+   "position": 9.8
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "example widgets",
+    "https://example.test/widgets"
+   ],
+   "clicks": 48,
+   "impressions": 960,
+   "ctr": 0.05,
+   "position": 3.1
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "buy widgets online",
+    "https://example.test/widgets"
+   ],
+   "clicks": 36,
+   "impressions": 720,
+   "ctr": 0.05,
+   "position": 5.4
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "widget sizes",
+    "https://example.test/widgets/sizes"
+   ],
+   "clicks": 12,
+   "impressions": 240,
+   "ctr": 0.05,
+   "position": 9.8
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "example widgets",
+    "https://example.test/widgets"
+   ],
+   "clicks": 36,
+   "impressions": 720,
+   "ctr": 0.05,
+   "position": 3.1
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "buy widgets online",
+    "https://example.test/widgets"
+   ],
+   "clicks": 27,
+   "impressions": 540,
+   "ctr": 0.05,
+   "position": 5.4
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "widget sizes",
+    "https://example.test/widgets/sizes"
+   ],
+   "clicks": 9,
+   "impressions": 180,
+   "ctr": 0.05,
+   "position": 9.8
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}
