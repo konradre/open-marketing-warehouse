@@ -1,0 +1,16 @@
+open-marketing-warehouse
+Copyright 2026 the open-marketing-warehouse contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This project re-authors design patterns from the following works:
+
+- ClickHouse agent-skills (clickhouse-best-practices), Copyright ClickHouse Inc, Apache-2.0
+  https://github.com/ClickHouse/agent-skills
+  Adapted in .claude/skills/clickhouse-agent-query-safety/SKILL.md
+- ClickHouse mcp-clickhouse and agentic-data-stack, Apache-2.0
+- dlt verified-sources, Copyright ScaleVector GmbH, Apache-2.0
+- Kaelio ktx, Apache-2.0 (fan/chasm-trap handling, read-only SQL guard)
+- datumwise columna, Apache-2.0 (answer moods)
+- cesteral mcp-open-advertising, Apache-2.0 (Meta usage-header parsing, LinkedIn version pinning)
+- Bhargava-R-dev marketing-data-hub, MIT (report grains, over-count check, rolling replace, chunked backfill)
