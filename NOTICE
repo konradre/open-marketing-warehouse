@@ -14,3 +14,9 @@ This project re-authors design patterns from the following works:
 - datumwise columna, Apache-2.0 (answer moods)
 - cesteral mcp-open-advertising, Apache-2.0 (Meta usage-header parsing, LinkedIn version pinning)
 - Bhargava-R-dev marketing-data-hub, MIT (report grains, over-count check, rolling replace, chunked backfill)
+- mcp-clickhouse, Copyright ClickHouse Inc, Apache-2.0 (container configuration in deploy/docker-compose.yml)
+  https://github.com/ClickHouse/mcp-clickhouse
+- Langfuse self-hosting docker-compose, Copyright Langfuse GmbH, MIT (the `observability` profile is adapted
+  from its service layout and environment) https://github.com/langfuse/langfuse
+- LibreChat deploy-compose, Copyright Danny Avila, MIT (the `chat` profile is adapted from its service layout)
+  https://github.com/danny-avila/LibreChat

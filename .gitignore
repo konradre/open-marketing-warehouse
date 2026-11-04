@@ -20,3 +20,6 @@ build/
 # local data
 *.duckdb
 data/
+
+# keep the documented examples
+!.env.example

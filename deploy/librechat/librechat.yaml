@@ -1,0 +1,18 @@
+# LibreChat configuration for the `chat` compose profile. Wires the agent's SQL path (mcp-clickhouse,
+# connected as the ClickHouse `agent` user) into LibreChat as an MCP server. LibreChat substitutes
+# ${OMW_MCP_AUTH_TOKEN} from its environment.
+version: 1.2.1
+cache: true
+interface:
+  endpointsMenu: true
+  modelSelect: true
+  parameters: true
+  sidePanel: true
+  presets: true
+mcpServers:
+  warehouse:
+    type: streamable-http
+    url: http://mcp-clickhouse:8000/mcp
+    headers:
+      Authorization: "Bearer ${OMW_MCP_AUTH_TOKEN}"
+    timeout: 60000
