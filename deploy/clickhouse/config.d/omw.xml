@@ -1,0 +1,9 @@
+<!-- Single-node settings for the warehouse container. The image's own docker_related_config.xml already
+     listens on all container interfaces; compose binds the published ports to localhost only. -->
+<clickhouse>
+    <logger>
+        <level>warning</level>
+    </logger>
+    <!-- Keep the server inside the container's memory: 80% of what cgroups allow. -->
+    <max_server_memory_usage_to_ram_ratio>0.8</max_server_memory_usage_to_ram_ratio>
+</clickhouse>
