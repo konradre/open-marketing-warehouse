@@ -1,0 +1,65 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "2026-10-01",
+    "usa"
+   ],
+   "clicks": 70,
+   "impressions": 1400,
+   "ctr": 0.05,
+   "position": 10.5
+  },
+  {
+   "keys": [
+    "2026-10-01",
+    "deu"
+   ],
+   "clicks": 30,
+   "impressions": 600,
+   "ctr": 0.05,
+   "position": 16.0
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "usa"
+   ],
+   "clicks": 84,
+   "impressions": 1680,
+   "ctr": 0.05,
+   "position": 10.5
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "deu"
+   ],
+   "clicks": 36,
+   "impressions": 720,
+   "ctr": 0.05,
+   "position": 16.0
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "usa"
+   ],
+   "clicks": 63,
+   "impressions": 1260,
+   "ctr": 0.05,
+   "position": 10.5
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "deu"
+   ],
+   "clicks": 27,
+   "impressions": 540,
+   "ctr": 0.05,
+   "position": 16.0
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}

@@ -62,6 +62,7 @@ def test_grants_match_the_boundary() -> None:
         ("ALL", "raw.*", "pipeline"),
         ("ALL", "ops.*", "pipeline"),
         ("ALL", "marts.*", "pipeline"),
+        ("SELECT", "INFORMATION_SCHEMA.*", "pipeline"),
         ("SELECT", "marts.*", "agent"),
         ("SELECT", "ops.freshness", "agent"),
     }

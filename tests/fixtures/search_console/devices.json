@@ -1,0 +1,65 @@
+{
+ "rows": [
+  {
+   "keys": [
+    "2026-10-01",
+    "DESKTOP"
+   ],
+   "clicks": 60,
+   "impressions": 1200,
+   "ctr": 0.05,
+   "position": 11.0
+  },
+  {
+   "keys": [
+    "2026-10-01",
+    "MOBILE"
+   ],
+   "clicks": 40,
+   "impressions": 800,
+   "ctr": 0.05,
+   "position": 14.2
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "DESKTOP"
+   ],
+   "clicks": 72,
+   "impressions": 1440,
+   "ctr": 0.05,
+   "position": 11.0
+  },
+  {
+   "keys": [
+    "2026-10-02",
+    "MOBILE"
+   ],
+   "clicks": 48,
+   "impressions": 960,
+   "ctr": 0.05,
+   "position": 14.2
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "DESKTOP"
+   ],
+   "clicks": 54,
+   "impressions": 1080,
+   "ctr": 0.05,
+   "position": 11.0
+  },
+  {
+   "keys": [
+    "2026-10-03",
+    "MOBILE"
+   ],
+   "clicks": 36,
+   "impressions": 720,
+   "ctr": 0.05,
+   "position": 14.2
+  }
+ ],
+ "responseAggregationType": "byProperty"
+}
