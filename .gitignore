@@ -1,0 +1,22 @@
+# secrets — never commit
+.dlt/secrets.toml
+secrets.toml
+.env
+.env.*
+*.pem
+*.key
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+
+# local data
+*.duckdb
+data/
