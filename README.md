@@ -153,6 +153,26 @@ invoices and balance transactions, and put it in `.dlt/secrets.toml` under `[sou
 uv run python -m omw.pipelines.stripe daily
 ```
 
+## Post-sync checks
+
+`omw check` runs after the syncs and exits non-zero on any failure, so a scheduler sees it:
+
+- **over-count**: every breakdown grain (Search Console queries/pages/countries/devices, GA4 channels/landing
+  pages/campaigns, Google ad groups, Meta ads) must not exceed its `core` grain by more than 1% on any
+  group over the last 28 days;
+- **freshness**: every source's last successful sync must be within its budget (`[checks.freshness_hours]`
+  in `.dlt/config.toml`); a source that never synced, an empty sync log or an expired Meta token fails;
+- **row-count sanity**: the last 7 days of each core grain against the 7 before: a collapse to zero fails,
+  a swing beyond 3x warns.
+
+Results go to `ops.check_results`; `ops.freshness` is the view the agent can read (one row per source
+with the latest verdict).
+
+```bash
+uv run omw check                 # all sources
+uv run omw check --source ga4    # one source
+```
+
 ## Metric layer
 
 `SEMANTICS.md` says what every measure means. `metrics/*.yaml` defines the metrics (one report grain per

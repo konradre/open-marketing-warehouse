@@ -18,3 +18,11 @@ days = 7
 
 [sources.stripe]
 invoice_window_days = 90
+
+[checks.freshness_hours]
+# Budget per source in hours; `omw check` fails freshness when the last successful sync is older.
+search_console = 48
+meta_ads = 30
+google_ads = 30
+ga4 = 30
+stripe = 30
