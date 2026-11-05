@@ -68,8 +68,8 @@ time from their parts; never sum a rate yourself.
 - **roas** = revenue / ad_spend, **cac** = ad_spend / new_customers and **pipeline_cac** = ad_spend /
   opportunities. Each side is aggregated to the common grain (date, campaign_key, currency) first, then
   joined; a dimension or filter that exists on only one side is refused. The campaign key joins platforms
-  through `marts.campaign_keys`; without a mapping row the default key is `<source>:<campaign_id>`, which
-  never matches Stripe's or Twenty's keys, so ROAS and CAC by campaign need the mapping maintained.
+  through `marts.campaign_keys`: by default the slug of the campaign name (`widgets_prospecting`), so Stripe
+  and Twenty attribution must carry that slug (or a manual mapping) for ROAS and CAC by campaign to join.
 
 ## Time and trust
 

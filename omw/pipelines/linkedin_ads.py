@@ -17,6 +17,7 @@ from typing import Any
 
 import dlt
 
+from omw.metrics.campaign_keys import sync_after_load
 from omw.pipelines.marts import SQL_DIR, apply_marts
 from omw.sources.linkedin_ads import LINKEDIN_VERSION, RE_PULL_DAYS, SOURCE_NAME, check_version, linkedin_ads
 from omw.sources.linkedin_ads.version import VersionExpiredError
@@ -48,6 +49,7 @@ def run_daily(
     days: int = RE_PULL_DAYS,
     version: str = LINKEDIN_VERSION,
     marts_sql: Path | None = MARTS_SQL,
+    campaign_keys: bool = True,
     **source_kwargs: Any,
 ) -> dict[str, int]:
     status = check_version(version, today)
@@ -62,6 +64,8 @@ def run_daily(
     counts = row_counts(pipeline)
     if marts_sql is not None:
         apply_marts(pipeline, marts_sql)
+    if campaign_keys:
+        sync_after_load(pipeline, SOURCE_NAME)
     return counts
 
 

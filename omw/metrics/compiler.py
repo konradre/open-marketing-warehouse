@@ -141,11 +141,14 @@ def _campaign_key_select(report: Report) -> str:
 
 
 def _campaign_key_join(report: Report) -> str:
+    """Join the latest mapping row per native id (the table replaces rows only on merge), so a re-synced
+    or manually overridden key never fans the report out."""
     native_id = _native_id(report)
-    return (
-        f" LEFT JOIN {CAMPAIGN_KEYS_TABLE} AS ck ON ck.source = '{report.source}' "
-        f"AND ck.native_id = toString({native_id})"
+    latest = (
+        f"SELECT native_id, argMax(campaign_key, updated_at) AS campaign_key FROM {CAMPAIGN_KEYS_TABLE} "
+        f"WHERE source = '{report.source}' GROUP BY native_id"
     )
+    return f" LEFT JOIN ({latest}) AS ck ON ck.native_id = toString({native_id})"
 
 
 def _native_id(report: Report) -> str:
