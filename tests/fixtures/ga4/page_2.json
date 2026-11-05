@@ -1,0 +1,91 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "date"
+  },
+  {
+   "name": "sessionDefaultChannelGroup"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "sessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "newUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "engagedSessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "keyEvents",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalRevenue",
+   "type": "TYPE_CURRENCY"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    },
+    {
+     "value": "(other)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "3"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "0"
+    },
+    {
+     "value": "0.0"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3,
+ "metadata": {
+  "currencyCode": "EUR",
+  "timeZone": "Europe/Berlin"
+ },
+ "kind": "analyticsData#runReport",
+ "propertyQuota": {
+  "tokensPerDay": {
+   "consumed": 7,
+   "remaining": 199993
+  },
+  "tokensPerHour": {
+   "consumed": 7,
+   "remaining": 39993
+  }
+ }
+}

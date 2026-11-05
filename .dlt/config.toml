@@ -12,3 +12,9 @@ data_state = "all"
 
 [sources.meta_ads]
 levels = ["campaign"]
+
+[sources.ga4]
+days = 7
+
+[sources.stripe]
+invoice_window_days = 90

@@ -1,0 +1,103 @@
+{
+ "object": "list",
+ "url": "/v1/invoices",
+ "has_more": false,
+ "data": [
+  {
+   "id": "in_T50000000000001",
+   "object": "invoice",
+   "customer": "cus_T50000000000001",
+   "subscription": "sub_T50000000000001",
+   "status": "paid",
+   "created": 1790816400,
+   "currency": "eur",
+   "amount_due": 4900,
+   "amount_paid": 4900,
+   "amount_remaining": 0,
+   "subtotal": 4900,
+   "total": 4900,
+   "billing_reason": "subscription_cycle",
+   "livemode": false,
+   "metadata": {},
+   "status_transitions": {
+    "finalized_at": 1790816400,
+    "marked_uncollectible_at": null,
+    "paid_at": 1790816500,
+    "voided_at": null
+   }
+  },
+  {
+   "id": "in_T50000000000002",
+   "object": "invoice",
+   "customer": "cus_T50000000000002",
+   "subscription": "sub_T50000000000002",
+   "status": "paid",
+   "created": 1790902800,
+   "currency": "eur",
+   "amount_due": 9900,
+   "amount_paid": 9900,
+   "amount_remaining": 0,
+   "subtotal": 9900,
+   "total": 9900,
+   "billing_reason": "subscription_cycle",
+   "livemode": false,
+   "metadata": {},
+   "status_transitions": {
+    "finalized_at": 1790902800,
+    "marked_uncollectible_at": null,
+    "paid_at": 1790903100,
+    "voided_at": null
+   }
+  },
+  {
+   "id": "in_T50000000000003",
+   "object": "invoice",
+   "customer": "cus_T50000000000003",
+   "subscription": null,
+   "status": "paid",
+   "created": 1790989200,
+   "currency": "eur",
+   "amount_due": 25000,
+   "amount_paid": 25000,
+   "amount_remaining": 0,
+   "subtotal": 25000,
+   "total": 25000,
+   "billing_reason": "manual",
+   "livemode": false,
+   "metadata": {
+    "campaign_key": "search_console:example",
+    "utm_source": "google",
+    "utm_medium": "organic"
+   },
+   "status_transitions": {
+    "finalized_at": 1790989200,
+    "marked_uncollectible_at": null,
+    "paid_at": 1790989600,
+    "voided_at": null
+   }
+  },
+  {
+   "id": "in_T50000000000004",
+   "object": "invoice",
+   "customer": "cus_T50000000000001",
+   "subscription": "sub_T50000000000001",
+   "status": "open",
+   "created": 1790992800,
+   "currency": "eur",
+   "amount_due": 4900,
+   "amount_paid": 0,
+   "amount_remaining": 4900,
+   "subtotal": 4900,
+   "total": 4900,
+   "billing_reason": "subscription_cycle",
+   "livemode": false,
+   "metadata": {},
+   "status_transitions": {
+    "finalized_at": 1790992800,
+    "marked_uncollectible_at": null,
+    "paid_at": null,
+    "voided_at": null
+   }
+  }
+ ]
+}

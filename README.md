@@ -120,11 +120,44 @@ uv run python -m omw.pipelines.google_ads daily    # re-fetch the last 30 days a
 The API version is pinned in `omw/sources/google_ads/client.py` (`api_version` in config overrides it);
 Google sunsets each version about a year after release.
 
+### GA4
+
+`omw.sources.ga4` runs the Data API `runReport` for four grains (`core` by day, `channels`, `landing_pages`,
+`campaigns` by session campaign/source/medium), exposed as `marts.ga4_<grain>`. GA4 folds high-cardinality
+values into an `(other)` row; the row is kept and flagged with `is_other` so the breakdowns still sum to
+`core`. The daily run re-fetches the last 7 days (GA4 revises recent days) and replaces them;
+`--days 400` does a first load.
+
+Access: enable the *Google Analytics Data API* on a Google Cloud project, create a service account with a
+JSON key, and add its email as a *Viewer* on each property (GA4 Admin > Property access management). Put the
+key path and the numeric property ids in `.dlt/secrets.toml` under `[sources.ga4]`.
+
+```bash
+uv run python -m omw.pipelines.ga4 daily              # last 7 days
+uv run python -m omw.pipelines.ga4 daily --days 400   # first load
+```
+
+### Stripe
+
+`omw.sources.stripe` lists customers and subscriptions in full and merges them on id, re-fetches invoices
+created in the last 90 days and merges them (they change until paid or voided), and appends balance
+transactions incrementally (immutable). Attribution metadata (`campaign_key`, `utm_source`, `utm_medium`,
+`utm_campaign`) is lifted from each object's `metadata`. `marts.stripe_revenue` is one row per paid invoice
+with the campaign key resolved invoice → subscription → customer; `marts.stripe_revenue_daily` sums it by
+day, currency and campaign key; `marts.stripe_subscriptions` lists subscriptions with their attribution.
+
+Access: create a restricted API key (Developers > API keys) with read access to customers, subscriptions,
+invoices and balance transactions, and put it in `.dlt/secrets.toml` under `[sources.stripe]`.
+
+```bash
+uv run python -m omw.pipelines.stripe daily
+```
+
 ## Layout
 
 ```
 omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/
-sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), 10_* marts views
+sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), NN_<source>_* marts views
 deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config
 tests/          unit/ (no services), integration/ (ClickHouse + mcp-clickhouse), fixtures/<source>/
 ```
