@@ -1,0 +1,35 @@
+{
+ "object": "list",
+ "url": "/v1/balance_transactions",
+ "has_more": false,
+ "data": [
+  {
+   "id": "txn_T50000000000004",
+   "object": "balance_transaction",
+   "type": "charge",
+   "created": 1791072100,
+   "available_on": 1791244900,
+   "currency": "eur",
+   "amount": 4900,
+   "fee": 172,
+   "net": 4728,
+   "source": "ch_T5000000000000001",
+   "reporting_category": "charge",
+   "status": "available"
+  },
+  {
+   "id": "txn_T50000000000003",
+   "object": "balance_transaction",
+   "type": "charge",
+   "created": 1790989600,
+   "available_on": 1791162400,
+   "currency": "eur",
+   "amount": 25000,
+   "fee": 755,
+   "net": 24245,
+   "source": "ch_T5000000000000001",
+   "reporting_category": "charge",
+   "status": "available"
+  }
+ ]
+}

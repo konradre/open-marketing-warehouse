@@ -1,0 +1,38 @@
+{
+ "object": "list",
+ "url": "/v1/customers",
+ "has_more": true,
+ "data": [
+  {
+   "id": "cus_T50000000000001",
+   "object": "customer",
+   "created": 1788220800,
+   "email": "user1@example.test",
+   "name": "Customer 1",
+   "currency": "eur",
+   "delinquent": false,
+   "livemode": false,
+   "metadata": {
+    "campaign_key": "meta:23850000000000001",
+    "utm_source": "facebook",
+    "utm_medium": "paid_social",
+    "utm_campaign": "widgets_q4"
+   }
+  },
+  {
+   "id": "cus_T50000000000002",
+   "object": "customer",
+   "created": 1789084800,
+   "email": "user2@example.test",
+   "name": "Customer 2",
+   "currency": "eur",
+   "delinquent": false,
+   "livemode": false,
+   "metadata": {
+    "utm_source": "google",
+    "utm_medium": "cpc",
+    "utm_campaign": "widgets_q4"
+   }
+  }
+ ]
+}

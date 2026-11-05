@@ -1,0 +1,117 @@
+{
+ "object": "list",
+ "url": "/v1/subscriptions",
+ "has_more": false,
+ "data": [
+  {
+   "id": "sub_T50000000000001",
+   "object": "subscription",
+   "customer": "cus_T50000000000001",
+   "status": "active",
+   "created": 1788307200,
+   "current_period_start": 1790812800,
+   "current_period_end": 1793404800,
+   "canceled_at": null,
+   "currency": "eur",
+   "livemode": false,
+   "metadata": {},
+   "items": {
+    "object": "list",
+    "data": [
+     {
+      "id": "si_T50000000000001",
+      "object": "subscription_item",
+      "price": {
+       "id": "price_T500000000001",
+       "object": "price",
+       "currency": "eur",
+       "unit_amount": 4900,
+       "recurring": {
+        "interval": "month",
+        "interval_count": 1
+       },
+       "product": "prod_T5WIDGETS000001",
+       "type": "recurring"
+      },
+      "quantity": 1
+     }
+    ],
+    "has_more": false
+   }
+  },
+  {
+   "id": "sub_T50000000000002",
+   "object": "subscription",
+   "customer": "cus_T50000000000002",
+   "status": "active",
+   "created": 1789171200,
+   "current_period_start": 1790812800,
+   "current_period_end": 1793404800,
+   "canceled_at": null,
+   "currency": "eur",
+   "livemode": false,
+   "metadata": {
+    "campaign_key": "google:20010002"
+   },
+   "items": {
+    "object": "list",
+    "data": [
+     {
+      "id": "si_T50000000000002",
+      "object": "subscription_item",
+      "price": {
+       "id": "price_T500000000002",
+       "object": "price",
+       "currency": "eur",
+       "unit_amount": 9900,
+       "recurring": {
+        "interval": "month",
+        "interval_count": 1
+       },
+       "product": "prod_T5WIDGETS000001",
+       "type": "recurring"
+      },
+      "quantity": 1
+     }
+    ],
+    "has_more": false
+   }
+  },
+  {
+   "id": "sub_T50000000000003",
+   "object": "subscription",
+   "customer": "cus_T50000000000003",
+   "status": "trialing",
+   "created": 1790035200,
+   "current_period_start": 1790812800,
+   "current_period_end": 1793404800,
+   "canceled_at": null,
+   "currency": "eur",
+   "livemode": false,
+   "metadata": {},
+   "items": {
+    "object": "list",
+    "data": [
+     {
+      "id": "si_T50000000000003",
+      "object": "subscription_item",
+      "price": {
+       "id": "price_T500000000003",
+       "object": "price",
+       "currency": "eur",
+       "unit_amount": 4900,
+       "recurring": {
+        "interval": "month",
+        "interval_count": 1
+       },
+       "product": "prod_T5WIDGETS000001",
+       "type": "recurring"
+      },
+      "quantity": 1
+     }
+    ],
+    "has_more": false
+   }
+  }
+ ]
+}

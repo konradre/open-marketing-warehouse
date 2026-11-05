@@ -6,8 +6,11 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from dlt.common.data_types import TDataType
 from dlt.common.schema.typing import TColumnSchema
+
+from omw.sources.columns import column
+
+__all__ = ["GRAINS", "MERGE_KEY", "METRICS", "SOURCE", "Grain", "column", "column_hints", "shape_row"]
 
 SOURCE = "search_console"
 
@@ -60,11 +63,6 @@ def shape_row(grain: Grain, site_url: str, search_type: str, api_row: dict[str, 
     row["ctr"] = float(api_row["ctr"])
     row["position"] = float(api_row["position"])
     return row
-
-
-def column(data_type: TDataType) -> TColumnSchema:
-    """A dlt column hint with an explicit type and no NULLs (ClickHouse convention)."""
-    return {"data_type": data_type, "nullable": False}
 
 
 def column_hints(grain: Grain) -> dict[str, TColumnSchema]:

@@ -10,7 +10,9 @@ This project re-authors design patterns from the following works:
   Adapted in .claude/skills/clickhouse-agent-query-safety/SKILL.md
 - ClickHouse mcp-clickhouse and agentic-data-stack, Apache-2.0
 - dlt verified-sources, Copyright ScaleVector GmbH, Apache-2.0
-  (facebook_ads: field lists, entity paging and async insights job polling re-authored in omw/sources/meta_ads)
+  (facebook_ads: field lists, entity paging and async insights job polling re-authored in omw/sources/meta_ads;
+  google_analytics: report shapes and paging re-authored in omw/sources/ga4;
+  stripe_analytics: the mutable/immutable object split re-authored in omw/sources/stripe)
 - Kaelio ktx, Apache-2.0 (fan/chasm-trap handling, read-only SQL guard)
 - datumwise columna, Apache-2.0 (answer moods)
 - cesteral mcp-open-advertising, Apache-2.0 (Meta usage-header parsing, LinkedIn version pinning)

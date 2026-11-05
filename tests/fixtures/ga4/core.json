@@ -1,0 +1,145 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "date"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "sessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "newUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "engagedSessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "keyEvents",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalRevenue",
+   "type": "TYPE_CURRENCY"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1000"
+    },
+    {
+     "value": "900"
+    },
+    {
+     "value": "400"
+    },
+    {
+     "value": "650"
+    },
+    {
+     "value": "2600"
+    },
+    {
+     "value": "30"
+    },
+    {
+     "value": "1250.5"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261002"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "1200"
+    },
+    {
+     "value": "1050"
+    },
+    {
+     "value": "480"
+    },
+    {
+     "value": "790"
+    },
+    {
+     "value": "3100"
+    },
+    {
+     "value": "36"
+    },
+    {
+     "value": "1480.0"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261003"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "950"
+    },
+    {
+     "value": "860"
+    },
+    {
+     "value": "370"
+    },
+    {
+     "value": "610"
+    },
+    {
+     "value": "2400"
+    },
+    {
+     "value": "25"
+    },
+    {
+     "value": "990.25"
+    }
+   ]
+  }
+ ],
+ "rowCount": 3,
+ "metadata": {
+  "currencyCode": "EUR",
+  "timeZone": "Europe/Berlin"
+ },
+ "kind": "analyticsData#runReport",
+ "propertyQuota": {
+  "tokensPerDay": {
+   "consumed": 7,
+   "remaining": 199993
+  },
+  "tokensPerHour": {
+   "consumed": 7,
+   "remaining": 39993
+  }
+ }
+}

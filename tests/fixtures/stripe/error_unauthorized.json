@@ -1,0 +1,6 @@
+{
+ "error": {
+  "message": "Invalid API Key provided: rk_test_****0000",
+  "type": "invalid_request_error"
+ }
+}

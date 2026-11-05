@@ -1,0 +1,553 @@
+{
+ "dimensionHeaders": [
+  {
+   "name": "date"
+  },
+  {
+   "name": "sessionDefaultChannelGroup"
+  }
+ ],
+ "metricHeaders": [
+  {
+   "name": "sessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "newUsers",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "engagedSessions",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "screenPageViews",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "keyEvents",
+   "type": "TYPE_INTEGER"
+  },
+  {
+   "name": "totalRevenue",
+   "type": "TYPE_CURRENCY"
+  }
+ ],
+ "rows": [
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    },
+    {
+     "value": "Organic Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "450"
+    },
+    {
+     "value": "405"
+    },
+    {
+     "value": "180"
+    },
+    {
+     "value": "292"
+    },
+    {
+     "value": "1170"
+    },
+    {
+     "value": "13"
+    },
+    {
+     "value": "562.73"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    },
+    {
+     "value": "Paid Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "200"
+    },
+    {
+     "value": "180"
+    },
+    {
+     "value": "80"
+    },
+    {
+     "value": "130"
+    },
+    {
+     "value": "520"
+    },
+    {
+     "value": "6"
+    },
+    {
+     "value": "250.1"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    },
+    {
+     "value": "Direct"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "150"
+    },
+    {
+     "value": "135"
+    },
+    {
+     "value": "60"
+    },
+    {
+     "value": "97"
+    },
+    {
+     "value": "390"
+    },
+    {
+     "value": "4"
+    },
+    {
+     "value": "187.57"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    },
+    {
+     "value": "Paid Social"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    },
+    {
+     "value": "90"
+    },
+    {
+     "value": "40"
+    },
+    {
+     "value": "65"
+    },
+    {
+     "value": "260"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "125.05"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261001"
+    },
+    {
+     "value": "(other)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "100"
+    },
+    {
+     "value": "90"
+    },
+    {
+     "value": "40"
+    },
+    {
+     "value": "66"
+    },
+    {
+     "value": "260"
+    },
+    {
+     "value": "4"
+    },
+    {
+     "value": "125.05"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261002"
+    },
+    {
+     "value": "Organic Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "540"
+    },
+    {
+     "value": "472"
+    },
+    {
+     "value": "216"
+    },
+    {
+     "value": "355"
+    },
+    {
+     "value": "1395"
+    },
+    {
+     "value": "16"
+    },
+    {
+     "value": "666.0"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261002"
+    },
+    {
+     "value": "Paid Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "240"
+    },
+    {
+     "value": "210"
+    },
+    {
+     "value": "96"
+    },
+    {
+     "value": "158"
+    },
+    {
+     "value": "620"
+    },
+    {
+     "value": "7"
+    },
+    {
+     "value": "296.0"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261002"
+    },
+    {
+     "value": "Direct"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "180"
+    },
+    {
+     "value": "157"
+    },
+    {
+     "value": "72"
+    },
+    {
+     "value": "118"
+    },
+    {
+     "value": "465"
+    },
+    {
+     "value": "5"
+    },
+    {
+     "value": "222.0"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261002"
+    },
+    {
+     "value": "Paid Social"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "120"
+    },
+    {
+     "value": "105"
+    },
+    {
+     "value": "48"
+    },
+    {
+     "value": "79"
+    },
+    {
+     "value": "310"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "148.0"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261002"
+    },
+    {
+     "value": "(other)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "120"
+    },
+    {
+     "value": "106"
+    },
+    {
+     "value": "48"
+    },
+    {
+     "value": "80"
+    },
+    {
+     "value": "310"
+    },
+    {
+     "value": "5"
+    },
+    {
+     "value": "148.0"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261003"
+    },
+    {
+     "value": "Organic Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "427"
+    },
+    {
+     "value": "387"
+    },
+    {
+     "value": "166"
+    },
+    {
+     "value": "274"
+    },
+    {
+     "value": "1080"
+    },
+    {
+     "value": "11"
+    },
+    {
+     "value": "445.61"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261003"
+    },
+    {
+     "value": "Paid Search"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "190"
+    },
+    {
+     "value": "172"
+    },
+    {
+     "value": "74"
+    },
+    {
+     "value": "122"
+    },
+    {
+     "value": "480"
+    },
+    {
+     "value": "5"
+    },
+    {
+     "value": "198.05"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261003"
+    },
+    {
+     "value": "Direct"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "142"
+    },
+    {
+     "value": "129"
+    },
+    {
+     "value": "55"
+    },
+    {
+     "value": "91"
+    },
+    {
+     "value": "360"
+    },
+    {
+     "value": "3"
+    },
+    {
+     "value": "148.54"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261003"
+    },
+    {
+     "value": "Paid Social"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "95"
+    },
+    {
+     "value": "86"
+    },
+    {
+     "value": "37"
+    },
+    {
+     "value": "61"
+    },
+    {
+     "value": "240"
+    },
+    {
+     "value": "2"
+    },
+    {
+     "value": "99.03"
+    }
+   ]
+  },
+  {
+   "dimensionValues": [
+    {
+     "value": "20261003"
+    },
+    {
+     "value": "(other)"
+    }
+   ],
+   "metricValues": [
+    {
+     "value": "96"
+    },
+    {
+     "value": "86"
+    },
+    {
+     "value": "38"
+    },
+    {
+     "value": "62"
+    },
+    {
+     "value": "240"
+    },
+    {
+     "value": "4"
+    },
+    {
+     "value": "99.02"
+    }
+   ]
+  }
+ ],
+ "rowCount": 15,
+ "metadata": {
+  "currencyCode": "EUR",
+  "timeZone": "Europe/Berlin"
+ },
+ "kind": "analyticsData#runReport",
+ "propertyQuota": {
+  "tokensPerDay": {
+   "consumed": 7,
+   "remaining": 199993
+  },
+  "tokensPerHour": {
+   "consumed": 7,
+   "remaining": 39993
+  }
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "error": {
+  "code": 429,
+  "message": "Exhausted property tokens for a project per hour.",
+  "status": "RESOURCE_EXHAUSTED"
+ }
+}
