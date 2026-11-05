@@ -24,8 +24,12 @@ def test_resources_and_hints(fake_client: FakeGoogleAdsClient) -> None:
         "campaigns",
         "performance_campaigns",
         "performance_ad_groups",
+        "performance_search_terms",
         "sync_windows",
     }
+    terms: dict[str, Any] = dict(source.resources["performance_search_terms"].compute_table_schema())
+    assert terms["x-clickhouse-sort"] == ["customer_id", "date", "campaign_id", "ad_group_id", "search_term"]
+    assert {"search_term", "search_term_status", "ad_group_id"} <= set(terms["columns"])
     perf: dict[str, Any] = dict(source.resources["performance_ad_groups"].compute_table_schema())
     assert perf["write_disposition"] == "merge" and perf["x-merge-strategy"] == "delete-insert"
     assert [c for c, h in perf["columns"].items() if h.get("merge_key")] == ["customer_id", "date"]

@@ -25,7 +25,7 @@ from omw.pacing import MetaPacer, PacerStop
 from omw.pipelines.marts import SQL_DIR, apply_marts
 from omw.pipelines.ops_log import PacingEvent, record_pacing_events, warehouse_client
 from omw.sources.meta_ads import SOURCE_NAME, InsightsLevel, SyncMode, check_token, meta_ads
-from omw.sources.meta_ads.settings import LEVEL_REPORT
+from omw.sources.meta_ads.settings import BREAKDOWNS, LEVEL_REPORT
 from omw.sources.meta_ads.token import TokenExpiredError
 
 log = logging.getLogger(__name__)
@@ -39,6 +39,10 @@ def marts_sql(level: InsightsLevel) -> Path:
 
 
 ENTITIES_SQL = SQL_DIR / "20_meta_ads_marts_entities.sql"
+
+
+def breakdown_sql(breakdown: str) -> Path:
+    return SQL_DIR / f"20_meta_ads_marts_{breakdown}.sql"
 
 
 def build_pipeline(pipelines_dir: str | None = None, destination: Any = "clickhouse") -> dlt.Pipeline:
@@ -111,6 +115,7 @@ def run(
     levels: Sequence[InsightsLevel] = ("campaign",),
     today: date | None = None,
     token_expires_at: date | str | None = None,
+    breakdowns: Sequence[str] = (),
     pacer: MetaPacer | None = None,
     apply_sql: bool = True,
     record_ops: bool = True,
@@ -141,6 +146,7 @@ def run(
                 account_ids=list(account_ids),
                 mode=mode,
                 levels=levels,
+                breakdowns=breakdowns,
                 pacer=pacer,
                 today=today,
                 **source_kwargs,
@@ -156,6 +162,11 @@ def run(
         for level in levels:
             if result.counts.get(f"insights_{LEVEL_REPORT[level]}", 0) or _table_exists(pipeline, level):
                 apply_marts(pipeline, marts_sql(level))
+        for breakdown in breakdowns:
+            if result.counts.get(f"insights_{breakdown}", 0) or _raw_table_exists(
+                pipeline, f"insights_{breakdown}"
+            ):
+                apply_marts(pipeline, breakdown_sql(breakdown))
         if _entities_loaded(pipeline, result.counts):
             apply_marts(pipeline, ENTITIES_SQL)
         if result.counts.get("campaigns", 0):
@@ -200,6 +211,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--level", action="append", choices=("campaign", "ad"), help="insights level(s); default campaign"
     )
+    parser.add_argument(
+        "--breakdown",
+        action="append",
+        choices=tuple(BREAKDOWNS),
+        help="campaign-level breakdown preset(s), each its own table; default none",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -207,8 +224,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     levels: list[InsightsLevel] = args.level or list(
         dlt.config.get("sources.meta_ads.levels", list) or ["campaign"]
     )
+    breakdowns: list[str] = args.breakdown or list(dlt.config.get("sources.meta_ads.breakdowns", list) or [])
     expires_at = dlt.config.get("sources.meta_ads.token_expires_at", str)
-    result = run(build_pipeline(), args.mode, account_ids, levels, token_expires_at=expires_at)
+    result = run(
+        build_pipeline(), args.mode, account_ids, levels, token_expires_at=expires_at, breakdowns=breakdowns
+    )
     log.info("%s sync loaded %s", args.mode, result.counts)
     if result.stopped is not None:
         log.warning("run ended early by the pacer: %s", result.stopped.detail)

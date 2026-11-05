@@ -20,6 +20,7 @@ from omw.sources.meta_ads.cadences import SyncMode, cadence_window
 from omw.sources.meta_ads.helpers import DEFAULT_POLLING, JobPolling, export, page_entities, wait_for_job
 from omw.sources.meta_ads.settings import (
     ACTION_ATTRIBUTION_WINDOWS,
+    BREAKDOWNS,
     ENTITY_RESOURCES,
     ENTITY_TEXT_DEFAULTS,
     INSIGHT_FIELDS,
@@ -91,11 +92,15 @@ def _float(value: Any) -> float:
 
 
 def shape_insight(
-    level: InsightsLevel, account_id: str, currency: str, item: Mapping[str, Any]
+    level: InsightsLevel,
+    account_id: str,
+    currency: str,
+    item: Mapping[str, Any],
+    breakdown: str | None = None,
 ) -> dict[str, Any]:
     row: dict[str, Any] = {
         "source": SOURCE_NAME,
-        "report": LEVEL_REPORT[level],
+        "report": breakdown or LEVEL_REPORT[level],
         "level": level,
         "account_id": account_id,
         "currency": currency,
@@ -106,6 +111,8 @@ def shape_insight(
     if level == "ad":
         for name in ("adset_id", "adset_name", "ad_id", "ad_name"):
             row[name] = str(item.get(name, ""))
+    for name in BREAKDOWNS[breakdown] if breakdown else ():
+        row[name] = str(item.get(name, ""))
     row.update(
         {
             "impressions": _int(item.get("impressions")),
@@ -123,7 +130,9 @@ def shape_insight(
     return row
 
 
-def insights_params(level: InsightsLevel, day: date, page_size: int) -> dict[str, Any]:
+def insights_params(
+    level: InsightsLevel, day: date, page_size: int, breakdown: str | None = None
+) -> dict[str, Any]:
     params: dict[str, Any] = {
         "level": level,
         "fields": list(INSIGHT_FIELDS),
@@ -132,6 +141,8 @@ def insights_params(level: InsightsLevel, day: date, page_size: int) -> dict[str
         "action_attribution_windows": list(ACTION_ATTRIBUTION_WINDOWS),
         "limit": page_size,
     }
+    if breakdown:
+        params["breakdowns"] = list(BREAKDOWNS[breakdown])
     if level == "ad":
         params["filtering"] = [
             {"field": "adset.effective_status", "operator": "IN", "value": list(AD_LEVEL_ADSET_STATUSES)}
@@ -148,18 +159,20 @@ def _insights_resource(
     page_size: int,
     polling: JobPolling,
     sleep: Callable[[float], None],
+    breakdown: str | None = None,
 ) -> DltResource:
-    name = f"insights_{LEVEL_REPORT[level]}"
+    name = f"insights_{breakdown or LEVEL_REPORT[level]}"
 
     def rows() -> Iterator[list[dict[str, Any]]]:
         for account_id, account in accounts.items():
             for day in window:
                 # One async job per day; a day is yielded only once fully fetched, so a pacer stop in the
                 # middle of a day leaves that day as it was in the warehouse.
-                job = account.get_insights(params=insights_params(level, day, page_size), is_async=True)
+                params = insights_params(level, day, page_size, breakdown)
+                job = account.get_insights(params=params, is_async=True)
                 job = wait_for_job(job, polling, sleep)
                 day_rows = [
-                    shape_insight(level, account_id, currencies[account_id], export(item))
+                    shape_insight(level, account_id, currencies[account_id], export(item), breakdown)
                     for item in job.get_result(params={"limit": page_size})
                 ]
                 yield day_rows
@@ -169,9 +182,9 @@ def _insights_resource(
         name=name,
         write_disposition=MERGE_DISPOSITION,
         merge_key=list(INSIGHTS_MERGE_KEY),
-        columns=insights_columns(level),
+        columns=insights_columns(level, breakdown),
     )
-    return clickhouse_adapter(resource, sort=insights_sort_key(level))
+    return clickhouse_adapter(resource, sort=insights_sort_key(level, breakdown))
 
 
 def _sync_windows_resource(
@@ -227,6 +240,7 @@ def meta_ads(
     mode: SyncMode = "daily",
     window: Window | None = None,
     levels: Sequence[InsightsLevel] = ("campaign",),
+    breakdowns: Sequence[str] = (),
     entities: Sequence[str] = tuple(ENTITY_RESOURCES),
     entity_states: Sequence[str] | None = None,
     pacer: MetaPacer | None = None,
@@ -240,8 +254,9 @@ def meta_ads(
     """Meta Ads entities and insights for ``window`` (default: the cadence's trailing window).
 
     ``account_ids`` without the ``act_`` prefix. ``levels``: ``campaign`` (default) and/or ``ad`` (live ad
-    sets only). ``accounts`` injects SDK-like account objects for tests; otherwise each account is connected
-    through a session wrapped by ``pacer``.
+    sets only). ``breakdowns``: campaign-level presets (``age_gender``, ``countries``, ``placements``), each
+    its own table. ``accounts`` injects SDK-like account objects for tests; otherwise each account is
+    connected through a session wrapped by ``pacer``.
     """
     import time
 
@@ -254,6 +269,9 @@ def meta_ads(
         raise ValueError(
             f"unknown insights levels {sorted(unknown_levels)}; choose from {sorted(LEVEL_KEYS)}"
         )
+    unknown_breakdowns = set(breakdowns) - set(BREAKDOWNS)
+    if unknown_breakdowns:
+        raise ValueError(f"unknown breakdowns {sorted(unknown_breakdowns)}; choose from {sorted(BREAKDOWNS)}")
     unknown_entities = set(entities) - set(ENTITY_RESOURCES)
     if unknown_entities:
         raise ValueError(
@@ -273,4 +291,8 @@ def meta_ads(
         yield _entity_resource(name, accounts, pacer, page_size, entity_states)
     for level in levels:
         yield _insights_resource(level, accounts, currencies, pacer, window, page_size, polling, sleep)
-    yield _sync_windows_resource(list(accounts), window, mode, list(levels))
+    for breakdown in breakdowns:
+        yield _insights_resource(
+            "campaign", accounts, currencies, pacer, window, page_size, polling, sleep, breakdown
+        )
+    yield _sync_windows_resource(list(accounts), window, mode, [*levels, *breakdowns])

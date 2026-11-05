@@ -1,4 +1,4 @@
--- Google Ads marts (DESIGN.md §4): campaign and ad group daily performance, cost in the account currency.
+-- Google Ads marts (DESIGN.md §4): campaign, ad group and search term daily performance, cost in the account currency.
 -- Applied by omw.pipelines.google_ads after each successful load. SQL SECURITY DEFINER keeps raw invisible to the agent.
 -- cost_micros is Google's integer micro-amount: the views divide by 1 000 000 into a Decimal so no float rounding.
 
@@ -65,3 +65,27 @@ CREATE OR REPLACE VIEW marts.google_ads_campaign_list (
 SELECT source, customer_id, currency, time_zone, campaign_id, campaign_name, campaign_status, serving_status,
        channel_type, bidding_strategy_type, start_date, end_date, toDecimal64(budget_micros, 6) / 1000000 AS daily_budget
 FROM raw.google_ads___campaigns;
+
+CREATE OR REPLACE VIEW marts.google_ads_search_terms (
+    source LowCardinality(String) COMMENT 'Always google_ads',
+    report LowCardinality(String) COMMENT 'Report grain, always search_terms: one row per customer, ad group, search term and day. Undercounts the campaigns grain: Google withholds low-volume terms. Never combine grains',
+    customer_id LowCardinality(String) COMMENT 'Google Ads customer (account) id, digits only',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency of the customer account. cost is in this currency',
+    date Date COMMENT 'Day in the account time zone. The last 30 days are re-pulled daily for conversion lag and may change',
+    campaign_id String COMMENT 'Google Ads campaign id',
+    campaign_name String COMMENT 'Campaign name at the time of the pull',
+    ad_group_id String COMMENT 'Google Ads ad group id',
+    ad_group_name String COMMENT 'Ad group name at the time of the pull',
+    search_term String COMMENT 'The query a user typed that triggered the ad',
+    search_term_status LowCardinality(String) COMMENT 'ADDED when the term is a keyword, EXCLUDED when negative, ADDED_EXCLUDED, NONE when neither',
+    impressions UInt64 COMMENT 'Times an ad was shown for the search term',
+    clicks UInt64 COMMENT 'Clicks on the ads for the search term',
+    cost Decimal(18, 6) COMMENT 'Amount spent in the account currency (cost_micros / 1 000 000)',
+    cost_micros Int64 COMMENT 'Amount spent in micro units of the account currency, as Google reports it',
+    conversions Float64 COMMENT 'Conversions counted by the account conversion actions, fractional with modelled attribution',
+    conversions_value Float64 COMMENT 'Value of the conversions in the account currency'
+) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
+SELECT source, report, customer_id, currency, date, campaign_id, campaign_name, ad_group_id, ad_group_name, search_term,
+       search_term_status, toUInt64(impressions) AS impressions, toUInt64(clicks) AS clicks,
+       toDecimal64(cost_micros, 6) / 1000000 AS cost, cost_micros, conversions, conversions_value
+FROM raw.google_ads___performance_search_terms;

@@ -1,0 +1,200 @@
+[
+ {
+  "results": [
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact"
+    },
+    "searchTermView": {
+     "resourceName": "customers/1234567890/searchTermViews/30020001~363416",
+     "searchTerm": "acme widgets",
+     "status": "ADDED"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "600",
+     "clicks": "40",
+     "costMicros": "6000000",
+     "conversions": 2.0,
+     "conversionsValue": 100.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact"
+    },
+    "searchTermView": {
+     "resourceName": "customers/1234567890/searchTermViews/30020001~473122",
+     "searchTerm": "buy widgets online",
+     "status": "NONE"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "300",
+     "clicks": "25",
+     "costMicros": "4250000",
+     "conversions": 1.0,
+     "conversionsValue": 50.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact"
+    },
+    "searchTermView": {
+     "resourceName": "customers/1234567890/searchTermViews/30020001~363416",
+     "searchTerm": "acme widgets",
+     "status": "ADDED"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "600",
+     "clicks": "40",
+     "costMicros": "6000000",
+     "conversions": 2.0,
+     "conversionsValue": 100.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact"
+    },
+    "searchTermView": {
+     "resourceName": "customers/1234567890/searchTermViews/30020001~473122",
+     "searchTerm": "buy widgets online",
+     "status": "NONE"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "300",
+     "clicks": "25",
+     "costMicros": "4250000",
+     "conversions": 1.0,
+     "conversionsValue": 50.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact"
+    },
+    "searchTermView": {
+     "resourceName": "customers/1234567890/searchTermViews/30020001~363416",
+     "searchTerm": "acme widgets",
+     "status": "ADDED"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "600",
+     "clicks": "40",
+     "costMicros": "6000000",
+     "conversions": 2.0,
+     "conversionsValue": 100.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact"
+    },
+    "searchTermView": {
+     "resourceName": "customers/1234567890/searchTermViews/30020001~473122",
+     "searchTerm": "buy widgets online",
+     "status": "NONE"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "300",
+     "clicks": "25",
+     "costMicros": "4250000",
+     "conversions": 1.0,
+     "conversionsValue": 50.0
+    }
+   }
+  ],
+  "fieldMask": "customer.id,customer.currencyCode,campaign.id,campaign.name,adGroup.id,adGroup.name,searchTermView.searchTerm,searchTermView.status,segments.date,metrics.impressions,metrics.clicks,metrics.costMicros,metrics.conversions,metrics.conversionsValue",
+  "requestId": "synthetic-search-terms"
+ }
+]

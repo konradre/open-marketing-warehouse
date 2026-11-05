@@ -47,11 +47,13 @@ def _drop(admin_client: Client) -> None:
         admin_client.command(f"DROP {kind} IF EXISTS {database}.`{name}`")
 
 
-def _run(pipeline: dlt.Pipeline, opportunities: str = "opportunities") -> dict[str, int]:
+def _run(
+    pipeline: dlt.Pipeline, opportunities: str = "opportunities", deleted: str | None = None
+) -> dict[str, int]:
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add_passthru("http://127.0.0.1")
         mock.add_passthru("http://localhost")
-        register_api(mock, opportunities)
+        register_api(mock, opportunities, deleted)
         return run_daily(pipeline, base_url=BASE_URL, api_key="k", session=default_session(2, 0.0))
 
 
@@ -120,3 +122,19 @@ def test_a_moved_opportunity_is_merged_not_duplicated(
     assert stage[0] == "CUSTOMER" and stage[1].year == 2026 and stage[1].month == 10
     with pytest.raises(DatabaseError, match="Code: 497"):
         agent_client.query(f"SELECT count() FROM raw.{DATASET}___companies")
+
+
+def test_a_deleted_opportunity_leaves_the_pipeline_but_stays_in_raw(
+    loaded: dlt.Pipeline, admin_client: Client, agent_client: Client
+) -> None:
+    counts = _run(loaded, opportunities="empty", deleted="opportunities_deleted")
+    assert counts.get("opportunities", 0) == 1  # the deleted pass merged one row into the same table
+    assert admin_client.query("SELECT count() FROM raw.twenty___opportunities").result_rows[0][0] == 3
+    deleted_at = admin_client.query(
+        "SELECT deleted_at FROM raw.twenty___opportunities WHERE name = 'Globex - pilot'"
+    ).result_rows[0][0]
+    assert deleted_at.year == 2026 and deleted_at.month == 10 and deleted_at.day == 4
+    names = {
+        r[0] for r in agent_client.query("SELECT opportunity_name FROM marts.twenty_pipeline").result_rows
+    }
+    assert "Globex - pilot" not in names and len(names) == 2

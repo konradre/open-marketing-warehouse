@@ -45,6 +45,11 @@ def shape_performance(report: Report, item: Mapping[str, Any]) -> dict[str, Any]
     if report.name == "campaigns":
         row["campaign_status"] = str(_get(item, "campaign.status"))
         row["channel_type"] = str(_get(item, "campaign.advertisingChannelType"))
+    elif report.name == "search_terms":
+        row["ad_group_id"] = str(_get(item, "adGroup.id"))
+        row["ad_group_name"] = str(_get(item, "adGroup.name"))
+        row["search_term"] = str(_get(item, "searchTermView.searchTerm"))
+        row["search_term_status"] = str(_get(item, "searchTermView.status"))
     else:
         row["ad_group_id"] = str(_get(item, "adGroup.id"))
         row["ad_group_name"] = str(_get(item, "adGroup.name"))
@@ -74,6 +79,11 @@ def performance_columns(report: Report) -> dict[str, TColumnSchema]:
     if report.name == "campaigns":
         hints["campaign_status"] = column("text")
         hints["channel_type"] = column("text")
+    elif report.name == "search_terms":
+        hints["ad_group_id"] = column("text")
+        hints["ad_group_name"] = column("text")
+        hints["search_term"] = column("text")
+        hints["search_term_status"] = column("text")
     else:
         hints["ad_group_id"] = column("text")
         hints["ad_group_name"] = column("text")

@@ -59,7 +59,15 @@ def test_updated_at_filter_syntax() -> None:
 def test_resources_page_with_the_cursor_and_carry_the_key() -> None:
     register_api(responses)
     source = twenty(base_url=BASE_URL, api_key="twenty-key", session=_session())
-    assert set(source.resources) == {"companies", "people", "opportunities", "sync_windows"}
+    assert set(source.resources) == {
+        "companies",
+        "people",
+        "opportunities",
+        "deleted_companies",
+        "deleted_people",
+        "deleted_opportunities",
+        "sync_windows",
+    }
     companies = list(source.resources["companies"])
     assert [c["name"] for c in companies] == ["Acme Widgets", "Globex", "Initech"]
     assert len(list(source.resources["opportunities"])) == 3
@@ -142,3 +150,20 @@ def test_marts_sql_views() -> None:
         in stmts[0]
     )
     assert "GROUP BY source, stage, currency, campaign_key" in stmts[1]
+
+
+@responses.activate
+def test_deleted_pass_asks_for_soft_deleted_records_into_the_same_table() -> None:
+    register_api(responses, deleted_opportunities="opportunities_deleted")
+    source = twenty(base_url=BASE_URL, api_key="twenty-key", session=_session())
+    deleted = source.resources["deleted_opportunities"]
+    assert deleted.table_name == "opportunities"
+    rows = list(deleted)
+    assert [r["name"] for r in rows] == ["Globex - pilot"]
+    assert rows[0]["deleted_at"].year == 2026 and rows[0]["deleted_at"].month == 10
+    query = parse_qs(urlparse(str(responses.calls[0].request.url)).query)
+    assert query["filter"] == ['and(deletedAt[is]:NOT_NULL,deletedAt[gte]:"1970-01-01T00:00:00Z")']
+    assert query["order_by"] == ["deletedAt[AscNullsLast]"] and query["limit"] == ["60"]
+    assert list(source.resources["deleted_companies"]) == []
+    hints: dict[str, Any] = dict(deleted.compute_table_schema())
+    assert hints["write_disposition"] == "merge" and hints["name"] == "opportunities"

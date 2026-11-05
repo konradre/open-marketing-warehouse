@@ -66,3 +66,20 @@ def test_entities_are_flat() -> None:
     assert row["campaign_id"] == "20010003" and row["campaign_status"] == "PAUSED"
     assert row["budget_micros"] == 100_000_000 and row["time_zone"] == "Europe/Berlin"
     assert set(row) == set(ENTITY_COLUMNS)
+
+
+def test_search_term_rows_carry_the_term_and_its_status() -> None:
+    report = REPORTS["search_terms"]
+    query = performance_query(report, Window(date(2026, 10, 1), date(2026, 10, 3)))
+    assert query.startswith(
+        "SELECT customer.id, customer.currency_code, campaign.id, campaign.name, ad_group.id"
+    )
+    assert "search_term_view.search_term, search_term_view.status, segments.date" in query
+    assert "FROM search_term_view WHERE segments.date BETWEEN '2026-10-01' AND '2026-10-03'" in query
+    rows = [shape_performance(report, item) for item in fixture_results("search_terms_stream")]
+    assert len(rows) == 6 and rows[0]["report"] == "search_terms"
+    assert rows[0]["search_term"] == "acme widgets" and rows[0]["search_term_status"] == "ADDED"
+    assert rows[1]["search_term_status"] == "NONE" and rows[0]["ad_group_id"] == rows[1]["ad_group_id"]
+    assert rows[0]["cost_micros"] == 6_000_000 and rows[0]["clicks"] == 40
+    hints = performance_columns(report)
+    assert hints["search_term"] == {"data_type": "text", "nullable": False}

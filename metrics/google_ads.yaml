@@ -25,6 +25,22 @@ reports:
       ad_group_name: Ad group name at pull time
     campaign_key: "concat('google_ads:', campaign_id)"
     restatement_days: 30
+  - name: search_terms
+    view: marts.google_ads_search_terms
+    description: Google Ads search term daily performance, one row per ad group, search term and day.
+    dimensions:
+      customer_id: Google Ads customer (account) id
+      currency: ISO 4217 currency of the account
+      campaign_id: Google Ads campaign id
+      campaign_name: Campaign name at pull time
+      ad_group_id: Google Ads ad group id
+      ad_group_name: Ad group name at pull time
+      search_term: The query a user typed that triggered the ad
+      search_term_status: ADDED (a keyword), EXCLUDED (a negative), ADDED_EXCLUDED or NONE
+    campaign_key: "concat('google_ads:', campaign_id)"
+    restatement_days: 30
+    traps:
+      - Search terms undercount the campaigns grain; Google withholds low-volume terms.
 metrics:
   - name: google_spend
     report: campaigns
@@ -68,3 +84,21 @@ metrics:
     unit: currency
     grains: [customer_id, currency, campaign_id, campaign_name, ad_group_id, ad_group_name, campaign_key]
     description: Google Ads spend at ad group grain.
+  - name: google_search_term_clicks
+    report: search_terms
+    expr: sum(clicks)
+    unit: count
+    grains: [customer_id, currency, campaign_id, campaign_name, ad_group_id, ad_group_name, search_term, search_term_status, campaign_key]
+    description: Clicks per search term. Sums to less than google_clicks because low-volume terms are withheld.
+  - name: google_search_term_spend
+    report: search_terms
+    expr: sum(cost)
+    unit: currency
+    grains: [customer_id, currency, campaign_id, campaign_name, ad_group_id, ad_group_name, search_term, search_term_status, campaign_key]
+    description: Google Ads spend per search term, in the account currency.
+  - name: google_search_term_conversions
+    report: search_terms
+    expr: sum(conversions)
+    unit: events
+    grains: [customer_id, currency, campaign_id, campaign_name, ad_group_id, ad_group_name, search_term, search_term_status, campaign_key]
+    description: Conversions per search term, fractional with modelled attribution.

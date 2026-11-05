@@ -48,3 +48,16 @@ def test_entity_views_list_campaigns_and_ad_sets_with_budgets() -> None:
         columns = re.findall(r"^\s+(\w+) [\w(), ]+ COMMENT '", statement, re.MULTILINE)
         assert {"currency", "daily_budget", "lifetime_budget", "status", "effective_status"} <= set(columns)
         assert "toInt64OrZero" in statement and ";" not in statement
+
+
+def test_breakdown_views_add_their_segment_columns() -> None:
+    for name, fields in (
+        ("age_gender", ["age", "gender"]),
+        ("countries", ["country"]),
+        ("placements", ["publisher_platform", "platform_position"]),
+    ):
+        stmts = statements((SQL_DIR / f"20_meta_ads_marts_{name}.sql").read_text())
+        assert len(stmts) == 1 and f"CREATE OR REPLACE VIEW marts.meta_ads_{name}" in stmts[0]
+        assert f"FROM raw.meta_ads___insights_{name}" in stmts[0] and ";" not in stmts[0]
+        columns = re.findall(r"^\s+(\w+) [\w(), ]+ COMMENT '", stmts[0], re.MULTILINE)
+        assert columns[7 : 7 + len(fields)] == fields
