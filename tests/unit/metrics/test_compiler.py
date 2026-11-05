@@ -98,17 +98,22 @@ def test_cross_source_measure_is_one_cte_per_source_joined_on_the_common_grain(c
         "r_stripe_invoices AS (SELECT date, campaign_key, sum(amount) AS revenue FROM marts.stripe_revenue"
         in sql
     )
-    assert sql.count("currency = 'eur'") == 3
+    assert sql.count("currency = 'eur'") == 4
     assert (
+        "FULL OUTER JOIN r_linkedin_ads_campaigns USING (date, campaign_key) "
         "FULL OUTER JOIN r_meta_ads_campaigns USING (date, campaign_key) "
         "FULL OUTER JOIN r_stripe_invoices USING (date, campaign_key)" in sql
     )
-    assert "toFloat64(revenue) / nullIf((toFloat64(meta_spend) + toFloat64(google_spend)), 0) AS roas" in sql
-    assert "toFloat64(meta_spend) + toFloat64(google_spend) AS ad_spend" in sql
+    assert (
+        "toFloat64(revenue) / nullIf((toFloat64(meta_spend) + toFloat64(google_spend) "
+        "+ toFloat64(linkedin_spend)), 0) AS roas"
+    ) in sql
+    assert "toFloat64(meta_spend) + toFloat64(google_spend) + toFloat64(linkedin_spend) AS ad_spend" in sql
     assert plan.columns == ["date", "campaign_key", "roas", "ad_spend"]
     assert "SELECT date, campaign_key, toFloat64(revenue) / nullIf(" in plan.sql
     assert [r.report.key for r in plan.reports] == [
         "google_ads.campaigns",
+        "linkedin_ads.campaigns",
         "meta_ads.campaigns",
         "stripe.invoices",
     ]
@@ -161,3 +166,40 @@ def test_derived_on_one_source_wraps_the_cte(catalog: Catalog) -> None:
 def test_refusals(catalog: Catalog, request_: dict[str, object], reason: str) -> None:
     with pytest.raises(RefuseError, match=reason):
         compile_request(catalog, MetricRequest(time_range=OCTOBER, **request_), TODAY)  # type: ignore[arg-type]
+
+
+def test_named_time_ranges_resolve_against_today(catalog: Catalog) -> None:
+    plan = compile_request(
+        catalog,
+        MetricRequest(metrics=["sessions"], dimensions=["date"], time_range="last_30_days", compare="week"),
+        TODAY,
+    )
+    assert "(date BETWEEN '2026-09-05' AND '2026-10-04')" in plan.sql
+    assert "(date BETWEEN '2026-08-29' AND '2026-09-27')" in plan.sql
+    assert any("30-day restatement" not in c for c in plan.caveats)
+
+
+def test_pipeline_cac_joins_three_ad_platforms_to_the_crm(catalog: Catalog) -> None:
+    plan = compile_request(
+        catalog,
+        MetricRequest(
+            metrics=["pipeline_cac", "ad_spend"],
+            dimensions=["date", "campaign_key"],
+            filters={"currency": "EUR"},
+            time_range=OCTOBER,
+        ),
+        TODAY,
+    )
+    assert [p.alias for p in plan.reports] == [
+        "r_google_ads_campaigns",
+        "r_linkedin_ads_campaigns",
+        "r_meta_ads_campaigns",
+        "r_twenty_opportunities",
+    ]
+    assert "FROM marts.twenty_pipeline" in plan.sql and "FROM marts.linkedin_ads_campaigns" in plan.sql
+    assert plan.sql.count("FULL OUTER JOIN") == 3
+    assert (
+        "(toFloat64(meta_spend) + toFloat64(google_spend) + toFloat64(linkedin_spend)) "
+        "/ nullIf(toFloat64(opportunities), 0) AS pipeline_cac"
+    ) in plan.sql
+    assert plan.columns == ["date", "campaign_key", "pipeline_cac", "ad_spend"]

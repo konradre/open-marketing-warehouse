@@ -289,7 +289,7 @@ def compile_request(catalog: Catalog, request: MetricRequest, today: date | None
     for metric in base:
         _check_dimensions(catalog, metric, dimensions)
 
-    current = request.time_range
+    current = request.window(today)
     previous = current.shifted(request.compare) if request.compare else None
     plans = [
         ReportPlan(
@@ -322,15 +322,20 @@ def compile_request(catalog: Catalog, request: MetricRequest, today: date | None
         select = [*keys, *_output_select(catalog, requested)]
         sql = f"WITH {ctes} SELECT {', '.join(select)} FROM {joins} ORDER BY {order} LIMIT {request.limit}"
 
-    caveats = _caveats(catalog, base, reports, request, today)
+    caveats = _caveats(catalog, base, reports, request, current, today)
     return Plan(request, sql, plans, derived, output, caveats)
 
 
 def _caveats(
-    catalog: Catalog, base: list[Metric], reports: list[Report], request: MetricRequest, today: date
+    catalog: Catalog,
+    base: list[Metric],
+    reports: list[Report],
+    request: MetricRequest,
+    current: TimeRange,
+    today: date,
 ) -> list[str]:
     found: list[str] = []
-    end = request.time_range.end
+    end = current.end
     for report in reports:
         if report.restatement_days:
             boundary = date.fromordinal(today.toordinal() - report.restatement_days)

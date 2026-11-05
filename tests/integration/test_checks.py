@@ -56,6 +56,7 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
     admin_client.command("DROP TABLE IF EXISTS ops.check_results")
     # DROP TABLE removes a view too; the T1 boundary fixture may have left a placeholder table here.
     admin_client.command("DROP TABLE IF EXISTS ops.freshness")
+    admin_client.command("DROP TABLE IF EXISTS ops.check_verdicts")
     ga4_pipeline.run_daily(
         dlt.pipeline(
             "ga4_ck",
@@ -139,6 +140,16 @@ def test_stale_source_fails_freshness_and_the_agent_reads_the_verdict(
         "SELECT name, comment FROM system.columns WHERE database = 'ops' AND table = 'freshness'"
     ).result_rows
     assert columns and all(comment for _, comment in columns)
+    latest = {
+        (str(r[0]), str(r[1]), str(r[2])): str(r[3])
+        for r in agent_client.query(
+            "SELECT source, check, report, status FROM ops.check_verdicts"
+        ).result_rows
+    }
+    assert (
+        latest[("ga4", "freshness", "sync")] == "fail" and latest[("stripe", "freshness", "sync")] == "fail"
+    )
+    assert latest[("ga4", "overcount", "channels")] == "pass"
     with pytest.raises(DatabaseError, match="Code: 497"):
         agent_client.query("SELECT count() FROM ops.check_results")
 

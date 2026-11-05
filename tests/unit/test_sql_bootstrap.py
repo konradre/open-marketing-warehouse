@@ -65,6 +65,7 @@ def test_grants_match_the_boundary() -> None:
         ("SELECT", "INFORMATION_SCHEMA.*", "pipeline"),
         ("SELECT", "marts.*", "agent"),
         ("SELECT", "ops.freshness", "agent"),
+        ("SELECT", "ops.check_verdicts", "agent"),
     }
 
 

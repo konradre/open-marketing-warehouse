@@ -157,14 +157,16 @@ def test_runner_filters_sources_and_can_skip_writing(warehouse: FakeWarehouse) -
     assert [r.source for r in run.results] == ["stripe"] and warehouse.inserted == []
 
 
-def test_ops_sql_has_the_table_and_the_definer_view() -> None:
+def test_ops_sql_has_the_table_and_the_definer_views() -> None:
     stmts = statements(OPS_SQL.read_text())
-    assert len(stmts) == 2
+    assert len(stmts) == 3
     assert "CREATE TABLE IF NOT EXISTS ops.check_results" in stmts[0]
     columns = re.findall(r"^\s+(\w+) [\w()]+ COMMENT '", stmts[0], re.MULTILINE)
     assert tuple(columns) == CHECK_RESULT_COLUMNS
     assert "CREATE OR REPLACE VIEW ops.freshness" in stmts[1] and "SQL SECURITY DEFINER" in stmts[1]
-    assert "WHERE check = 'freshness'" in stmts[1] and all(";" not in s for s in stmts)
+    assert "WHERE check = 'freshness'" in stmts[1]
+    assert "CREATE OR REPLACE VIEW ops.check_verdicts" in stmts[2] and "SQL SECURITY DEFINER" in stmts[2]
+    assert "GROUP BY source, check, report" in stmts[2] and all(";" not in s for s in stmts)
 
 
 def test_cli_exit_codes(monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehouse) -> None:

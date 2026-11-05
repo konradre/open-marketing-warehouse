@@ -21,9 +21,19 @@ def test_catalog_loads_every_source(catalog: Catalog) -> None:
         "search_console",
         "ga4",
         "stripe",
+        "linkedin_ads",
+        "twenty",
     }
-    assert {"meta_spend", "google_spend", "revenue", "search_clicks", "sessions"} <= set(catalog.metrics)
-    assert set(catalog.derived) == {"ad_spend", "roas", "cac", "blended_cpc"}
+    assert {
+        "meta_spend",
+        "google_spend",
+        "linkedin_spend",
+        "revenue",
+        "search_clicks",
+        "sessions",
+        "opportunities",
+    } <= set(catalog.metrics)
+    assert set(catalog.derived) == {"ad_spend", "roas", "cac", "pipeline_cac", "blended_cpc"}
     for metric in catalog.metrics.values():
         assert metric.description and metric.report_key in catalog.reports
     for derived in catalog.derived.values():
@@ -37,6 +47,8 @@ def test_every_mart_view_from_the_sources_is_a_report(catalog: Catalog) -> None:
         "marts.google_ads_campaigns",
         "marts.stripe_revenue",
         "marts.ga4_core",
+        "marts.linkedin_ads_campaigns",
+        "marts.twenty_pipeline",
     } <= views
 
 
@@ -51,9 +63,20 @@ def test_semantics_names_every_metric_and_stays_small(catalog: Catalog) -> None:
 
 def test_aliases_resolve_and_ambiguity_is_visible(catalog: Catalog) -> None:
     assert catalog.resolve("meta_spend") == ["meta_spend"]
-    assert catalog.resolve("spend") == ["google_spend", "meta_spend"]
+    assert catalog.resolve("spend") == ["google_spend", "linkedin_spend", "meta_spend"]
     assert catalog.resolve("nope") == []
-    assert [m.name for m in catalog.base_metrics("roas")] == ["google_spend", "meta_spend", "revenue"]
+    assert [m.name for m in catalog.base_metrics("roas")] == [
+        "google_spend",
+        "linkedin_spend",
+        "meta_spend",
+        "revenue",
+    ]
+    assert [m.name for m in catalog.base_metrics("pipeline_cac")] == [
+        "google_spend",
+        "linkedin_spend",
+        "meta_spend",
+        "opportunities",
+    ]
 
 
 def _catalog(**parts: list[dict[str, Any]]) -> Catalog:

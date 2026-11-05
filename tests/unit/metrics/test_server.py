@@ -17,6 +17,8 @@ from tests.unit.metrics.conftest import TODAY
 
 
 def _execute(sql: str) -> tuple[list[str], list[list[Any]]]:
+    if "ops.check_verdicts" in sql:
+        return ["source", "check", "report", "status", "detail"], []
     return ["date", "sessions"], [["2026-10-01", 10]]
 
 
@@ -56,6 +58,16 @@ def test_query_payload_serves(catalog: Catalog) -> None:
         and payload["rows"] == [["2026-10-01", 10]]
         and payload["columns"] == ["date", "sessions"]
     )
+
+
+def test_query_payload_takes_a_named_time_range(catalog: Catalog) -> None:
+    payload = query_metrics_payload(
+        catalog, _execute, ["sessions"], "last_7_days", dimensions=["date"], today=TODAY
+    )
+    assert payload["mood"] == "disclose"  # the last 3 days are inside GA4's restatement window
+    assert "date BETWEEN '2026-09-28' AND '2026-10-04'" in payload["sql"]
+    unknown = query_metrics_payload(catalog, _execute, ["sessions"], "last_fortnight", today=TODAY)
+    assert unknown["mood"] == "refuse" and "invalid request" in unknown["reason"]
 
 
 def test_server_registers_the_three_tools_and_runs_query_metrics() -> None:

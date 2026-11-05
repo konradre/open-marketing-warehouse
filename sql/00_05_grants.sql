@@ -6,6 +6,7 @@ GRANT ALL ON marts.* TO pipeline;
 -- dlt discovers existing schemas through INFORMATION_SCHEMA before it loads.
 GRANT SELECT ON INFORMATION_SCHEMA.* TO pipeline;
 
--- agent: SELECT on marts.* and ops.freshness only. No grant on raw, so it is invisible.
+-- agent: SELECT on marts.* and the two ops verdict views only. No grant on raw, so it is invisible.
 GRANT SELECT ON marts.* TO agent;
 GRANT SELECT ON ops.freshness TO agent;
+GRANT SELECT ON ops.check_verdicts TO agent;

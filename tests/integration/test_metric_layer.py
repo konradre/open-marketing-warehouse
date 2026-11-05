@@ -1,31 +1,41 @@
-"""Compiled metric queries run as the agent over the fixture loads of Meta, Google Ads and Stripe."""
+"""Compiled metric queries run as the agent over the fixture loads of Meta, Google Ads, LinkedIn Ads, Stripe
+and Twenty, with the post-sync verdicts folded into the caveats."""
 
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 import dlt
 import pytest
+import responses
 from clickhouse_connect.driver.client import Client
 
+from omw.checks.runner import apply_ops_sql
 from omw.metrics import Catalog, MetricRequest, Mood, TimeRange, load_catalog
 from omw.metrics.runner import answer_request, clickhouse_executor
 from omw.pacing import MetaPacer
 from omw.pipelines import google_ads as google_pipeline
+from omw.pipelines import linkedin_ads as linkedin_pipeline
 from omw.pipelines import meta_ads as meta_pipeline
 from omw.pipelines import stripe as stripe_pipeline
+from omw.pipelines import twenty as twenty_pipeline
 from omw.pipelines.marts import SQL_DIR, statements
+from omw.sources.linkedin_ads import LinkedInAuth
+from omw.sources.twenty.source import default_session as twenty_session
 from tests.integration.conftest import setting
 from tests.unit.google_ads.conftest import CUSTOMER, FakeGoogleAdsClient
+from tests.unit.linkedin_ads import conftest as linkedin_fixtures
 from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount
 from tests.unit.stripe.conftest import FakeStripeClient
+from tests.unit.twenty import conftest as twenty_fixtures
 
 pytestmark = pytest.mark.integration
 
 TODAY = date(2026, 10, 5)
 OCTOBER = TimeRange(start=date(2026, 10, 1), end=date(2026, 10, 3))
+DATASETS = ("meta_ads", "google_ads", "stripe", "linkedin_ads", "twenty")
 
 
 def _destination() -> Any:
@@ -53,9 +63,39 @@ def _drop(admin_client: Client, dataset: str) -> None:
         admin_client.command(f"DROP {kind} IF EXISTS {database}.`{name}`")
 
 
+def _pipeline(name: str, dataset: str, tmp_path_factory: pytest.TempPathFactory) -> dlt.Pipeline:
+    return dlt.pipeline(
+        name,
+        destination=_destination(),
+        dataset_name=dataset,
+        pipelines_dir=str(tmp_path_factory.mktemp(name)),
+    )
+
+
+def _load_http_sources(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """LinkedIn and Twenty are served by `responses`; ClickHouse traffic passes through untouched."""
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
+        mock.add_passthru("http://127.0.0.1")
+        mock.add_passthru("http://localhost")
+        linkedin_fixtures.register_api(mock)
+        twenty_fixtures.register_api(mock)
+        linkedin_pipeline.run_daily(
+            _pipeline("linkedin_ml", "linkedin_ads", tmp_path_factory),
+            today=TODAY,
+            account_ids=[linkedin_fixtures.ACCOUNT],
+            auth=LinkedInAuth(linkedin_fixtures.VERSION, token_provider=lambda: "t"),
+        )
+        twenty_pipeline.run_daily(
+            _pipeline("twenty_ml", "twenty", tmp_path_factory),
+            base_url=twenty_fixtures.BASE_URL,
+            api_key="k",
+            session=twenty_session(2, 0.0),
+        )
+
+
 @pytest.fixture(scope="module")
 def warehouse(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> Iterator[Catalog]:
-    for dataset in ("meta_ads", "google_ads", "stripe"):
+    for dataset in DATASETS:
         _drop(admin_client, dataset)
     admin_client.command("DROP TABLE IF EXISTS marts.campaign_keys")
     for statement in statements((SQL_DIR / "60_metric_layer.sql").read_text()):
@@ -96,6 +136,7 @@ def warehouse(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) ->
         today=TODAY,
         client=FakeStripeClient(),
     )
+    _load_http_sources(tmp_path_factory)
     # Map one Meta and one Google campaign onto the keys the Stripe fixtures carry in their metadata.
     admin_client.insert(
         "marts.campaign_keys",
@@ -106,7 +147,7 @@ def warehouse(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) ->
         column_names=["source", "native_id", "campaign_key", "campaign_name"],
     )
     yield load_catalog()
-    for dataset in ("meta_ads", "google_ads", "stripe"):
+    for dataset in DATASETS:
         _drop(admin_client, dataset)
     admin_client.command("DROP TABLE IF EXISTS marts.campaign_keys")
 
@@ -205,3 +246,77 @@ def test_the_guard_and_the_profile_hold_for_compiled_sql(warehouse: Catalog, age
         TODAY,
     )
     assert answer.truncated and len(answer.rows) == 2 and "LIMIT 2" in answer.sql
+
+
+def test_linkedin_spend_carries_the_campaign_name(warehouse: Catalog, agent_client: Client) -> None:
+    answer = answer_request(
+        warehouse,
+        MetricRequest(
+            metrics=["linkedin_spend", "linkedin_clicks"],
+            dimensions=["campaign_id", "campaign_name"],
+            filters={"currency": "EUR"},
+            time_range=OCTOBER,
+        ),
+        clickhouse_executor(agent_client),
+        TODAY,
+    )
+    assert answer.mood is Mood.DISCLOSE, answer.reason
+    rows = {row[0]: row[1:] for row in answer.rows}
+    assert set(rows) == {"800001", "800002"} and all(row[0] for row in rows.values())
+    assert abs(float(rows["800001"][1]) - (210.40 + 220.40 + 230.40)) < 1e-6
+
+
+def test_pipeline_cac_divides_ad_spend_by_opportunities_created(
+    warehouse: Catalog, agent_client: Client
+) -> None:
+    answer = answer_request(
+        warehouse,
+        MetricRequest(
+            metrics=["ad_spend", "opportunities", "pipeline_cac"],
+            dimensions=["date"],
+            filters={"currency": "USD"},
+            time_range="last_7_days",
+        ),
+        clickhouse_executor(agent_client),
+        TODAY,
+    )
+    assert answer.mood is Mood.DISCLOSE, answer.reason
+    assert "date BETWEEN '2026-09-28' AND '2026-10-04'" in answer.sql
+    rows = {row[0]: row[1:] for row in answer.rows}
+    # Meta is the only USD ad platform in the fixtures; one USD opportunity was created on 2026-10-03.
+    assert abs(float(rows[date(2026, 10, 3)][0]) - 76.60) < 1e-6
+    assert rows[date(2026, 10, 3)][1] == 1 and abs(float(rows[date(2026, 10, 3)][2]) - 76.60) < 1e-6
+    assert rows[date(2026, 10, 1)][1] == 0 and rows[date(2026, 10, 1)][2] is None  # join defaults, not NULL
+
+
+def test_a_failed_check_on_the_source_becomes_a_caveat(
+    warehouse: Catalog, admin_client: Client, agent_client: Client
+) -> None:
+    apply_ops_sql(admin_client)
+    admin_client.command("DELETE FROM ops.check_results WHERE source = 'twenty'")
+    admin_client.insert(
+        "ops.check_results",
+        [
+            [
+                datetime(2026, 10, 5, 6, 0),
+                "twenty",
+                "freshness",
+                "sync",
+                "fail",
+                100.0,
+                30.0,
+                "last sync 100.0h ago",
+            ],
+            [datetime(2026, 10, 5, 6, 0), "twenty", "rowcount", "opportunities", "warn", 0.0, 3.0, "no rows"],
+        ],
+        column_names=["checked_at", "source", "check", "report", "status", "observed", "expected", "detail"],
+    )
+    try:
+        request = MetricRequest(metrics=["opportunities"], dimensions=["date"], time_range=OCTOBER)
+        answer = answer_request(warehouse, request, clickhouse_executor(agent_client), TODAY)
+        assert answer.mood is Mood.DISCLOSE
+        assert "twenty freshness check fail: last sync 100.0h ago; its numbers may be stale" in answer.caveats
+        assert "twenty.opportunities rowcount check warn: no rows" in answer.caveats
+        assert answer.rows  # the numbers are still answered
+    finally:
+        admin_client.command("DELETE FROM ops.check_results WHERE source = 'twenty'")

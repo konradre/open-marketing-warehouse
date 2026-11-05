@@ -1,0 +1,51 @@
+source: linkedin_ads
+reports:
+  - name: campaigns
+    view: marts.linkedin_ads_campaigns
+    description: LinkedIn Ads campaign daily analytics, one row per sponsored account, campaign and day.
+    dimensions:
+      account_id: LinkedIn sponsored account id
+      currency: ISO 4217 currency of the sponsored account; cost is in it
+      campaign_id: LinkedIn campaign id
+      campaign_name: Campaign name at the last entity pull, empty when no longer listed
+    campaign_key: "concat('linkedin_ads:', campaign_id)"
+    restatement_days: 7
+    traps:
+      - LinkedIn settles cost and conversions over a few days; the last 7 days are re-pulled and may change.
+metrics:
+  - name: linkedin_spend
+    report: campaigns
+    expr: sum(cost)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [spend, cost, ad_spend_linkedin]
+    description: Amount spent on LinkedIn Ads, in the account currency.
+  - name: linkedin_impressions
+    report: campaigns
+    expr: sum(impressions)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [impressions]
+    description: Times a LinkedIn ad was shown.
+  - name: linkedin_clicks
+    report: campaigns
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [clicks]
+    description: Chargeable clicks on LinkedIn ads.
+  - name: linkedin_conversions
+    report: campaigns
+    expr: sum(conversions)
+    unit: events
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [conversions]
+    description: Website conversions attributed by the LinkedIn Insight Tag, post-click and post-view.
+  - name: linkedin_cpc
+    report: campaigns
+    expr: sum(cost) / nullIf(sum(clicks), 0)
+    unit: currency
+    aggregation: rate
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [cpc]
+    description: LinkedIn cost per click, recomputed at the requested grain.
