@@ -26,11 +26,11 @@ wait_http() {  # wait_http <name> <url> <attempts>
 
 "${compose[@]}" up -d --wait --wait-timeout 600
 # LibreChat and Langfuse have no compose healthcheck: wait for their HTTP health endpoints instead.
-wait_http "LibreChat" "http://127.0.0.1:${chat_port}/api/health" 60
+wait_http "LibreChat" "http://127.0.0.1:${chat_port}/health" 60
 wait_http "Langfuse" "http://127.0.0.1:${langfuse_port}/api/public/health" 120
-# LibreChat must have loaded librechat.yaml and connected the warehouse MCP server (DESIGN.md §6).
-if ! "${compose[@]}" logs --no-color librechat | grep -qiE "mcp.*(warehouse|initialized|connected)"; then
-  echo "profiles-smoke: LibreChat did not report the warehouse MCP server in its logs" >&2
+# LibreChat must have loaded librechat.yaml and listed the warehouse MCP server's tools (DESIGN.md §6).
+if ! "${compose[@]}" logs --no-color librechat | grep -qE "\[MCP\]\[warehouse\] Tools: [a-z_]+"; then
+  echo "profiles-smoke: LibreChat did not list the warehouse MCP server's tools" >&2
   "${compose[@]}" logs --no-color --tail 100 librechat >&2
   exit 1
 fi

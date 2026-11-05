@@ -9,10 +9,17 @@ interface:
   parameters: true
   sidePanel: true
   presets: true
+# LibreChat blocks MCP servers on private addresses unless their host is allow-listed (SSRF guard).
+mcpSettings:
+  allowedDomains:
+    - mcp-clickhouse
 mcpServers:
   warehouse:
     type: streamable-http
     url: http://mcp-clickhouse:8000/mcp
+    # The server authenticates with the static bearer token below. Without this flag LibreChat probes the
+    # URL unauthenticated, reads the 401 as "OAuth required" and never lists the tools.
+    requiresOAuth: false
     headers:
       Authorization: "Bearer ${OMW_MCP_AUTH_TOKEN}"
     timeout: 60000
