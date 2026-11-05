@@ -1,0 +1,80 @@
+[
+ {
+  "results": [
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search",
+     "status": "ENABLED",
+     "advertisingChannelType": "SEARCH"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "4100",
+     "clicks": "330",
+     "costMicros": "49500000",
+     "conversions": 15.0,
+     "conversionsValue": 1210.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010002",
+     "id": "20010002",
+     "name": "Generic - Widgets",
+     "status": "ENABLED",
+     "advertisingChannelType": "SEARCH"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "9200",
+     "clicks": "422",
+     "costMicros": "157250000",
+     "conversions": 11.0,
+     "conversionsValue": 702.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog",
+     "status": "ENABLED",
+     "advertisingChannelType": "SEARCH"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "15300",
+     "clicks": "298",
+     "costMicros": "98500000",
+     "conversions": 24.0,
+     "conversionsValue": 2010.0
+    }
+   }
+  ],
+  "fieldMask": "customer.id,customer.currencyCode,campaign.id,campaign.name,campaign.status,campaign.advertisingChannelType,segments.date,metrics.impressions,metrics.clicks,metrics.costMicros,metrics.conversions,metrics.conversionsValue",
+  "requestId": "req-0000000000000002"
+ }
+]

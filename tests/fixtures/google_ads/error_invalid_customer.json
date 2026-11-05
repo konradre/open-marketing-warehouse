@@ -1,0 +1,21 @@
+{
+ "error": {
+  "code": 400,
+  "message": "Request contains an invalid argument.",
+  "status": "INVALID_ARGUMENT",
+  "details": [
+   {
+    "@type": "type.googleapis.com/google.ads.googleads.v22.errors.GoogleAdsFailure",
+    "errors": [
+     {
+      "errorCode": {
+       "authorizationError": "CUSTOMER_NOT_ENABLED"
+      },
+      "message": "The customer account can't be accessed because it is not yet enabled or has been deactivated."
+     }
+    ],
+    "requestId": "req-0000000000000006"
+   }
+  ]
+ }
+}

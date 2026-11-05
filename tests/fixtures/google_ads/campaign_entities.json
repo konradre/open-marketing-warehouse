@@ -1,0 +1,68 @@
+[
+ {
+  "results": [
+   {
+    "customer": {
+     "id": "1234567890",
+     "currencyCode": "EUR",
+     "timeZone": "Europe/Berlin"
+    },
+    "campaign": {
+     "id": "20010001",
+     "name": "Brand - Search",
+     "status": "ENABLED",
+     "servingStatus": "SERVING",
+     "advertisingChannelType": "SEARCH",
+     "biddingStrategyType": "TARGET_IMPRESSION_SHARE",
+     "startDate": "2026-01-10",
+     "endDate": "2037-12-30"
+    },
+    "campaignBudget": {
+     "amountMicros": "50000000"
+    }
+   },
+   {
+    "customer": {
+     "id": "1234567890",
+     "currencyCode": "EUR",
+     "timeZone": "Europe/Berlin"
+    },
+    "campaign": {
+     "id": "20010002",
+     "name": "Generic - Widgets",
+     "status": "ENABLED",
+     "servingStatus": "SERVING",
+     "advertisingChannelType": "SEARCH",
+     "biddingStrategyType": "MAXIMIZE_CONVERSIONS",
+     "startDate": "2026-02-01",
+     "endDate": "2037-12-30"
+    },
+    "campaignBudget": {
+     "amountMicros": "160000000"
+    }
+   },
+   {
+    "customer": {
+     "id": "1234567890",
+     "currencyCode": "EUR",
+     "timeZone": "Europe/Berlin"
+    },
+    "campaign": {
+     "id": "20010003",
+     "name": "PMax - Catalog",
+     "status": "PAUSED",
+     "servingStatus": "NONE",
+     "advertisingChannelType": "PERFORMANCE_MAX",
+     "biddingStrategyType": "MAXIMIZE_CONVERSION_VALUE",
+     "startDate": "2026-03-15",
+     "endDate": "2026-12-31"
+    },
+    "campaignBudget": {
+     "amountMicros": "100000000"
+    }
+   }
+  ],
+  "fieldMask": "customer.id,customer.currencyCode,customer.timeZone,campaign.id,campaign.name,campaign.status,campaign.servingStatus,campaign.advertisingChannelType,campaign.biddingStrategyType,campaign.startDate,campaign.endDate,campaignBudget.amountMicros",
+  "requestId": "req-0000000000000004"
+ }
+]

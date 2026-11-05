@@ -1,0 +1,260 @@
+[
+ {
+  "results": [
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "2500",
+     "clicks": "200",
+     "costMicros": "30000000",
+     "conversions": 8.0,
+     "conversionsValue": 650.0
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "1500",
+     "clicks": "120",
+     "costMicros": "18500000",
+     "conversions": 4.0,
+     "conversionsValue": 330.5
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020002",
+     "id": "30020002",
+     "name": "Brand - Phrase",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010002",
+     "id": "20010002",
+     "name": "Generic - Widgets"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "9000",
+     "clicks": "410",
+     "costMicros": "155250000",
+     "conversions": 9.5,
+     "conversionsValue": 611.0
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020003",
+     "id": "30020003",
+     "name": "Widgets - Broad",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "2560",
+     "clicks": "206",
+     "costMicros": "30600000",
+     "conversions": 8.5,
+     "conversionsValue": 655.0
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "1540",
+     "clicks": "124",
+     "costMicros": "18900000",
+     "conversions": 4.5,
+     "conversionsValue": 335.5
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020002",
+     "id": "30020002",
+     "name": "Brand - Phrase",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010002",
+     "id": "20010002",
+     "name": "Generic - Widgets"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "9200",
+     "clicks": "422",
+     "costMicros": "157250000",
+     "conversions": 10.0,
+     "conversionsValue": 616.0
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020003",
+     "id": "30020003",
+     "name": "Widgets - Broad",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "2620",
+     "clicks": "212",
+     "costMicros": "31200000",
+     "conversions": 9.0,
+     "conversionsValue": 660.0
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020001",
+     "id": "30020001",
+     "name": "Brand - Exact",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "1580",
+     "clicks": "128",
+     "costMicros": "19300000",
+     "conversions": 5.0,
+     "conversionsValue": 340.5
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020002",
+     "id": "30020002",
+     "name": "Brand - Phrase",
+     "status": "ENABLED"
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010002",
+     "id": "20010002",
+     "name": "Generic - Widgets"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "9400",
+     "clicks": "434",
+     "costMicros": "159250000",
+     "conversions": 10.5,
+     "conversionsValue": 621.0
+    },
+    "adGroup": {
+     "resourceName": "customers/1234567890/adGroups/30020003",
+     "id": "30020003",
+     "name": "Widgets - Broad",
+     "status": "ENABLED"
+    }
+   }
+  ],
+  "fieldMask": "customer.id,customer.currencyCode,campaign.id,campaign.name,adGroup.id,adGroup.name,adGroup.status,segments.date,metrics.impressions,metrics.clicks,metrics.costMicros,metrics.conversions,metrics.conversionsValue",
+  "requestId": "req-0000000000000003"
+ }
+]

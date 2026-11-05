@@ -1,0 +1,6 @@
+[
+ {
+  "fieldMask": "customer.id,customer.currencyCode,campaign.id,campaign.name,campaign.status,campaign.advertisingChannelType,segments.date,metrics.impressions,metrics.clicks,metrics.costMicros,metrics.conversions,metrics.conversionsValue",
+  "requestId": "req-0000000000000007"
+ }
+]
