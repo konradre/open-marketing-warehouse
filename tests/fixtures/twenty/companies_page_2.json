@@ -1,0 +1,34 @@
+{
+ "data": {
+  "companies": [
+   {
+    "id": "11111111-aaaa-4bbb-8ccc-000000000003",
+    "name": "Initech",
+    "domainName": {
+     "primaryLinkUrl": "initech.example",
+     "primaryLinkLabel": ""
+    },
+    "employees": 800,
+    "annualRecurringRevenue": {
+     "amountMicros": 250000000000,
+     "currencyCode": "USD"
+    },
+    "idealCustomerProfile": true,
+    "accountOwnerId": "99999999-0000-4000-8000-000000000001",
+    "createdAt": "2026-09-20T11:00:00.000Z",
+    "updatedAt": "2026-10-03T16:45:00.000Z",
+    "deletedAt": null,
+    "campaignKey": "google:20010002",
+    "utmSource": "google",
+    "utmMedium": "cpc",
+    "utmCampaign": "widgets_q4"
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "11111111-aaaa-4bbb-8ccc-000000000003",
+  "endCursor": "11111111-aaaa-4bbb-8ccc-000000000003"
+ },
+ "totalCount": 1
+}

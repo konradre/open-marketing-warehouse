@@ -1,0 +1,11 @@
+{
+ "data": {
+  "opportunities": []
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": null,
+  "endCursor": null
+ },
+ "totalCount": 0
+}

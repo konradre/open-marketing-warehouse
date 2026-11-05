@@ -1,0 +1,69 @@
+{
+ "data": {
+  "opportunities": [
+   {
+    "id": "33333333-aaaa-4bbb-8ccc-000000000001",
+    "name": "Acme - 120 seats",
+    "stage": "PROPOSAL",
+    "amount": {
+     "amountMicros": 36000000000,
+     "currencyCode": "EUR"
+    },
+    "closeDate": "2026-11-15T00:00:00.000Z",
+    "companyId": "11111111-aaaa-4bbb-8ccc-000000000001",
+    "pointOfContactId": "22222222-aaaa-4bbb-8ccc-000000000001",
+    "createdAt": "2026-09-15T09:00:00.000Z",
+    "updatedAt": "2026-10-01T12:00:00.000Z",
+    "deletedAt": null,
+    "campaignKey": "",
+    "utmSource": "",
+    "utmMedium": "",
+    "utmCampaign": ""
+   },
+   {
+    "id": "33333333-aaaa-4bbb-8ccc-000000000002",
+    "name": "Globex - pilot",
+    "stage": "MEETING",
+    "amount": {
+     "amountMicros": 9000000000,
+     "currencyCode": "EUR"
+    },
+    "closeDate": null,
+    "companyId": "11111111-aaaa-4bbb-8ccc-000000000002",
+    "pointOfContactId": "22222222-aaaa-4bbb-8ccc-000000000002",
+    "createdAt": "2026-09-25T09:00:00.000Z",
+    "updatedAt": "2026-10-02T09:00:00.000Z",
+    "deletedAt": null,
+    "campaignKey": "",
+    "utmSource": "",
+    "utmMedium": "",
+    "utmCampaign": ""
+   },
+   {
+    "id": "33333333-aaaa-4bbb-8ccc-000000000003",
+    "name": "Initech - enterprise",
+    "stage": "NEW",
+    "amount": {
+     "amountMicros": 120000000000,
+     "currencyCode": "USD"
+    },
+    "closeDate": null,
+    "companyId": "11111111-aaaa-4bbb-8ccc-000000000003",
+    "pointOfContactId": null,
+    "createdAt": "2026-10-03T08:00:00.000Z",
+    "updatedAt": "2026-10-03T08:00:00.000Z",
+    "deletedAt": null,
+    "campaignKey": "events:webinar_oct",
+    "utmSource": "webinar",
+    "utmMedium": "event",
+    "utmCampaign": "oct_launch"
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "33333333-aaaa-4bbb-8ccc-000000000001",
+  "endCursor": "33333333-aaaa-4bbb-8ccc-000000000003"
+ },
+ "totalCount": 3
+}

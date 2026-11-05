@@ -15,6 +15,7 @@ DEFAULT_BUDGET_HOURS: dict[str, float] = {
     "ga4": 30.0,
     "stripe": 30.0,
     "linkedin_ads": 30.0,
+    "twenty": 30.0,
 }
 
 SYNC_LOG = "raw.{source}___sync_windows"
