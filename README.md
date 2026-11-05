@@ -230,6 +230,18 @@ uv run python -m omw.metrics.setup     # once: creates marts.campaign_keys (the 
 uv run python -m omw.metrics.server    # the MCP server on stdio; OMW_CLICKHOUSE_HOST / OMW_AGENT_PASSWORD from the environment
 ```
 
+**Campaign keys.** `marts.campaign_keys` maps each platform's campaign id to one cross-platform key. Every
+Meta, Google Ads and LinkedIn Ads sync derives a key for each campaign it loaded: the slug of the campaign
+name (`Widgets - Prospecting` → `widgets_prospecting`), so campaigns named alike on two platforms share a key
+and Stripe or Twenty attribution metadata only has to carry that slug. Rows set by hand outrank derived ones
+and survive every sync:
+
+```bash
+uv run omw campaign-keys sync                                   # derive keys now (each ad sync does this too)
+uv run omw campaign-keys set google_ads 20010002 widgets_q4 --name "Generic - Widgets"
+uv run omw campaign-keys list --source google_ads
+```
+
 ## Layout
 
 ```

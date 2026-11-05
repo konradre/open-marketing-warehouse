@@ -137,7 +137,8 @@ def warehouse(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) ->
         client=FakeStripeClient(),
     )
     _load_http_sources(tmp_path_factory)
-    # Map one Meta and one Google campaign onto the keys the Stripe fixtures carry in their metadata.
+    # The pipelines derived a key per campaign (the slug of its name). Map one Meta and one Google campaign by
+    # hand onto the keys the Stripe fixtures carry in their metadata; manual rows outrank derived ones.
     admin_client.insert(
         "marts.campaign_keys",
         [
@@ -209,9 +210,26 @@ def test_roas_joins_the_sources_through_the_campaign_key_mapping(
     assert abs(float(google[0]) - (155.25 + 157.25 + 159.25)) < 1e-6  # google_spend only (Meta is in USD)
     assert float(google[1]) == 99.0
     assert abs(float(google[2]) - 99.0 / (155.25 + 157.25 + 159.25)) < 1e-6
-    unmapped = rows["google_ads:20010001"]
-    assert float(unmapped[1]) == 0.0 and unmapped[2] == 0.0  # spend without revenue: ROAS is 0
+    derived = rows["brand_search"]  # Google "Brand - Search": the key the pipeline derived from the name
+    assert float(derived[1]) == 0.0 and derived[2] == 0.0  # spend without revenue: ROAS is 0
     assert rows["search_console:example"][2] is None  # revenue without spend
+    assert "google_ads:20010001" not in rows
+
+
+def test_the_pipelines_derive_campaign_keys_and_manual_rows_outrank_them(
+    warehouse: Catalog, agent_client: Client
+) -> None:
+    rows = {
+        (r[0], r[1]): (r[2], r[3])
+        for r in agent_client.query(
+            "SELECT source, native_id, argMax(campaign_key, updated_at), argMax(origin, updated_at) "
+            "FROM marts.campaign_keys GROUP BY source, native_id"
+        ).result_rows
+    }
+    assert rows[("meta_ads", "23850000000000002")] == ("widgets_retargeting", "derived")
+    assert rows[("google_ads", "20010001")] == ("brand_search", "derived")
+    assert rows[("linkedin_ads", "800001")] == ("widgets_sponsored_content", "derived")
+    assert rows[("meta_ads", "23850000000000001")] == ("meta:23850000000000001", "manual")
 
 
 def test_refusals_and_clarifications_never_touch_the_warehouse(

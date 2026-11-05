@@ -91,8 +91,9 @@ def test_cross_source_measure_is_one_cte_per_source_joined_on_the_common_grain(c
         "if(ck.campaign_key != '', ck.campaign_key, concat('google_ads:', campaign_id)) AS campaign_key"
     )
     assert (
-        "LEFT JOIN marts.campaign_keys AS ck ON ck.source = 'meta_ads' "
-        "AND ck.native_id = toString(campaign_id)" in sql
+        "LEFT JOIN (SELECT native_id, argMax(campaign_key, updated_at) AS campaign_key "
+        "FROM marts.campaign_keys WHERE source = 'meta_ads' GROUP BY native_id) AS ck "
+        "ON ck.native_id = toString(campaign_id)" in sql
     )
     assert (
         "r_stripe_invoices AS (SELECT date, campaign_key, sum(amount) AS revenue FROM marts.stripe_revenue"

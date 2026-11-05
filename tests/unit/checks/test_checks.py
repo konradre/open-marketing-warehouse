@@ -197,3 +197,28 @@ def test_cli_exit_codes(monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehous
     )
     assert cli.main(["check", "--source", "ga4"]) == 1
     assert any("ops.check_results" in c for c in warehouse.commands)  # the ops SQL was applied first
+
+
+def test_cli_campaign_keys(monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehouse, capsys: Any) -> None:
+    monkeypatch.setattr(cli, "pipeline_client", lambda: warehouse)
+    warehouse.objects = {"raw.meta_ads___campaigns"}
+    warehouse.when("origin = 'manual'", [])
+    warehouse.when("FROM raw.meta_ads___campaigns", [["1", "Widgets - Prospecting"]])
+    assert cli.main(["campaign-keys", "sync", "--source", "meta_ads"]) == 0
+    assert warehouse.inserted[-1][1][0][2] == "widgets_prospecting"
+    assert (
+        cli.main(["campaign-keys", "set", "google_ads", "20010002", "widgets_prospecting", "--name", "G"])
+        == 0
+    )
+    assert warehouse.inserted[-1][1][0][:5] == [
+        "google_ads",
+        "20010002",
+        "widgets_prospecting",
+        "G",
+        "manual",
+    ]
+    warehouse.when(
+        "FROM marts.campaign_keys FINAL ORDER BY", [["meta_ads", "1", "widgets_prospecting", "W", "derived"]]
+    )
+    assert cli.main(["campaign-keys", "list"]) == 0
+    assert "widgets_prospecting\tmeta_ads\t1\tderived\tW" in capsys.readouterr().out

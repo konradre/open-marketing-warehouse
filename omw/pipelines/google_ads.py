@@ -15,6 +15,7 @@ from typing import Any
 
 import dlt
 
+from omw.metrics.campaign_keys import sync_after_load
 from omw.pipelines.marts import SQL_DIR, apply_marts
 from omw.sources.google_ads import SOURCE_NAME, google_ads
 
@@ -48,6 +49,7 @@ def run_daily(
     today: date | None = None,
     fail_on_empty: bool = True,
     marts_sql: Path | None = MARTS_SQL,
+    campaign_keys: bool = True,
     **source_kwargs: Any,
 ) -> dict[str, int]:
     if pipeline.has_pending_data:
@@ -61,6 +63,8 @@ def run_daily(
         )
     if marts_sql is not None:
         apply_marts(pipeline, marts_sql)
+    if campaign_keys:
+        sync_after_load(pipeline, SOURCE_NAME)
     return counts
 
 

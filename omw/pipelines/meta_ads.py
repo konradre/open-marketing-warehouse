@@ -20,6 +20,7 @@ from typing import Any
 
 import dlt
 
+from omw.metrics.campaign_keys import sync_after_load
 from omw.pacing import MetaPacer, PacerStop
 from omw.pipelines.marts import SQL_DIR, apply_marts
 from omw.pipelines.ops_log import PacingEvent, record_pacing_events, warehouse_client
@@ -152,6 +153,8 @@ def run(
         for level in levels:
             if result.counts.get(f"insights_{LEVEL_REPORT[level]}", 0) or _table_exists(pipeline, level):
                 apply_marts(pipeline, marts_sql(level))
+        if result.counts.get("campaigns", 0):
+            sync_after_load(pipeline, SOURCE_NAME)
     if record_ops:
         _record(pipeline, result.events, apply_sql)
     return result
