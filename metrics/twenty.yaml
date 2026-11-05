@@ -1,0 +1,47 @@
+source: twenty
+reports:
+  - name: opportunities
+    view: marts.twenty_pipeline
+    description: Twenty CRM sales pipeline, one row per opportunity, dated by the day it was created.
+    dimensions:
+      stage: Pipeline stage as configured in Twenty (NEW, SCREENING, MEETING, PROPOSAL, CUSTOMER by default)
+      currency: ISO 4217 currency of the amount, empty when unset
+      company_id: Twenty company id, empty when none
+      company_name: Company name at the last sync
+      utm_source: utm_source attribution, opportunity then contact then company; empty when absent
+      utm_medium: utm_medium attribution, same precedence
+      utm_campaign: utm_campaign attribution, same precedence
+      attributed: True when any attribution field is set
+    campaign_key: campaign_key
+    traps:
+      - Opportunities are dated by creation day and reflect their current stage and amount, so past days change as deals move.
+      - Stage names are the Twenty configuration. CUSTOMER is the default closed-won stage.
+metrics:
+  - name: opportunities
+    report: opportunities
+    expr: count()
+    unit: count
+    grains: [stage, currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    aliases: [deals, pipeline_count]
+    description: Opportunities created, whatever their stage today.
+  - name: pipeline_amount
+    report: opportunities
+    expr: sum(amount)
+    unit: currency
+    grains: [stage, currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    aliases: [pipeline, pipeline_value]
+    description: Sum of opportunity amounts in their currency, by creation day.
+  - name: won_opportunities
+    report: opportunities
+    expr: countIf(stage = 'CUSTOMER')
+    unit: count
+    grains: [currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    aliases: [closed_won, won_deals]
+    description: Opportunities now in the CUSTOMER stage, counted on their creation day.
+  - name: won_amount
+    report: opportunities
+    expr: sumIf(amount, stage = 'CUSTOMER')
+    unit: currency
+    grains: [currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    aliases: [closed_won_amount]
+    description: Amount of the opportunities now in the CUSTOMER stage, by creation day.

@@ -5,6 +5,7 @@
 CREATE OR REPLACE VIEW marts.twenty_pipeline (
     source LowCardinality(String) COMMENT 'Always twenty',
     report LowCardinality(String) COMMENT 'Report grain, always opportunities: one row per open or closed opportunity (soft-deleted ones excluded)',
+    date Date COMMENT 'Day the opportunity was created in Twenty (UTC). The metric layer dates pipeline by creation, so an opportunity counts on the day it entered the pipeline whatever its stage today',
     opportunity_id String COMMENT 'Twenty opportunity id',
     opportunity_name String COMMENT 'Opportunity name at the last sync',
     stage LowCardinality(String) COMMENT 'Pipeline stage as configured in Twenty, by default NEW, SCREENING, MEETING, PROPOSAL, CUSTOMER',
@@ -24,7 +25,7 @@ CREATE OR REPLACE VIEW marts.twenty_pipeline (
     utm_campaign String COMMENT 'utmCampaign custom field, same precedence',
     attributed Bool COMMENT 'True when any attribution field is set. Unattributed pipeline is real pipeline: never drop it when comparing to spend'
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
-SELECT o.source AS source, 'opportunities' AS report, o.id AS opportunity_id, o.name AS opportunity_name, o.stage AS stage,
+SELECT o.source AS source, 'opportunities' AS report, toDate(o.created_at) AS date, o.id AS opportunity_id, o.name AS opportunity_name, o.stage AS stage,
        toDecimal64(o.amount, 2) AS amount, o.currency AS currency, o.close_date AS close_date, o.created_at AS created_at,
        o.updated_at AS updated_at, o.company_id AS company_id, c.name AS company_name, c.domain AS company_domain,
        o.person_id AS person_id, p.email AS person_email,

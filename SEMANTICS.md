@@ -18,11 +18,16 @@ time from their parts; never sum a rate yourself.
   `google_conversions` are the account's own conversion actions, fractional with modelled attribution.
   `google_impressions`, `google_clicks` and `google_cpc` follow the same rules; `google_ad_group_spend` is
   the ad group grain and sums to the campaign grain.
-- **ad_spend** = meta_spend + google_spend and **blended_cpc** = ad_spend / all clicks, only at the common
-  grain (date, campaign_key, currency). Never sum across currencies: add the `currency` dimension or filter
-  to one.
-- `spend`, `clicks`, `impressions`, `ctr`, `cpc` are ambiguous across platforms: the tool asks you to
-  clarify. Name the platform (`meta_spend`, `google_spend`) or the blended measure (`ad_spend`).
+- **linkedin_spend** (currency): LinkedIn Ads cost per sponsored account, campaign and day. Cost and
+  conversions settle over a few days (the last **7 days** are re-pulled). `linkedin_clicks` are chargeable
+  clicks; `linkedin_conversions` are Insight Tag conversions, post-click and post-view;
+  `linkedin_impressions` and `linkedin_cpc` follow Meta's rules.
+- **ad_spend** = meta_spend + google_spend + linkedin_spend and **blended_cpc** = ad_spend / all clicks,
+  only at the common grain (date, campaign_key, currency). Never sum across currencies: add the `currency`
+  dimension or filter to one.
+- `spend`, `cost`, `clicks`, `impressions`, `conversions`, `ctr`, `cpc` are ambiguous across platforms: the
+  tool asks you to clarify. Name the platform (`meta_spend`, `google_spend`, `linkedin_spend`) or the
+  blended measure (`ad_spend`).
 
 ## Organic search (Search Console)
 
@@ -43,22 +48,35 @@ time from their parts; never sum a rate yourself.
 ## Revenue (Stripe)
 
 - **revenue** (currency): paid invoice amounts in the invoice currency (ISO 4217 upper case, like the ad
-  platforms), dated by the day the invoice was paid. Refunds and voids are not netted. **paid_invoices** and **new_customers** (first subscription
-  invoices) are counts; **paying_customers** is a distinct count, not additive across days.
+  platforms), dated by the day the invoice was paid. Refunds and voids are not netted. **paid_invoices** and
+  **new_customers** (first subscription invoices) are counts; **paying_customers** is a distinct count, not
+  additive across days.
 - **campaign_key** on revenue comes from the invoice, else the subscription, else the customer metadata
   (`campaign_key` or `utm_campaign`). Revenue without a key is real revenue: `attributed = false`, never
   dropped when comparing to spend.
 
+## Sales pipeline (Twenty CRM)
+
+- **opportunities** and **pipeline_amount** (currency) count opportunities and sum their amounts by the day
+  each was **created**, at its current stage and amount, so past days change as deals move.
+  **won_opportunities** and **won_amount** are the ones now in the `CUSTOMER` stage (the default closed-won
+  stage; stage names are the Twenty configuration). `campaign_key` resolves opportunity, then contact, then
+  company; unattributed pipeline is real pipeline.
+
 ## Cross-source measures
 
-- **roas** = revenue / ad_spend and **cac** = ad_spend / new_customers. Each side is aggregated to the common
-  grain (date, campaign_key, currency) first, then joined; a dimension or filter that exists on only one
-  side is refused. The campaign key joins platforms through `marts.campaign_keys`; without a mapping row the
-  default key is `<source>:<campaign_id>`, which never matches Stripe's keys, so ROAS by campaign needs the
-  mapping maintained.
+- **roas** = revenue / ad_spend, **cac** = ad_spend / new_customers and **pipeline_cac** = ad_spend /
+  opportunities. Each side is aggregated to the common grain (date, campaign_key, currency) first, then
+  joined; a dimension or filter that exists on only one side is refused. The campaign key joins platforms
+  through `marts.campaign_keys`; without a mapping row the default key is `<source>:<campaign_id>`, which
+  never matches Stripe's or Twenty's keys, so ROAS and CAC by campaign need the mapping maintained.
 
-## Time
+## Time and trust
 
-- `date` is the day in each source's own time zone (ad account, property, UTC for Stripe). `compare` adds a
+- `date` is the day in each source's own time zone (ad account, property, UTC for Stripe and Twenty).
+  `time_range` is `{start, end}` or a name: `today`, `yesterday`, `last_7_days`, `last_30_days`,
+  `last_90_days` (ending yesterday), `month_to_date`, `last_month`, `year_to_date`. `compare` adds a
   `period` column (`current` / `previous`) for the previous period, week, month or year.
-- Freshness lives in `ops.freshness`; a source past its budget is disclosed.
+- The post-sync checks travel with the numbers: a source past its freshness budget, or a failed over-count
+  or row-count check on the report used, is disclosed as a caveat. Verdicts live in `ops.freshness` and
+  `ops.check_verdicts`.

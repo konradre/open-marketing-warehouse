@@ -213,13 +213,17 @@ uv run omw check --source ga4    # one source
 ## Metric layer
 
 `SEMANTICS.md` says what every measure means. `metrics/*.yaml` defines the metrics (one report grain per
-`marts` view, one measure per entry, derived cross-source measures such as `roas` and `cac`), validated by
-the pydantic schema in `omw/metrics/schema.py` on every test run. `omw.metrics.server` is the
-`query_metrics` MCP server (stdio): `list_metrics`, `list_dimensions` and `query_metrics(metrics,
-dimensions, filters, time_range, compare)`. It compiles one `SELECT` per request (one CTE per source for
-cross-source measures, joined on the common grain), checks it is a single `SELECT`/`WITH`, runs it as the
-`agent` user, and answers with a mood: `serve`, `disclose` (with caveats), `clarify` (with candidates) or
-`refuse` (with the reason).
+`marts` view, one measure per entry, derived cross-source measures such as `roas`, `cac` and
+`pipeline_cac`), validated by the pydantic schema in `omw/metrics/schema.py` on every test run.
+`omw.metrics.server` is the `query_metrics` MCP server (stdio): `list_metrics`, `list_dimensions` and
+`query_metrics(metrics, dimensions, filters, time_range, compare)`. `time_range` is `{start, end}` or a
+name (`yesterday`, `last_7_days`, `last_30_days`, `last_90_days`, `month_to_date`, `last_month`,
+`year_to_date`, `today`) resolved against the server's clock. It compiles one `SELECT` per request (one CTE
+per source for cross-source measures, joined on the common grain), checks it is a single `SELECT`/`WITH`,
+runs it as the `agent` user, and answers with a mood: `serve`, `disclose` (with caveats), `clarify` (with
+candidates) or `refuse` (with the reason). The latest post-sync verdicts (`ops.check_verdicts`, written by
+`omw check`) become caveats: a stale source, or a failed over-count or row-count check on a report the
+answer used, is disclosed next to the numbers.
 
 ```bash
 uv run python -m omw.metrics.setup     # once: creates marts.campaign_keys (the cross-platform campaign key mapping)

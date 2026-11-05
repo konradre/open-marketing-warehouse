@@ -11,12 +11,24 @@ from omw.metrics import Catalog, MetricRequest, Mood, TimeRange
 from omw.metrics.runner import answer_request
 from tests.unit.metrics.conftest import OCTOBER, OLD, TODAY
 
+VERDICT_COLUMNS = ["source", "check", "report", "status", "detail"]
 
-def _executor(rows: list[list[Any]] | None = None, columns: list[str] | None = None) -> Any:
+
+def _executor(
+    rows: list[list[Any]] | None = None,
+    columns: list[str] | None = None,
+    verdicts: list[list[Any]] | None = None,
+) -> Any:
+    """A fake warehouse: the metric query returns ``rows``; the verdict query returns ``verdicts``
+    (``None`` models a warehouse where the checks never ran and the view does not exist)."""
     calls: list[str] = []
 
     def execute(sql: str) -> tuple[list[str], list[list[Any]]]:
         calls.append(sql)
+        if "ops.check_verdicts" in sql:
+            if verdicts is None:
+                raise DatabaseError("Table ops.check_verdicts does not exist")
+            return VERDICT_COLUMNS, verdicts
         return columns or ["date", "value"], rows if rows is not None else [[date(2026, 1, 1), 1]]
 
     execute.calls = calls  # type: ignore[attr-defined]
@@ -31,6 +43,59 @@ def test_serve_when_nothing_is_wrong(catalog: Catalog) -> None:
     assert answer.mood is Mood.SERVE and answer.caveats == [] and answer.reason == ""
     assert answer.columns == ["date", "value"] and answer.rows == [[date(2026, 1, 1), 1]]
     assert execute.calls[0] == answer.sql and answer.sql.startswith("SELECT date, sum(sessions) AS sessions")
+    assert execute.calls[1] == (
+        "SELECT source, check, report, status, detail FROM ops.check_verdicts "
+        "WHERE source IN ('ga4') AND status != 'pass' ORDER BY source, check, report"
+    )
+
+
+def test_disclose_a_stale_source_and_a_failed_check_on_the_report_used(catalog: Catalog) -> None:
+    verdicts = [
+        ["ga4", "freshness", "sync", "fail", "last sync 40.0h ago, budget 30h"],
+        ["ga4", "overcount", "channels", "fail", "2 of 9 groups exceed core by more than 1% on sessions"],
+        ["ga4", "rowcount", "landing_pages", "warn", "no rows in the current window"],
+    ]
+    core = answer_request(
+        catalog,
+        MetricRequest(metrics=["sessions"], dimensions=["date"], time_range=OLD),
+        _executor(verdicts=verdicts),
+        TODAY,
+    )
+    assert core.mood is Mood.DISCLOSE
+    assert core.caveats == [
+        "ga4 freshness check fail: last sync 40.0h ago, budget 30h; its numbers may be stale"
+    ]
+    channels = answer_request(
+        catalog,
+        MetricRequest(metrics=["channel_sessions"], dimensions=["channel_group"], time_range=OLD),
+        _executor(verdicts=verdicts),
+        TODAY,
+    )
+    assert "ga4.channels overcount check fail: 2 of 9 groups exceed core by more than 1% on sessions" in (
+        channels.caveats
+    )
+    assert not any("landing_pages" in c for c in channels.caveats)
+    clean = answer_request(
+        catalog,
+        MetricRequest(metrics=["sessions"], dimensions=["date"], time_range=OLD),
+        _executor(verdicts=[]),
+        TODAY,
+    )
+    assert clean.mood is Mood.SERVE
+
+
+def test_cross_source_verdicts_cover_every_source_in_the_plan(catalog: Catalog) -> None:
+    execute = _executor(verdicts=[["twenty", "freshness", "sync", "fail", "never synced: no sync log"]])
+    answer = answer_request(
+        catalog,
+        MetricRequest(
+            metrics=["pipeline_cac"], dimensions=["date"], filters={"currency": "EUR"}, time_range=OLD
+        ),
+        execute,
+        TODAY,
+    )
+    assert "source IN ('google_ads', 'linkedin_ads', 'meta_ads', 'twenty')" in execute.calls[1]
+    assert any(c.startswith("twenty freshness check fail: never synced") for c in answer.caveats)
 
 
 def test_disclose_inside_metas_restatement_window(catalog: Catalog) -> None:
@@ -93,7 +158,7 @@ def test_clarify_on_an_ambiguous_name(catalog: Catalog) -> None:
     execute = _executor()
     answer = answer_request(catalog, MetricRequest(metrics=["spend"], time_range=OLD), execute, TODAY)
     assert answer.mood is Mood.CLARIFY
-    assert [c["name"] for c in answer.candidates] == ["google_spend", "meta_spend"]
+    assert [c["name"] for c in answer.candidates] == ["google_spend", "linkedin_spend", "meta_spend"]
     assert all(c["description"] for c in answer.candidates)
     assert execute.calls == [] and answer.sql == ""
 

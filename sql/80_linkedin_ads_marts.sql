@@ -8,6 +8,7 @@ CREATE OR REPLACE VIEW marts.linkedin_ads_campaigns (
     currency LowCardinality(String) COMMENT 'ISO 4217 currency of the sponsored account. cost is in this currency',
     date Date COMMENT 'Day in UTC as LinkedIn reports daily analytics. Cost and conversions settle over a few days: the last 7 days are re-pulled daily',
     campaign_id String COMMENT 'LinkedIn campaign id (digits of urn:li:sponsoredCampaign)',
+    campaign_name String COMMENT 'Campaign name at the last entity pull, empty when the campaign is no longer listed',
     impressions UInt64 COMMENT 'Times an ad of the campaign was shown',
     clicks UInt64 COMMENT 'Chargeable clicks on the ads',
     cost Decimal(18, 2) COMMENT 'Amount spent in the account currency (costInLocalCurrency)',
@@ -17,10 +18,13 @@ CREATE OR REPLACE VIEW marts.linkedin_ads_campaigns (
     shares UInt64 COMMENT 'Shares of the sponsored content',
     follows UInt64 COMMENT 'Follows gained from the ads'
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
-SELECT source, report, account_id, currency, date, campaign_id, toUInt64(impressions) AS impressions, toUInt64(clicks) AS clicks,
-       toDecimal64(cost, 2) AS cost, toUInt64(conversions) AS conversions, toUInt64(landing_page_clicks) AS landing_page_clicks,
-       toUInt64(likes) AS likes, toUInt64(shares) AS shares, toUInt64(follows) AS follows
-FROM raw.linkedin_ads___ad_analytics;
+SELECT a.source AS source, a.report AS report, a.account_id AS account_id, a.currency AS currency, a.date AS date,
+       a.campaign_id AS campaign_id, c.name AS campaign_name, toUInt64(a.impressions) AS impressions,
+       toUInt64(a.clicks) AS clicks, toDecimal64(a.cost, 2) AS cost, toUInt64(a.conversions) AS conversions,
+       toUInt64(a.landing_page_clicks) AS landing_page_clicks, toUInt64(a.likes) AS likes, toUInt64(a.shares) AS shares,
+       toUInt64(a.follows) AS follows
+FROM raw.linkedin_ads___ad_analytics AS a
+LEFT JOIN raw.linkedin_ads___campaigns AS c ON c.id = a.campaign_id;
 
 CREATE OR REPLACE VIEW marts.linkedin_ads_campaign_list (
     source LowCardinality(String) COMMENT 'Always linkedin_ads',

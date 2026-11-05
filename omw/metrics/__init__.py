@@ -10,7 +10,7 @@ ClickHouse ``SELECT`` (one CTE per source for cross-source measures, joined on t
 from omw.metrics.compiler import Plan, compile_request
 from omw.metrics.guard import SqlGuardError, assert_single_select
 from omw.metrics.moods import Answer, Mood
-from omw.metrics.request import Compare, MetricRequest, TimeRange
+from omw.metrics.request import RELATIVE_RANGES, Compare, MetricRequest, Relative, TimeRange, relative_range
 from omw.metrics.schema import Catalog, DerivedMetric, Metric, Report, load_catalog
 
 __all__ = [
@@ -22,10 +22,13 @@ __all__ = [
     "MetricRequest",
     "Mood",
     "Plan",
+    "RELATIVE_RANGES",
+    "Relative",
     "Report",
     "SqlGuardError",
     "TimeRange",
     "assert_single_select",
     "compile_request",
     "load_catalog",
+    "relative_range",
 ]

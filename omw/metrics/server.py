@@ -17,7 +17,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from omw.metrics.moods import Answer
-from omw.metrics.request import Compare, MetricRequest
+from omw.metrics.request import RELATIVE_RANGES, Compare, MetricRequest
 from omw.metrics.runner import Executor, agent_client, answer_request, clickhouse_executor
 from omw.metrics.schema import Catalog, load_catalog
 
@@ -79,7 +79,7 @@ def query_metrics_payload(
     cat: Catalog,
     execute: Executor,
     metrics: list[str],
-    time_range: dict[str, str],
+    time_range: dict[str, str] | str,
     dimensions: list[str] | None = None,
     filters: dict[str, Any] | None = None,
     compare: Compare | None = None,
@@ -128,14 +128,16 @@ def build_server(execute: Executor | None = None) -> MCPServer:
 
     @server.tool(
         description=(
-            "Query metrics at a grain. time_range is {start, end} as ISO dates; compare is one of "
-            "previous_period, week, month, year and adds a 'period' column. Filters are dimension -> value "
-            "or list of values. The answer carries mood, reason, caveats, candidates, sql, columns and rows."
+            "Query metrics at a grain. time_range is {start, end} as ISO dates or one of "
+            f"{', '.join(RELATIVE_RANGES)} (resolved against today; last_N_days end yesterday); compare is "
+            "one of previous_period, week, month, year and adds a 'period' column. Filters are dimension -> "
+            "value or list of values. The answer carries mood, reason, caveats, candidates, sql, columns and "
+            "rows."
         )
     )
     def query_metrics(
         metrics: list[str],
-        time_range: dict[str, str],
+        time_range: dict[str, str] | str,
         dimensions: list[str] | None = None,
         filters: dict[str, Any] | None = None,
         compare: Compare | None = None,

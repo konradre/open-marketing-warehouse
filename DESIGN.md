@@ -147,7 +147,7 @@ single `SELECT`/`WITH` statement before execution. The server-side profile (§7)
 ## 7. Safety and operations
 
 **The `agent` ClickHouse user:**
-- Grants: `SELECT` on `marts.*` and `ops.freshness` only.
+- Grants: `SELECT` on `marts.*` and the check verdict views `ops.freshness` and `ops.check_verdicts` only.
 - A settings profile with `readonly = 1`, and every limit below declared as a constraint (`READONLY` / `CONST`)
   so neither a `SET` nor a client-sent setting can raise it. Verify the profile still works with
   `mcp-clickhouse`, which sends its own `readonly` setting per query:
