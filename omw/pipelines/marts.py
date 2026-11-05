@@ -38,3 +38,13 @@ def apply_marts(pipeline: dlt.Pipeline, sql_file: Path) -> int:
             client.execute_sql(statement)
     log.info("applied %s statements from %s", len(stmts), sql_file.name)
     return len(stmts)
+
+
+def raw_table_exists(pipeline: dlt.Pipeline, table: str) -> bool:
+    """Whether ``table`` (without the dataset prefix) exists in the pipeline's raw dataset."""
+    with pipeline.sql_client() as client:
+        rows = client.execute_sql(
+            "SELECT count() FROM system.tables WHERE database = currentDatabase() AND name = %s",
+            f"{pipeline.dataset_name}___{table}",
+        )
+    return bool(rows and rows[0][0])

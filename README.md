@@ -80,8 +80,10 @@ the data). The daily sync replaces the whole `(property, search type, day)` slic
 (and at ad level for live ad sets, with `--level ad`), exposed as `marts.meta_ads_campaigns` and
 `marts.meta_ads_ads`; `--breakdown age_gender|countries|placements` (repeatable, or
 `sources.meta_ads.breakdowns`) pulls campaign-level breakdown presets into `marts.meta_ads_age_gender`,
-`marts.meta_ads_countries` and `marts.meta_ads_placements`, each checked against the campaigns grain; `marts.meta_ads_campaign_list` and `marts.meta_ads_ad_set_list` list the entities with
-their statuses, schedules and budgets in the account currency. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
+`marts.meta_ads_countries` and `marts.meta_ads_placements`, each checked against the campaigns grain;
+`marts.meta_ads_campaign_list` and `marts.meta_ads_ad_set_list` list the entities with their statuses,
+schedules and budgets in the account currency; `--leads` (or `sources.meta_ads.leads`) pulls the lead-ads
+submissions of every ad into `marts.meta_ads_leads` as counts only, the answers stay in `raw`. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
 slows down above 75% utilisation, and ends the run cleanly near 100% or on a rate-limit error, writing the
 reason to `ops.pacing_events` instead of retrying into the limit.
 
@@ -94,6 +96,7 @@ after it.
 uv run python -m omw.pipelines.meta_ads daily              # re-fetch the last 7 days and replace them
 uv run python -m omw.pipelines.meta_ads weekly             # reconcile the last 28 days (Meta restates that far back)
 uv run python -m omw.pipelines.meta_ads daily --level ad   # ad-level insights for live ad sets
+uv run python -m omw.pipelines.meta_ads daily --leads      # also the lead-ads submissions (token needs leads_retrieval)
 ```
 
 ### Google Ads
@@ -176,8 +179,12 @@ run the 3-legged OAuth flow once with the `r_ads` and `r_ads_reporting` scopes f
 Viewer access on the ad accounts, keep the refresh token (valid for a year), and put the client id, secret,
 refresh token and sponsored account ids in `.dlt/secrets.toml` under `[sources.linkedin_ads]`.
 
+`--leads` (or `sources.linkedin_ads.leads`) also pulls the lead-gen form responses submitted inside the window
+into `marts.linkedin_ads_leads` as counts only; the token then needs the `r_marketing_leadgen_automation` scope.
+
 ```bash
 uv run python -m omw.pipelines.linkedin_ads daily    # re-fetch the last 7 days and replace them
+uv run python -m omw.pipelines.linkedin_ads daily --leads   # also the lead-gen form responses
 ```
 
 ### Twenty (CRM)

@@ -26,3 +26,9 @@ derived:
     unit: currency
     requires_common_grain: [date, campaign_key, currency]
     description: Ad spend per click across Meta, Google and LinkedIn.
+  - name: cost_per_lead
+    derived: ad_spend / (meta_leads + linkedin_leads)
+    unit: currency
+    requires_common_grain: [date, campaign_key, currency]
+    aliases: [cpl]
+    description: Ad spend per lead-ad submission across Meta and LinkedIn, each aggregated to the common grain first.

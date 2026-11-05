@@ -18,7 +18,7 @@ from typing import Any
 import dlt
 
 from omw.metrics.campaign_keys import sync_after_load
-from omw.pipelines.marts import SQL_DIR, apply_marts
+from omw.pipelines.marts import SQL_DIR, apply_marts, raw_table_exists
 from omw.sources.linkedin_ads import LINKEDIN_VERSION, RE_PULL_DAYS, SOURCE_NAME, check_version, linkedin_ads
 from omw.sources.linkedin_ads.version import VersionExpiredError
 
@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 
 PIPELINE_NAME = "linkedin_ads"
 MARTS_SQL = SQL_DIR / "80_linkedin_ads_marts.sql"
+LEADS_SQL = SQL_DIR / "80_linkedin_ads_marts_leads.sql"
 
 
 def build_pipeline(pipelines_dir: str | None = None, destination: Any = "clickhouse") -> dlt.Pipeline:
@@ -50,6 +51,7 @@ def run_daily(
     version: str = LINKEDIN_VERSION,
     marts_sql: Path | None = MARTS_SQL,
     campaign_keys: bool = True,
+    leads: bool = False,
     **source_kwargs: Any,
 ) -> dict[str, int]:
     status = check_version(version, today)
@@ -60,10 +62,14 @@ def run_daily(
     if pipeline.has_pending_data:
         log.warning("loading a pending package from an earlier run first")
         pipeline.load()
-    pipeline.run(linkedin_ads(today=today, days=days, version=version, **source_kwargs))
+    pipeline.run(linkedin_ads(today=today, days=days, version=version, leads=leads, **source_kwargs))
     counts = row_counts(pipeline)
     if marts_sql is not None:
         apply_marts(pipeline, marts_sql)
+        if leads and (
+            counts.get("lead_form_responses", 0) or raw_table_exists(pipeline, "lead_form_responses")
+        ):
+            apply_marts(pipeline, LEADS_SQL)
     if campaign_keys:
         sync_after_load(pipeline, SOURCE_NAME)
     return counts
@@ -78,9 +84,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=RE_PULL_DAYS,
         help=f"days to re-fetch, ending yesterday (default {RE_PULL_DAYS})",
     )
+    parser.add_argument(
+        "--leads",
+        action="store_true",
+        help="also pull lead-gen form responses (needs r_marketing_leadgen_automation)",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    counts = run_daily(build_pipeline(), days=args.days)
+    leads = bool(args.leads or dlt.config.get("sources.linkedin_ads.leads", bool))
+    counts = run_daily(build_pipeline(), days=args.days, leads=leads)
     log.info("daily sync loaded %s", counts)
     return 0
 

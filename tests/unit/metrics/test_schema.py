@@ -33,7 +33,7 @@ def test_catalog_loads_every_source(catalog: Catalog) -> None:
         "sessions",
         "opportunities",
     } <= set(catalog.metrics)
-    assert set(catalog.derived) == {"ad_spend", "roas", "cac", "pipeline_cac", "blended_cpc"}
+    assert set(catalog.derived) == {"ad_spend", "roas", "cac", "pipeline_cac", "blended_cpc", "cost_per_lead"}
     for metric in catalog.metrics.values():
         assert metric.description and metric.report_key in catalog.reports
     for derived in catalog.derived.values():

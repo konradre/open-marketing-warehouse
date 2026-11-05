@@ -13,10 +13,11 @@ import pytest
 from omw.pacing import MetaPacer, StopReason
 from omw.pipelines.meta_ads import run
 from omw.sources.meta_ads import CADENCES, cadence_window, check_token, meta_ads
+from omw.sources.meta_ads.leads import INITIAL_CREATED_TIME
 from omw.sources.meta_ads.source import insights_params, shape_insight
 from omw.sources.meta_ads.token import TokenExpiredError
 from omw.sources.windows import Window
-from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, fixture_rows
+from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, fake_lead_fetcher, fixture_rows
 
 TODAY = date(2026, 10, 4)  # daily window 2026-09-27..10-03 covers the fixture days 10-01..03
 WINDOW = Window(date(2026, 10, 1), date(2026, 10, 3))
@@ -200,3 +201,24 @@ def test_breakdowns_are_campaign_level_insights_in_their_own_tables(
     )  # integer shares never exceed the campaign
     with pytest.raises(ValueError, match="unknown breakdowns"):
         _source(account, pacer, breakdowns=["device"])
+
+
+def test_leads_are_pulled_per_ad_after_the_cursor_without_exposing_answers(
+    account: FakeAccount, pacer: MetaPacer
+) -> None:
+    source = _source(account, pacer, leads=True, lead_fetcher=fake_lead_fetcher)
+    assert "leads" in source.resources
+    rows = list(source.resources["leads"])
+    assert [r["id"] for r in rows] == [f"2390000000000000{i}" for i in (1, 2, 3, 4)]
+    assert rows[0]["date"].isoformat() == "2026-10-01" and rows[0]["field_count"] == 2
+    assert rows[3]["is_organic"] is True and rows[1]["platform"] == "ig"
+    assert "example.test" in rows[0]["field_data"]  # the answers stay in raw as JSON
+    ad_ids = [ad_id for ad_id, _ in account.lead_calls]
+    assert ad_ids == [a["id"] for a in fixture_rows("ads")]
+    filtering = account.lead_calls[0][1]["filtering"][0]
+    assert filtering["field"] == "time_created" and filtering["value"] == int(
+        INITIAL_CREATED_TIME.timestamp()
+    )
+    hints: dict[str, Any] = dict(source.resources["leads"].compute_table_schema())
+    assert hints["write_disposition"] == "merge" and hints["x-clickhouse-sort"] == ["id"]
+    assert "leads" not in _source(account, pacer).resources

@@ -20,6 +20,7 @@ from dlt.sources.rest_api.typing import RESTAPIConfig
 
 from omw.sources.columns import column
 from omw.sources.linkedin_ads.auth import LinkedInAuth
+from omw.sources.linkedin_ads.leads import lead_responses_resource
 from omw.sources.linkedin_ads.shapes import (
     ACCOUNT_COLUMNS,
     ANALYTICS_FIELDS,
@@ -200,9 +201,10 @@ def linkedin_ads(
     auth: LinkedInAuth | None = None,
     session: requests.Session | None = None,
     today: date | None = None,
+    leads: bool = False,
 ) -> Iterator[DltResource]:
     """LinkedIn Ads entities and daily campaign and creative analytics for ``window`` (default: last
-    ``days`` days).
+    ``days`` days); with ``leads``, the lead-gen form responses submitted inside the window too.
 
     ``account_ids`` are numeric sponsored account ids. ``auth`` is injectable for tests; otherwise the
     OAuth refresh-token flow from the secrets.
@@ -225,4 +227,6 @@ def linkedin_ads(
     yield from entity_resources(session, accounts)
     yield analytics_resource(client, accounts, window)
     yield analytics_resource(client, accounts, window, pivot="CREATIVE")
+    if leads:
+        yield lead_responses_resource(client, accounts, window)
     yield sync_windows_resource(accounts, window)

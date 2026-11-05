@@ -18,6 +18,7 @@ from omw.pacing import MetaPacer, PacerStop
 from omw.sources.meta_ads.api import connect
 from omw.sources.meta_ads.cadences import SyncMode, cadence_window
 from omw.sources.meta_ads.helpers import DEFAULT_POLLING, JobPolling, export, page_entities, wait_for_job
+from omw.sources.meta_ads.leads import LeadFetcher, leads_resource, sdk_lead_fetcher
 from omw.sources.meta_ads.settings import (
     ACTION_ATTRIBUTION_WINDOWS,
     BREAKDOWNS,
@@ -250,13 +251,16 @@ def meta_ads(
     sleep: Callable[[float], None] | None = None,
     accounts: Mapping[str, Any] | None = None,
     today: date | None = None,
+    leads: bool = False,
+    lead_fetcher: LeadFetcher = sdk_lead_fetcher,
 ) -> Iterator[DltResource]:
     """Meta Ads entities and insights for ``window`` (default: the cadence's trailing window).
 
     ``account_ids`` without the ``act_`` prefix. ``levels``: ``campaign`` (default) and/or ``ad`` (live ad
     sets only). ``breakdowns``: campaign-level presets (``age_gender``, ``countries``, ``placements``), each
-    its own table. ``accounts`` injects SDK-like account objects for tests; otherwise each account is
-    connected through a session wrapped by ``pacer``.
+    its own table. ``leads`` also pulls the lead-ads submissions per ad (needs ``leads_retrieval``).
+    ``accounts`` injects SDK-like account objects for tests; otherwise each account is connected through
+    a session wrapped by ``pacer``.
     """
     import time
 
@@ -295,4 +299,10 @@ def meta_ads(
         yield _insights_resource(
             "campaign", accounts, currencies, pacer, window, page_size, polling, sleep, breakdown
         )
-    yield _sync_windows_resource(list(accounts), window, mode, [*levels, *breakdowns])
+    if leads:
+        yield leads_resource(
+            accounts, page_size, lambda name, items: _paced(pacer, name, items), lead_fetcher
+        )
+    yield _sync_windows_resource(
+        list(accounts), window, mode, [*levels, *breakdowns, *(["leads"] if leads else [])]
+    )

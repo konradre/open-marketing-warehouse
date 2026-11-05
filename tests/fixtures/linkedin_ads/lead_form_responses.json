@@ -1,0 +1,111 @@
+{
+ "paging": {
+  "start": 0,
+  "count": 100,
+  "links": []
+ },
+ "elements": [
+  {
+   "id": "urn:li:leadFormResponse:3000001",
+   "versionedLeadGenFormUrn": "urn:li:versionedLeadGenForm:(urn:li:leadGenForm:6100001,3)",
+   "owner": {
+    "sponsoredAccount": "urn:li:sponsoredAccount:512345678"
+   },
+   "leadType": "SPONSORED",
+   "submittedAt": 1790845200000,
+   "associatedEntity": {
+    "associatedEntityType": "SPONSORED",
+    "campaign": "urn:li:sponsoredCampaign:800001",
+    "creative": "urn:li:sponsoredCreative:900001"
+   },
+   "formResponse": {
+    "answers": [
+     {
+      "questionId": 1,
+      "answerDetails": {
+       "textQuestionAnswer": {
+        "answer": "lead1@example.test"
+       }
+      }
+     },
+     {
+      "questionId": 2,
+      "answerDetails": {
+       "textQuestionAnswer": {
+        "answer": "Lead 1"
+       }
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "urn:li:leadFormResponse:3000002",
+   "versionedLeadGenFormUrn": "urn:li:versionedLeadGenForm:(urn:li:leadGenForm:6100001,3)",
+   "owner": {
+    "sponsoredAccount": "urn:li:sponsoredAccount:512345678"
+   },
+   "leadType": "SPONSORED",
+   "submittedAt": 1790949600000,
+   "associatedEntity": {
+    "associatedEntityType": "SPONSORED",
+    "campaign": "urn:li:sponsoredCampaign:800001",
+    "creative": "urn:li:sponsoredCreative:900001"
+   },
+   "formResponse": {
+    "answers": [
+     {
+      "questionId": 1,
+      "answerDetails": {
+       "textQuestionAnswer": {
+        "answer": "lead2@example.test"
+       }
+      }
+     },
+     {
+      "questionId": 2,
+      "answerDetails": {
+       "textQuestionAnswer": {
+        "answer": "Lead 2"
+       }
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "urn:li:leadFormResponse:3000003",
+   "versionedLeadGenFormUrn": "urn:li:versionedLeadGenForm:(urn:li:leadGenForm:6100001,3)",
+   "owner": {
+    "sponsoredAccount": "urn:li:sponsoredAccount:512345678"
+   },
+   "leadType": "SPONSORED",
+   "submittedAt": 1791021600000,
+   "associatedEntity": {
+    "associatedEntityType": "SPONSORED",
+    "campaign": "urn:li:sponsoredCampaign:800002",
+    "creative": "urn:li:sponsoredCreative:900002"
+   },
+   "formResponse": {
+    "answers": [
+     {
+      "questionId": 1,
+      "answerDetails": {
+       "textQuestionAnswer": {
+        "answer": "lead3@example.test"
+       }
+      }
+     },
+     {
+      "questionId": 2,
+      "answerDetails": {
+       "textQuestionAnswer": {
+        "answer": "Lead 3"
+       }
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

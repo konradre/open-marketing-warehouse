@@ -15,7 +15,7 @@ from clickhouse_connect.driver.exceptions import DatabaseError
 from omw.pacing import MetaPacer
 from omw.pipelines.meta_ads import run
 from tests.integration.conftest import setting
-from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, fixture_rows
+from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, fake_lead_fetcher, fixture_rows
 
 pytestmark = pytest.mark.integration
 
@@ -65,11 +65,14 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
         [ACCOUNT],
         levels=["campaign", "ad"],
         breakdowns=["age_gender", "countries", "placements"],
+        leads=True,
+        lead_fetcher=fake_lead_fetcher,
         today=TODAY,
         pacer=pacer,
         accounts={ACCOUNT: FakeAccount(pacer=pacer)},
     )
     assert result.counts["insights_campaigns"] == 6 and result.counts["insights_ads"] == 6
+    assert result.counts["leads"] == 4
     assert result.counts["insights_age_gender"] == 12 and result.counts["insights_countries"] == 4
     yield pipeline
     _drop_everything(admin_client)
@@ -162,6 +165,32 @@ def test_breakdowns_sum_to_campaigns_on_spend_and_clicks(loaded: dlt.Pipeline, a
             parameters={"t": f"{DATASET}_{view}"},
         ).result_rows
         assert columns and all(comment for _, comment in columns), view
+
+
+def test_leads_are_counted_in_the_account_currency_without_answers(
+    loaded: dlt.Pipeline, admin_client: Client, agent_client: Client
+) -> None:
+    rows = agent_client.query(
+        "SELECT date, currency, campaign_id, ad_id, is_organic, platform, answer_count "
+        f"FROM marts.{DATASET}_leads ORDER BY lead_id"
+    ).result_rows
+    assert len(rows) == 4 and rows[0][1] == "USD" and rows[0][6] == 2 and rows[1][5] == "ig"
+    assert rows[3][4] is True and rows[0][2] == "23850000000000001"
+    assert [r[0].isoformat() for r in rows] == ["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-03"]
+    columns = {
+        name: comment
+        for name, comment in agent_client.query(
+            "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
+            parameters={"t": f"{DATASET}_leads"},
+        ).result_rows
+    }
+    assert columns and all(columns.values()) and "field_data" not in columns
+    assert (
+        "example.test"
+        in admin_client.query("SELECT field_data FROM raw.meta_ads___leads ORDER BY id LIMIT 1").result_rows[
+            0
+        ][0]
+    )
 
 
 def test_raw_stays_invisible_to_the_agent(loaded: dlt.Pipeline, agent_client: Client) -> None:

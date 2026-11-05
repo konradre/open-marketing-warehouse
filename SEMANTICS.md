@@ -1,10 +1,9 @@
 # Semantics for the agent
 
-What each number means, where it lives and what it hides. Metrics are defined in `metrics/*.yaml` and served
-by the `query_metrics` tool, which answers with a mood: **serve**, **disclose** (read the caveats),
-**clarify** (pick a candidate) or **refuse** (no valid path). Every table is one *report grain*; filter on
-exactly one `report`, never sum two grains together. Rates and cross-source measures are computed at query
-time from their parts; never sum a rate yourself.
+What each number means and what it hides. Metrics live in `metrics/*.yaml`; the `query_metrics` tool answers
+with a mood: **serve**, **disclose** (read the caveats), **clarify** (pick a candidate) or **refuse** (no
+valid path). Every table is one *report grain*: filter on one `report`, never sum two grains. Rates and
+cross-source measures are computed at query time from their parts; never sum a rate yourself.
 
 ## Ad spend and delivery
 
@@ -31,16 +30,15 @@ time from their parts; never sum a rate yourself.
 - **ad_spend** = meta_spend + google_spend + linkedin_spend and **blended_cpc** = ad_spend / all clicks,
   only at the common grain (date, campaign_key, currency). Never sum across currencies: add the `currency`
   dimension or filter to one.
-- `spend`, `cost`, `clicks`, `impressions`, `conversions`, `ctr`, `cpc` are ambiguous across platforms: the
-  tool asks you to clarify. Name the platform (`meta_spend`, `google_spend`, `linkedin_spend`) or the
-  blended measure (`ad_spend`).
+- `spend`, `cost`, `clicks`, `impressions`, `conversions`, `ctr`, `cpc`, `leads` are ambiguous across
+  platforms: name the platform (`meta_spend`, `linkedin_leads`) or the blended measure (`ad_spend`).
 
 ## Organic search (Search Console)
 
-- **search_clicks**, **search_impressions**, **search_ctr**, **search_position** come from the `core` grain
-  per property and search type. Position is impression-weighted; 1 is the top.
+- **search_clicks**, **search_impressions**, **search_ctr**, **search_position**: the `core` grain per
+  property and search type. Position is impression-weighted (1 = top).
 - **query_clicks** (per query) and **page_clicks** (per page) are breakdown grains that **undercount core**:
-  Google withholds anonymised queries. Days up to 3 days back are provisional.
+  Google withholds anonymised queries. The last 3 days are provisional.
 
 ## Site analytics (GA4)
 
@@ -49,7 +47,7 @@ time from their parts; never sum a rate yourself.
   additive** across days.
 - **channel_sessions** and **campaign_sessions** are breakdown grains. GA4 folds high-cardinality values into
   an **(other)** row, kept and flagged `is_other`, so the breakdown still sums to `core`. `(not set)` means
-  no campaign data. GA4 `total_revenue` is modelled; billing truth is Stripe.
+  no campaign data. GA4 `total_revenue` is modelled; Stripe is billing truth.
 
 ## Revenue (Stripe)
 
@@ -64,6 +62,11 @@ time from their parts; never sum a rate yourself.
   charges minus refunds, disputes and fees, by transaction day and currency. No campaign key: never joined
   to spend.
 
+## Leads
+
+- **meta_leads** and **linkedin_leads** count lead-ad submissions by submission day (`leads` grains, loaded
+  with `--leads`). Answers never leave `raw`.
+
 ## Sales pipeline (Twenty CRM)
 
 - **opportunities** and **pipeline_amount** (currency) count opportunities and sum their amounts by the day
@@ -74,9 +77,10 @@ time from their parts; never sum a rate yourself.
 
 ## Cross-source measures
 
-- **roas** = revenue / ad_spend, **cac** = ad_spend / new_customers and **pipeline_cac** = ad_spend /
-  opportunities. Each side is aggregated to the common grain (date, campaign_key, currency) first, then
-  joined; a dimension or filter that exists on only one side is refused. The campaign key joins platforms
+- **roas** = revenue / ad_spend, **cac** = ad_spend / new_customers, **pipeline_cac** = ad_spend /
+  opportunities and **cost_per_lead** = ad_spend / (meta_leads + linkedin_leads). Each side is aggregated
+  to the common grain (date, campaign_key, currency) first, then joined; a dimension or filter on one side
+  only is refused. The campaign key joins platforms
   through `marts.campaign_keys`: by default the slug of the campaign name (`widgets_prospecting`), so Stripe
   and Twenty attribution must carry that slug (or a manual mapping) for ROAS and CAC by campaign to join.
 

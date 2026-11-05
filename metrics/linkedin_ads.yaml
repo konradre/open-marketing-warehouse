@@ -27,6 +27,20 @@ reports:
     restatement_days: 7
     traps:
       - Sums to the campaigns grain on cost, impressions and clicks.
+  - name: leads
+    view: marts.linkedin_ads_leads
+    description: LinkedIn lead-gen form responses, one row per lead, dated by submission day.
+    dimensions:
+      account_id: LinkedIn sponsored account id
+      currency: ISO 4217 currency of the sponsored account
+      campaign_id: LinkedIn campaign the lead came from
+      campaign_name: Campaign name at the last entity pull
+      creative_id: LinkedIn creative the lead came from
+      form_id: Lead gen form id
+      lead_type: SPONSORED or ORGANIC
+    campaign_key: "concat('linkedin_ads:', campaign_id)"
+    traps:
+      - Only loaded with --leads (needs r_marketing_leadgen_automation).
 metrics:
   - name: linkedin_spend
     report: campaigns
@@ -82,3 +96,10 @@ metrics:
     unit: events
     grains: [account_id, currency, campaign_id, campaign_name, creative_id, creative_status, is_serving, campaign_key]
     description: Insight Tag conversions per LinkedIn creative.
+  - name: linkedin_leads
+    report: leads
+    expr: count()
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, creative_id, form_id, lead_type, campaign_key]
+    aliases: [leads]
+    description: Lead-gen form responses on LinkedIn, by submission day.
