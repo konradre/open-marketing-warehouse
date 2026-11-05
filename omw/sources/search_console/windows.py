@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, timedelta
+
+from omw.sources.windows import Window, trailing_window
 
 DAILY_WINDOW_DAYS = 10
 """The daily sync re-fetches this many days and replaces them (Search Console lags 2-3 days)."""
@@ -14,28 +15,12 @@ RETENTION_MONTHS = 16
 CHUNK_DAYS = 90
 
 
-@dataclass(frozen=True, order=True)
-class Window:
-    start: date
-    end: date
-    """Inclusive on both ends, as the API takes them."""
-
-    def __post_init__(self) -> None:
-        if self.end < self.start:
-            raise ValueError(f"window ends before it starts: {self.start} > {self.end}")
-
-    @property
-    def days(self) -> int:
-        return (self.end - self.start).days + 1
-
-    def __str__(self) -> str:
-        return f"{self.start.isoformat()}..{self.end.isoformat()}"
+__all__ = ["Window", "backfill_chunks", "daily_window", "retention_start"]
 
 
 def daily_window(today: date, days: int = DAILY_WINDOW_DAYS) -> Window:
     """The last ``days`` complete days, ending yesterday."""
-    end = today - timedelta(days=1)
-    return Window(end - timedelta(days=days - 1), end)
+    return trailing_window(today, days)
 
 
 def retention_start(today: date, months: int = RETENTION_MONTHS) -> date:

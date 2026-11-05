@@ -1,0 +1,9 @@
+{
+ "status": 200,
+ "headers": {
+  "x-app-usage": "not json",
+  "x-ad-account-usage": "{\"acc_id_util_pct\": \"high\"}",
+  "x-fb-ads-insights-throttle": "[1, 2]",
+  "x-business-use-case-usage": "{\"1\": \"oops\"}"
+ }
+}

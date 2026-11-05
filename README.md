@@ -74,10 +74,29 @@ ones, and the next run continues from the last completed chunk (progress lives i
 the data). The daily sync replaces the whole `(property, search type, day)` slice it fetched, so Google's
 2–3 day restatement never leaves duplicates. A daily run that loads no `core` rows fails.
 
+### Meta Ads
+
+`omw.sources.meta_ads` pulls campaigns, ad sets and ads (merged on id) and daily insights at campaign level
+(and at ad level for live ad sets, with `--level ad`), exposed as `marts.meta_ads_campaigns` and
+`marts.meta_ads_ads`. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
+slows down above 75% utilisation, and ends the run cleanly near 100% or on a rate-limit error, writing the
+reason to `ops.pacing_events` instead of retrying into the limit.
+
+Setup: create a system user in Meta Business Settings, give it `ads_read` on the ad accounts, generate a
+token, and put the token, the account ids (without `act_`) and the token's expiry date in
+`.dlt/secrets.toml` under `[sources.meta_ads]`. The sync warns 7 days before the expiry and refuses to run
+after it.
+
+```bash
+uv run python -m omw.pipelines.meta_ads daily              # re-fetch the last 7 days and replace them
+uv run python -m omw.pipelines.meta_ads weekly             # reconcile the last 28 days (Meta restates that far back)
+uv run python -m omw.pipelines.meta_ads daily --level ad   # ad-level insights for live ad sets
+```
+
 ## Layout
 
 ```
-omw/            Python package: sources/, pacing/, pipelines/, checks/, metrics/
+omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/
 sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), 10_* marts views
 deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config
 tests/          unit/ (no services), integration/ (ClickHouse + mcp-clickhouse), fixtures/<source>/

@@ -1,0 +1,66 @@
+{
+ "data": [
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-02",
+   "date_stop": "2026-10-02",
+   "impressions": "12800",
+   "clicks": "262",
+   "reach": "9400",
+   "frequency": "1.361702",
+   "spend": "51.75",
+   "ctr": "2.046875",
+   "cpc": "0.197519",
+   "cpm": "4.042969",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "259"
+    },
+    {
+     "action_type": "purchase",
+     "value": "13"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "purchase",
+     "value": "637.00"
+    }
+   ]
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000002",
+   "campaign_name": "Widgets - Retargeting",
+   "date_start": "2026-10-02",
+   "date_stop": "2026-10-02",
+   "impressions": "3150",
+   "clicks": "158",
+   "reach": "1870",
+   "frequency": "1.684492",
+   "spend": "23.40",
+   "ctr": "5.015873",
+   "cpc": "0.148101",
+   "cpm": "7.428571",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "155"
+    },
+    {
+     "action_type": "purchase",
+     "value": "7"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "purchase",
+     "value": "343.00"
+    }
+   ]
+  }
+ ]
+}

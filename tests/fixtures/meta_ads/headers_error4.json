@@ -1,0 +1,17 @@
+{
+ "status": 400,
+ "headers": {
+  "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 80.0, \"acc_id_util_pct\": 33.0, \"ads_api_access_tier\": \"development_access\"}",
+  "x-ad-account-usage": "{\"acc_id_util_pct\": 42.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+  "x-app-usage": "{\"call_count\": 100, \"total_cputime\": 61, \"total_time\": 70}"
+ },
+ "body": {
+  "error": {
+   "message": "(#4) Application request limit reached",
+   "type": "OAuthException",
+   "is_transient": false,
+   "code": 4,
+   "fbtrace_id": "A0000000000000000000000000"
+  }
+ }
+}

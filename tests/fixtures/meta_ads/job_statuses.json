@@ -1,0 +1,17 @@
+[
+ {
+  "id": "6400000000000001",
+  "async_status": "Job Not Started",
+  "async_percent_completion": 0
+ },
+ {
+  "id": "6400000000000001",
+  "async_status": "Job Running",
+  "async_percent_completion": 45
+ },
+ {
+  "id": "6400000000000001",
+  "async_status": "Job Completed",
+  "async_percent_completion": 100
+ }
+]
