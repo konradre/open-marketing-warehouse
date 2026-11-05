@@ -153,6 +153,26 @@ invoices and balance transactions, and put it in `.dlt/secrets.toml` under `[sou
 uv run python -m omw.pipelines.stripe daily
 ```
 
+### LinkedIn Ads
+
+`omw.sources.linkedin_ads` loads ad accounts, campaign groups (with their daily/total budgets and the
+budget-optimisation flag), campaigns and creatives through dlt's declarative `rest_api` resources, and
+daily campaign analytics (`adAnalytics`, pivot `CAMPAIGN`), exposed as `marts.linkedin_ads_campaigns` and
+`marts.linkedin_ads_campaign_list`. The daily run re-fetches the last 7 days and replaces them. The
+`LinkedIn-Version` header is pinned in `omw/sources/linkedin_ads/version.py`; every run warns three months
+before LinkedIn retires that version and refuses to run after it.
+
+**LinkedIn Ads access** (one-time): create an app in the LinkedIn Developer Portal, associate it with a
+company page, and request the *Advertising API* product. LinkedIn reviews the application (this takes
+days to weeks and needs a business justification); until it is approved the app cannot read ad data. Then
+run the 3-legged OAuth flow once with the `r_ads` and `r_ads_reporting` scopes for a user who has at least
+Viewer access on the ad accounts, keep the refresh token (valid for a year), and put the client id, secret,
+refresh token and sponsored account ids in `.dlt/secrets.toml` under `[sources.linkedin_ads]`.
+
+```bash
+uv run python -m omw.pipelines.linkedin_ads daily    # re-fetch the last 7 days and replace them
+```
+
 ## Post-sync checks
 
 `omw check` runs after the syncs and exits non-zero on any failure, so a scheduler sees it:

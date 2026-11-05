@@ -1,0 +1,159 @@
+{
+ "elements": [
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCampaign:800001"
+   ],
+   "impressions": 18000,
+   "clicks": 95,
+   "costInLocalCurrency": "210.40",
+   "externalWebsiteConversions": 6,
+   "landingPageClicks": 80,
+   "likes": 12,
+   "shares": 3,
+   "follows": 2
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCampaign:800002"
+   ],
+   "impressions": 9000,
+   "clicks": 60,
+   "costInLocalCurrency": "145.00",
+   "externalWebsiteConversions": 9,
+   "landingPageClicks": 50,
+   "likes": 5,
+   "shares": 1,
+   "follows": 1
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCampaign:800001"
+   ],
+   "impressions": 18500,
+   "clicks": 100,
+   "costInLocalCurrency": "220.40",
+   "externalWebsiteConversions": 7,
+   "landingPageClicks": 84,
+   "likes": 12,
+   "shares": 3,
+   "follows": 2
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCampaign:800002"
+   ],
+   "impressions": 9200,
+   "clicks": 63,
+   "costInLocalCurrency": "150.00",
+   "externalWebsiteConversions": 10,
+   "landingPageClicks": 52,
+   "likes": 5,
+   "shares": 1,
+   "follows": 1
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCampaign:800001"
+   ],
+   "impressions": 19000,
+   "clicks": 105,
+   "costInLocalCurrency": "230.40",
+   "externalWebsiteConversions": 8,
+   "landingPageClicks": 88,
+   "likes": 12,
+   "shares": 3,
+   "follows": 2
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCampaign:800002"
+   ],
+   "impressions": 9400,
+   "clicks": 66,
+   "costInLocalCurrency": "155.00",
+   "externalWebsiteConversions": 11,
+   "landingPageClicks": 54,
+   "likes": 5,
+   "shares": 1,
+   "follows": 1
+  }
+ ],
+ "paging": {
+  "start": 0,
+  "count": 6,
+  "links": []
+ }
+}

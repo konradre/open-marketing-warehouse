@@ -1,0 +1,20 @@
+{
+ "id": 512345678,
+ "name": "Example Widgets",
+ "status": "ACTIVE",
+ "type": "BUSINESS",
+ "currency": "EUR",
+ "test": false,
+ "reference": "urn:li:organization:9000001",
+ "servingStatuses": [
+  "RUNNABLE"
+ ],
+ "changeAuditStamps": {
+  "created": {
+   "time": 1767225600000
+  },
+  "lastModified": {
+   "time": 1790000000000
+  }
+ }
+}

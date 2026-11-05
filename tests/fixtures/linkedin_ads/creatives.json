@@ -1,0 +1,33 @@
+{
+ "elements": [
+  {
+   "id": "urn:li:sponsoredCreative:900001",
+   "account": "urn:li:sponsoredAccount:512345678",
+   "campaign": "urn:li:sponsoredCampaign:800001",
+   "intendedStatus": "ACTIVE",
+   "isServing": true,
+   "content": {
+    "reference": "urn:li:share:7000000000000000001"
+   },
+   "createdAt": 1788480000000,
+   "lastModifiedAt": 1790000000000
+  },
+  {
+   "id": "urn:li:sponsoredCreative:900002",
+   "account": "urn:li:sponsoredAccount:512345678",
+   "campaign": "urn:li:sponsoredCampaign:800002",
+   "intendedStatus": "ACTIVE",
+   "isServing": true,
+   "content": {
+    "reference": "urn:li:share:7000000000000000002"
+   },
+   "createdAt": 1788480000000,
+   "lastModifiedAt": 1790000000000
+  }
+ ],
+ "paging": {
+  "start": 0,
+  "count": 2,
+  "links": []
+ }
+}

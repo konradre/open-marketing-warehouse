@@ -1,0 +1,72 @@
+{
+ "elements": [
+  {
+   "id": 800001,
+   "account": "urn:li:sponsoredAccount:512345678",
+   "campaignGroup": "urn:li:sponsoredCampaignGroup:700001",
+   "name": "Widgets - Sponsored Content",
+   "status": "ACTIVE",
+   "type": "SPONSORED_UPDATES",
+   "objectiveType": "WEBSITE_CONVERSIONS",
+   "costType": "CPM",
+   "optimizationTargetType": "MAX_CONVERSION",
+   "dailyBudget": {
+    "amount": "150",
+    "currencyCode": "EUR"
+   },
+   "unitCost": {
+    "amount": "12.5",
+    "currencyCode": "EUR"
+   },
+   "runSchedule": {
+    "start": 1788566400000
+   },
+   "changeAuditStamps": {
+    "created": {
+     "time": 1788480000000
+    },
+    "lastModified": {
+     "time": 1790000000000
+    }
+   }
+  },
+  {
+   "id": 800002,
+   "account": "urn:li:sponsoredAccount:512345678",
+   "campaignGroup": "urn:li:sponsoredCampaignGroup:700001",
+   "name": "Widgets - Lead Gen",
+   "status": "ACTIVE",
+   "type": "SPONSORED_UPDATES",
+   "objectiveType": "LEAD_GENERATION",
+   "costType": "CPC",
+   "optimizationTargetType": "MAX_LEAD",
+   "dailyBudget": {
+    "amount": "100",
+    "currencyCode": "EUR"
+   },
+   "unitCost": {
+    "amount": "4.2",
+    "currencyCode": "EUR"
+   },
+   "runSchedule": {
+    "start": 1788566400000
+   },
+   "changeAuditStamps": {
+    "created": {
+     "time": 1788480000000
+    },
+    "lastModified": {
+     "time": 1790000000000
+    }
+   }
+  }
+ ],
+ "paging": {
+  "start": 0,
+  "count": 2,
+  "links": []
+ },
+ "metadata": {
+  "nextPageToken": "page2token"
+ }
+}

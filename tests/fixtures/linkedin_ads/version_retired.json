@@ -1,0 +1,5 @@
+{
+ "status": 426,
+ "code": "VERSION_RETIRED",
+ "message": "This version of the API is no longer supported. Please migrate to a supported version."
+}
