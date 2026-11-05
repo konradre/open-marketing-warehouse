@@ -1,0 +1,59 @@
+{
+ "elements": [
+  {
+   "id": 700001,
+   "account": "urn:li:sponsoredAccount:512345678",
+   "name": "Widgets Q4",
+   "status": "ACTIVE",
+   "totalBudget": {
+    "amount": "12000",
+    "currencyCode": "EUR"
+   },
+   "dailyBudget": {
+    "amount": "400",
+    "currencyCode": "EUR"
+   },
+   "budgetOptimizationEnabled": true,
+   "objectiveType": "WEBSITE_CONVERSIONS",
+   "runSchedule": {
+    "start": 1788566400000,
+    "end": 1798761600000
+   },
+   "changeAuditStamps": {
+    "created": {
+     "time": 1788480000000
+    },
+    "lastModified": {
+     "time": 1790000000000
+    }
+   }
+  },
+  {
+   "id": 700002,
+   "account": "urn:li:sponsoredAccount:512345678",
+   "name": "Brand",
+   "status": "PAUSED",
+   "totalBudget": {
+    "amount": "5000",
+    "currencyCode": "EUR"
+   },
+   "budgetOptimizationEnabled": false,
+   "runSchedule": {
+    "start": 1780000000000
+   },
+   "changeAuditStamps": {
+    "created": {
+     "time": 1779900000000
+    },
+    "lastModified": {
+     "time": 1789000000000
+    }
+   }
+  }
+ ],
+ "paging": {
+  "start": 0,
+  "count": 2,
+  "links": []
+ }
+}

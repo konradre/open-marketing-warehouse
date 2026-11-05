@@ -122,7 +122,14 @@ def test_rowcount_sql_and_verdicts(warehouse: FakeWarehouse) -> None:
         result = rowcount_checks(warehouse, TODAY, (rule,))[0]
         assert result.status is expected, (rows, result.detail)
         assert result.observed == rows[0] and result.expected == rows[1]
-    assert {r.source for r in ROWCOUNT_RULES} == {"search_console", "ga4", "google_ads", "meta_ads", "stripe"}
+    assert {r.source for r in ROWCOUNT_RULES} == {
+        "search_console",
+        "ga4",
+        "google_ads",
+        "meta_ads",
+        "stripe",
+        "linkedin_ads",
+    }
 
 
 def test_runner_writes_results_and_reports_failures(warehouse: FakeWarehouse) -> None:

@@ -1,0 +1,5 @@
+{
+ "status": 429,
+ "code": "THROTTLED",
+ "message": "Daily limit reached for application"
+}

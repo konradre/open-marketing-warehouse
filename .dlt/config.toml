@@ -26,3 +26,7 @@ meta_ads = 30
 google_ads = 30
 ga4 = 30
 stripe = 30
+linkedin_ads = 30
+
+[sources.linkedin_ads]
+days = 7

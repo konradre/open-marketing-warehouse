@@ -26,6 +26,7 @@ ROWCOUNT_RULES: tuple[RowcountRule, ...] = (
     RowcountRule("google_ads", "marts.google_ads_campaigns", "campaigns"),
     RowcountRule("meta_ads", "marts.meta_ads_campaigns", "campaigns"),
     RowcountRule("stripe", "marts.stripe_revenue", "invoices"),
+    RowcountRule("linkedin_ads", "marts.linkedin_ads_campaigns", "campaigns"),
 )
 
 

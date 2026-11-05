@@ -1,0 +1,40 @@
+{
+ "elements": [
+  {
+   "id": 800003,
+   "account": "urn:li:sponsoredAccount:512345678",
+   "campaignGroup": "urn:li:sponsoredCampaignGroup:700002",
+   "name": "Brand - Text",
+   "status": "PAUSED",
+   "type": "TEXT_AD",
+   "objectiveType": "BRAND_AWARENESS",
+   "costType": "CPC",
+   "optimizationTargetType": "NONE",
+   "dailyBudget": {
+    "amount": "20",
+    "currencyCode": "EUR"
+   },
+   "unitCost": {
+    "amount": "2",
+    "currencyCode": "EUR"
+   },
+   "runSchedule": {
+    "start": 1780000000000,
+    "end": 1790000000000
+   },
+   "changeAuditStamps": {
+    "created": {
+     "time": 1779900000000
+    },
+    "lastModified": {
+     "time": 1789000000000
+    }
+   }
+  }
+ ],
+ "paging": {
+  "start": 0,
+  "count": 1,
+  "links": []
+ }
+}
