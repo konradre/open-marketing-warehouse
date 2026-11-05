@@ -1,0 +1,108 @@
+[
+ {
+  "results": [
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010001",
+     "id": "20010001",
+     "name": "Brand - Search",
+     "status": "ENABLED",
+     "advertisingChannelType": "SEARCH"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "4000",
+     "clicks": "320",
+     "costMicros": "48500000",
+     "conversions": 12.0,
+     "conversionsValue": 980.5
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010002",
+     "id": "20010002",
+     "name": "Generic - Widgets",
+     "status": "ENABLED",
+     "advertisingChannelType": "SEARCH"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "9000",
+     "clicks": "410",
+     "costMicros": "155250000",
+     "conversions": 9.5,
+     "conversionsValue": 611.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog",
+     "status": "ENABLED",
+     "advertisingChannelType": "PERFORMANCE_MAX"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "15000",
+     "clicks": "290",
+     "costMicros": "97000000",
+     "conversions": 21.0,
+     "conversionsValue": 1750.0
+    }
+   }
+  ],
+  "fieldMask": "customer.id,customer.currencyCode,campaign.id,campaign.name,campaign.status,campaign.advertisingChannelType,segments.date,metrics.impressions,metrics.clicks,metrics.costMicros,metrics.conversions,metrics.conversionsValue",
+  "requestId": "req-0000000000000005"
+ },
+ {
+  "error": {
+   "code": 429,
+   "message": "Quota exceeded.",
+   "status": "RESOURCE_EXHAUSTED",
+   "details": [
+    {
+     "@type": "type.googleapis.com/google.ads.googleads.v22.errors.GoogleAdsFailure",
+     "errors": [
+      {
+       "errorCode": {
+        "quotaError": "RESOURCE_TEMPORARILY_EXHAUSTED"
+       },
+       "message": "Too many requests. Retry in 30 seconds.",
+       "details": {
+        "quotaErrorDetails": {
+         "rateScope": "ACCOUNT",
+         "rateName": "Requests per minute",
+         "retryDelay": "30s"
+        }
+       }
+      }
+     ],
+     "requestId": "req-0000000000000005"
+    }
+   ]
+  }
+ }
+]

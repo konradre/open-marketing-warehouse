@@ -93,6 +93,33 @@ uv run python -m omw.pipelines.meta_ads weekly             # reconcile the last 
 uv run python -m omw.pipelines.meta_ads daily --level ad   # ad-level insights for live ad sets
 ```
 
+### Google Ads
+
+`omw.sources.google_ads` runs GAQL through the REST `searchStream` endpoint: daily campaign and ad group
+performance (impressions, clicks, cost, conversions, conversion value) plus the campaign list, exposed as
+`marts.google_ads_campaigns`, `marts.google_ads_ad_groups` and `marts.google_ads_campaign_list`. Google
+attributes conversions for up to 30 days, so the daily run re-fetches the last 30 days and replaces them.
+`cost_micros` is kept as Google reports it; the views divide it into a `Decimal` amount in the account
+currency.
+
+**Google Ads access** (one-time):
+
+1. In the manager (MCC) account, apply for a developer token under Tools > API Center (test-account access
+   is immediate; production access needs Google's approval).
+2. In Google Cloud, enable the Google Ads API and create an OAuth client (desktop or web). Run the OAuth
+   consent once for a user with access to the accounts and keep the refresh token.
+3. Put the developer token, client id and secret, refresh token, the manager account id
+   (`login_customer_id`) and the client account ids (`customer_ids`, digits only) in `.dlt/secrets.toml`
+   under `[sources.google_ads]`. A customer the token cannot see fails the run with Google's
+   `authorizationError` in the message.
+
+```bash
+uv run python -m omw.pipelines.google_ads daily    # re-fetch the last 30 days and replace them
+```
+
+The API version is pinned in `omw/sources/google_ads/client.py` (`api_version` in config overrides it);
+Google sunsets each version about a year after release.
+
 ## Layout
 
 ```
