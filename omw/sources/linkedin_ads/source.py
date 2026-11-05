@@ -22,11 +22,12 @@ from omw.sources.columns import column
 from omw.sources.linkedin_ads.auth import LinkedInAuth
 from omw.sources.linkedin_ads.shapes import (
     ACCOUNT_COLUMNS,
-    ANALYTICS_COLUMNS,
     ANALYTICS_FIELDS,
     CAMPAIGN_COLUMNS,
     CAMPAIGN_GROUP_COLUMNS,
     CREATIVE_COLUMNS,
+    PIVOT_REPORT,
+    analytics_columns,
     shape_account,
     shape_analytics,
     shape_campaign,
@@ -125,32 +126,39 @@ def restli_date_range(window: Window) -> str:
     )
 
 
-def analytics_path(account_id: str, window: Window) -> str:
+def analytics_path(account_id: str, window: Window, pivot: str = "CAMPAIGN") -> str:
     """The Rest.li query string, built by hand: parentheses must stay literal and URN colons encoded."""
     return (
-        "adAnalytics?q=analytics&pivot=CAMPAIGN&timeGranularity=DAILY"
+        f"adAnalytics?q=analytics&pivot={pivot}&timeGranularity=DAILY"
         f"&accounts=List(urn%3Ali%3AsponsoredAccount%3A{account_id})"
         f"&dateRange={restli_date_range(window)}&fields={','.join(ANALYTICS_FIELDS)}"
     )
 
 
-def analytics_resource(client: RESTClient, account_ids: Sequence[str], window: Window) -> DltResource:
+def analytics_resource(
+    client: RESTClient, account_ids: Sequence[str], window: Window, pivot: str = "CAMPAIGN"
+) -> DltResource:
+    """Daily analytics at one pivot: ``CAMPAIGN`` (the ``ad_analytics`` table) or ``CREATIVE``
+    (``ad_analytics_creatives``), each replacing its (account, day) slice."""
+    pivot_id = "creative_id" if pivot == "CREATIVE" else "campaign_id"
+
     def rows() -> Iterator[list[dict[str, Any]]]:
         for account_id in account_ids:
             response = client.get(f"adAccounts/{account_id}")
             response.raise_for_status()  # RESTClient.get does not raise; paginate does
             currency = str(response.json().get("currency") or "")
-            for page in client.paginate(analytics_path(account_id, window), data_selector="elements"):
-                yield [shape_analytics(account_id, currency, item) for item in page]
+            path = analytics_path(account_id, window, pivot)
+            for page in client.paginate(path, data_selector="elements"):
+                yield [shape_analytics(account_id, currency, item, pivot) for item in page]
 
     resource = dlt.resource(
         rows,
-        name="ad_analytics",
+        name="ad_analytics" if pivot == "CAMPAIGN" else f"ad_analytics_{PIVOT_REPORT[pivot]}",
         write_disposition=MERGE_DISPOSITION,
         merge_key=list(ANALYTICS_MERGE_KEY),
-        columns=ANALYTICS_COLUMNS,
+        columns=analytics_columns(pivot),
     )
-    return clickhouse_adapter(resource, sort=[*ANALYTICS_MERGE_KEY, "campaign_id"])
+    return clickhouse_adapter(resource, sort=[*ANALYTICS_MERGE_KEY, pivot_id])
 
 
 def sync_windows_resource(account_ids: Sequence[str], window: Window) -> DltResource:
@@ -193,7 +201,8 @@ def linkedin_ads(
     session: requests.Session | None = None,
     today: date | None = None,
 ) -> Iterator[DltResource]:
-    """LinkedIn Ads entities and daily campaign analytics for ``window`` (default: last ``days`` days).
+    """LinkedIn Ads entities and daily campaign and creative analytics for ``window`` (default: last
+    ``days`` days).
 
     ``account_ids`` are numeric sponsored account ids. ``auth`` is injectable for tests; otherwise the
     OAuth refresh-token flow from the secrets.
@@ -215,4 +224,5 @@ def linkedin_ads(
 
     yield from entity_resources(session, accounts)
     yield analytics_resource(client, accounts, window)
+    yield analytics_resource(client, accounts, window, pivot="CREATIVE")
     yield sync_windows_resource(accounts, window)

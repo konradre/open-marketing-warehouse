@@ -41,6 +41,21 @@ reports:
     restatement_days: 30
     traps:
       - Search terms undercount the campaigns grain; Google withholds low-volume terms.
+  - name: asset_groups
+    view: marts.google_ads_asset_groups
+    description: Google Ads Performance Max asset group daily performance, one row per asset group and day.
+    dimensions:
+      customer_id: Google Ads customer (account) id
+      currency: ISO 4217 currency of the account
+      campaign_id: Google Ads campaign id (a PERFORMANCE_MAX campaign)
+      campaign_name: Campaign name at pull time
+      asset_group_id: Google Ads asset group id
+      asset_group_name: Asset group name at pull time
+      asset_group_status: ENABLED, PAUSED or REMOVED at pull time
+    campaign_key: "concat('google_ads:', campaign_id)"
+    restatement_days: 30
+    traps:
+      - Only PERFORMANCE_MAX campaigns have asset groups; the grain sums to those campaigns only.
 metrics:
   - name: google_spend
     report: campaigns
@@ -102,3 +117,21 @@ metrics:
     unit: events
     grains: [customer_id, currency, campaign_id, campaign_name, ad_group_id, ad_group_name, search_term, search_term_status, campaign_key]
     description: Conversions per search term, fractional with modelled attribution.
+  - name: google_asset_group_spend
+    report: asset_groups
+    expr: sum(cost)
+    unit: currency
+    grains: [customer_id, currency, campaign_id, campaign_name, asset_group_id, asset_group_name, asset_group_status, campaign_key]
+    description: Performance Max spend per asset group, in the account currency.
+  - name: google_asset_group_clicks
+    report: asset_groups
+    expr: sum(clicks)
+    unit: count
+    grains: [customer_id, currency, campaign_id, campaign_name, asset_group_id, asset_group_name, asset_group_status, campaign_key]
+    description: Clicks per Performance Max asset group.
+  - name: google_asset_group_conversions
+    report: asset_groups
+    expr: sum(conversions)
+    unit: events
+    grains: [customer_id, currency, campaign_id, campaign_name, asset_group_id, asset_group_name, asset_group_status, campaign_key]
+    description: Conversions per Performance Max asset group, fractional with modelled attribution.

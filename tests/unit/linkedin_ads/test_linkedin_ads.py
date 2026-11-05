@@ -131,6 +131,7 @@ def test_resources_page_with_the_cursor_and_carry_the_headers(auth: LinkedInAuth
         "campaigns",
         "creatives",
         "ad_analytics",
+        "ad_analytics_creatives",
         "sync_windows",
     }
     campaigns = list(source.resources["campaigns"])
@@ -216,6 +217,7 @@ def test_daily_run_checks_the_version_then_loads(tmp_path: Path, auth: LinkedInA
     )
     assert counts["ad_analytics"] == 6 and counts["campaigns"] == 3 and counts["campaign_groups"] == 2
     assert counts["creatives"] == 2 and counts["ad_accounts"] == 1 and counts["sync_windows"] == 1
+    assert counts["ad_analytics_creatives"] == 6
     analytics_call = next(c.request for c in responses.calls if "adAnalytics" in str(c.request.url))
     assert "dateRange=(start:(year:2026,month:9,day:28),end:(year:2026,month:10,day:4))" in str(
         analytics_call.url
@@ -233,7 +235,22 @@ def test_marts_sql_views() -> None:
     from omw.pipelines.marts import SQL_DIR, statements
 
     stmts = statements((SQL_DIR / "80_linkedin_ads_marts.sql").read_text())
-    assert len(stmts) == 2 and all(
+    assert len(stmts) == 3 and all(
         "DEFINER = CURRENT_USER SQL SECURITY DEFINER AS" in s and ";" not in s for s in stmts
     )
-    assert "FROM raw.linkedin_ads___ad_analytics" in stmts[0] and "group_budget_optimization" in stmts[1]
+    assert "FROM raw.linkedin_ads___ad_analytics AS a" in stmts[0] and "group_budget_optimization" in stmts[1]
+    assert "FROM raw.linkedin_ads___ad_analytics_creatives" in stmts[2] and "creative_id" in stmts[2]
+
+
+@responses.activate
+def test_creative_pivot_lands_in_its_own_table_keyed_by_creative(auth: LinkedInAuth) -> None:
+    register_api(responses)
+    path = analytics_path(ACCOUNT, WINDOW, pivot="CREATIVE")
+    assert path.startswith("adAnalytics?q=analytics&pivot=CREATIVE&timeGranularity=DAILY")
+    source = linkedin_ads(account_ids=[ACCOUNT], auth=auth, session=fast_session(auth), window=WINDOW)
+    rows = list(source.resources["ad_analytics_creatives"])
+    assert len(rows) == 6 and rows[0]["report"] == "creatives" and rows[0]["creative_id"] == "900001"
+    assert "campaign_id" not in rows[0] and rows[0]["cost"] == Decimal("189.36")
+    hints: dict[str, Any] = dict(source.resources["ad_analytics_creatives"].compute_table_schema())
+    assert hints["x-clickhouse-sort"] == ["account_id", "date", "creative_id"]
+    assert "creative_id" in hints["columns"] and "campaign_id" not in hints["columns"]

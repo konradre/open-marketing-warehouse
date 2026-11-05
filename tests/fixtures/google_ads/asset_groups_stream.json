@@ -1,0 +1,176 @@
+[
+ {
+  "results": [
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog"
+    },
+    "assetGroup": {
+     "resourceName": "customers/1234567890/assetGroups/40030001",
+     "id": "40030001",
+     "name": "Catalog - Widgets",
+     "status": "ENABLED"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "9000",
+     "clicks": "174",
+     "costMicros": "58200000",
+     "conversions": 12.6,
+     "conversionsValue": 1050.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog"
+    },
+    "assetGroup": {
+     "resourceName": "customers/1234567890/assetGroups/40030002",
+     "id": "40030002",
+     "name": "Catalog - Gadgets",
+     "status": "ENABLED"
+    },
+    "segments": {
+     "date": "2026-10-01"
+    },
+    "metrics": {
+     "impressions": "6000",
+     "clicks": "116",
+     "costMicros": "38800000",
+     "conversions": 8.4,
+     "conversionsValue": 700.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog"
+    },
+    "assetGroup": {
+     "resourceName": "customers/1234567890/assetGroups/40030001",
+     "id": "40030001",
+     "name": "Catalog - Widgets",
+     "status": "ENABLED"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "9180",
+     "clicks": "178",
+     "costMicros": "59100000",
+     "conversions": 13.2,
+     "conversionsValue": 1062.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog"
+    },
+    "assetGroup": {
+     "resourceName": "customers/1234567890/assetGroups/40030002",
+     "id": "40030002",
+     "name": "Catalog - Gadgets",
+     "status": "ENABLED"
+    },
+    "segments": {
+     "date": "2026-10-02"
+    },
+    "metrics": {
+     "impressions": "6120",
+     "clicks": "119",
+     "costMicros": "39400000",
+     "conversions": 8.8,
+     "conversionsValue": 708.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog"
+    },
+    "assetGroup": {
+     "resourceName": "customers/1234567890/assetGroups/40030001",
+     "id": "40030001",
+     "name": "Catalog - Widgets",
+     "status": "ENABLED"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "9360",
+     "clicks": "183",
+     "costMicros": "60000000",
+     "conversions": 13.8,
+     "conversionsValue": 1074.0
+    }
+   },
+   {
+    "customer": {
+     "resourceName": "customers/1234567890",
+     "id": "1234567890",
+     "currencyCode": "EUR"
+    },
+    "campaign": {
+     "resourceName": "customers/1234567890/campaigns/20010003",
+     "id": "20010003",
+     "name": "PMax - Catalog"
+    },
+    "assetGroup": {
+     "resourceName": "customers/1234567890/assetGroups/40030002",
+     "id": "40030002",
+     "name": "Catalog - Gadgets",
+     "status": "ENABLED"
+    },
+    "segments": {
+     "date": "2026-10-03"
+    },
+    "metrics": {
+     "impressions": "6240",
+     "clicks": "122",
+     "costMicros": "40000000",
+     "conversions": 9.2,
+     "conversionsValue": 716.0
+    }
+   }
+  ],
+  "fieldMask": "customer.id,customer.currencyCode,campaign.id,campaign.name,assetGroup.id,assetGroup.name,assetGroup.status,segments.date,metrics.impressions,metrics.clicks,metrics.costMicros,metrics.conversions,metrics.conversionsValue",
+  "requestId": "synthetic-asset-groups"
+ }
+]

@@ -21,11 +21,13 @@ time from their parts; never sum a rate yourself.
   `google_impressions`, `google_clicks` and `google_cpc` follow the same rules; `google_ad_group_spend` is
   the ad group grain and sums to the campaign grain. `google_search_term_clicks`, `google_search_term_spend`
   and `google_search_term_conversions` are the search term grain, which **undercounts** campaigns (Google
-  withholds low-volume terms).
+  withholds low-volume terms). `google_asset_group_spend`, `google_asset_group_clicks` and
+  `google_asset_group_conversions` are the Performance Max asset group grain.
 - **linkedin_spend** (currency): LinkedIn Ads cost per sponsored account, campaign and day. Cost and
   conversions settle over a few days (the last **7 days** are re-pulled). `linkedin_clicks` are chargeable
   clicks; `linkedin_conversions` are Insight Tag conversions, post-click and post-view;
-  `linkedin_impressions` and `linkedin_cpc` follow Meta's rules.
+  `linkedin_impressions` and `linkedin_cpc` follow Meta's rules. `linkedin_creative_spend`,
+  `linkedin_creative_clicks` and `linkedin_creative_conversions` are the creative grain, summing to campaigns.
 - **ad_spend** = meta_spend + google_spend + linkedin_spend and **blended_cpc** = ad_spend / all clicks,
   only at the common grain (date, campaign_key, currency). Never sum across currencies: add the `currency`
   dimension or filter to one.
@@ -59,8 +61,8 @@ time from their parts; never sum a rate yourself.
   (`campaign_key` or `utm_campaign`). Revenue without a key is real revenue: `attributed = false`, never
   dropped when comparing to spend.
 - **net_revenue**, **refunds** and **stripe_fees** come from the `balance` grain (balance transactions):
-  charges minus refunds, disputes and fees, dated by transaction day, per currency only. They carry no
-  campaign key, so they never join to spend.
+  charges minus refunds, disputes and fees, by transaction day and currency. No campaign key: never joined
+  to spend.
 
 ## Sales pipeline (Twenty CRM)
 
@@ -83,7 +85,6 @@ time from their parts; never sum a rate yourself.
 - `date` is the day in each source's own time zone (ad account, property, UTC for Stripe and Twenty).
   `time_range` is `{start, end}` or a name: `today`, `yesterday`, `last_7_days`, `last_30_days`,
   `last_90_days` (ending yesterday), `month_to_date`, `last_month`, `year_to_date`. `compare` adds a
-  `period` column (`current` / `previous`) for the previous period, week, month or year.
-- The post-sync checks travel with the numbers: a source past its freshness budget, or a failed over-count
-  or row-count check on the report used, is disclosed as a caveat. Verdicts live in `ops.freshness` and
-  `ops.check_verdicts`.
+  `period` column (`current` / `previous`).
+- Post-sync verdicts (`ops.freshness`, `ops.check_verdicts`) travel with the numbers: a stale source or a
+  failed over-count or row-count check on the report used is disclosed as a caveat.

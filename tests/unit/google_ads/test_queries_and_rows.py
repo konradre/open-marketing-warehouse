@@ -83,3 +83,14 @@ def test_search_term_rows_carry_the_term_and_its_status() -> None:
     assert rows[0]["cost_micros"] == 6_000_000 and rows[0]["clicks"] == 40
     hints = performance_columns(report)
     assert hints["search_term"] == {"data_type": "text", "nullable": False}
+
+
+def test_asset_group_rows_carry_the_asset_group() -> None:
+    report = REPORTS["asset_groups"]
+    query = performance_query(report, Window(date(2026, 10, 1), date(2026, 10, 3)))
+    assert "asset_group.id, asset_group.name, asset_group.status, segments.date" in query
+    assert "FROM asset_group WHERE segments.date BETWEEN" in query
+    rows = [shape_performance(report, item) for item in fixture_results("asset_groups_stream")]
+    assert len(rows) == 6 and rows[0]["report"] == "asset_groups" and rows[0]["campaign_id"] == "20010003"
+    assert rows[0]["asset_group_id"] == "40030001" and rows[0]["asset_group_status"] == "ENABLED"
+    assert performance_columns(report)["asset_group_name"] == {"data_type": "text", "nullable": False}

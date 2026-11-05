@@ -1,5 +1,5 @@
-"""GAQL for the report grains (DESIGN.md §4): ``campaigns``, ``ad_groups`` and ``search_terms`` daily, and
-campaign entities."""
+"""GAQL for the report grains (DESIGN.md §4): ``campaigns``, ``ad_groups``, ``search_terms`` and
+``asset_groups`` (Performance Max) daily, and campaign entities."""
 
 from __future__ import annotations
 
@@ -69,6 +69,20 @@ REPORTS: dict[str, Report] = {
             "search_term_view.status",
         ),
         ("campaign_id", "ad_group_id", "search_term"),
+    ),
+    "asset_groups": Report(
+        "asset_groups",
+        "asset_group",
+        (
+            "customer.id",
+            "customer.currency_code",
+            "campaign.id",
+            "campaign.name",
+            "asset_group.id",
+            "asset_group.name",
+            "asset_group.status",
+        ),
+        ("campaign_id", "asset_group_id"),
     ),
 }
 

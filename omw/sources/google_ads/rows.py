@@ -50,6 +50,10 @@ def shape_performance(report: Report, item: Mapping[str, Any]) -> dict[str, Any]
         row["ad_group_name"] = str(_get(item, "adGroup.name"))
         row["search_term"] = str(_get(item, "searchTermView.searchTerm"))
         row["search_term_status"] = str(_get(item, "searchTermView.status"))
+    elif report.name == "asset_groups":
+        row["asset_group_id"] = str(_get(item, "assetGroup.id"))
+        row["asset_group_name"] = str(_get(item, "assetGroup.name"))
+        row["asset_group_status"] = str(_get(item, "assetGroup.status"))
     else:
         row["ad_group_id"] = str(_get(item, "adGroup.id"))
         row["ad_group_name"] = str(_get(item, "adGroup.name"))
@@ -84,6 +88,10 @@ def performance_columns(report: Report) -> dict[str, TColumnSchema]:
         hints["ad_group_name"] = column("text")
         hints["search_term"] = column("text")
         hints["search_term_status"] = column("text")
+    elif report.name == "asset_groups":
+        hints["asset_group_id"] = column("text")
+        hints["asset_group_name"] = column("text")
+        hints["asset_group_status"] = column("text")
     else:
         hints["ad_group_id"] = column("text")
         hints["ad_group_name"] = column("text")

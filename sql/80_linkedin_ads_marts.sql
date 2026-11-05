@@ -1,4 +1,4 @@
--- LinkedIn Ads marts (DESIGN.md §4): campaign daily analytics and the campaign list with budgets.
+-- LinkedIn Ads marts (DESIGN.md §4): campaign and creative daily analytics and the campaign list with budgets.
 -- Applied by omw.pipelines.linkedin_ads after each successful load. SQL SECURITY DEFINER keeps raw invisible to the agent.
 
 CREATE OR REPLACE VIEW marts.linkedin_ads_campaigns (
@@ -55,3 +55,33 @@ SELECT c.source AS source, c.account_id AS account_id, c.campaign_group_id AS ca
        toDecimal64(c.unit_cost, 2) AS unit_cost, c.currency AS currency, c.run_start AS run_start, c.run_end AS run_end
 FROM raw.linkedin_ads___campaigns AS c
 LEFT JOIN raw.linkedin_ads___campaign_groups AS g ON g.id = c.campaign_group_id;
+
+CREATE OR REPLACE VIEW marts.linkedin_ads_creatives (
+    source LowCardinality(String) COMMENT 'Always linkedin_ads',
+    report LowCardinality(String) COMMENT 'Report grain, always creatives: one row per sponsored account, creative and day. Sums to the campaigns grain. Never combine grains',
+    account_id LowCardinality(String) COMMENT 'LinkedIn sponsored account id',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency of the sponsored account. cost is in this currency',
+    date Date COMMENT 'Day in UTC as LinkedIn reports daily analytics. The last 7 days are re-pulled daily',
+    campaign_id String COMMENT 'LinkedIn campaign the creative belongs to (from the creatives entity list), empty when the creative is no longer listed',
+    campaign_name String COMMENT 'Campaign name at the last entity pull, empty when unknown',
+    creative_id String COMMENT 'LinkedIn creative id (digits of urn:li:sponsoredCreative)',
+    creative_status LowCardinality(String) COMMENT 'Intended status of the creative at the last entity pull: ACTIVE, PAUSED, ARCHIVED, ...',
+    is_serving Bool COMMENT 'Whether LinkedIn reported the creative as serving at the last entity pull',
+    impressions UInt64 COMMENT 'Times the creative was shown',
+    clicks UInt64 COMMENT 'Chargeable clicks on the creative',
+    cost Decimal(18, 2) COMMENT 'Amount spent in the account currency (costInLocalCurrency)',
+    conversions UInt64 COMMENT 'External website conversions attributed by the LinkedIn Insight Tag (post-click and post-view)',
+    landing_page_clicks UInt64 COMMENT 'Clicks that opened the landing page',
+    likes UInt64 COMMENT 'Reactions on the creative',
+    shares UInt64 COMMENT 'Shares of the creative',
+    follows UInt64 COMMENT 'Follows gained from the creative'
+) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
+SELECT a.source AS source, a.report AS report, a.account_id AS account_id, a.currency AS currency, a.date AS date,
+       cr.campaign_id AS campaign_id, c.name AS campaign_name, a.creative_id AS creative_id,
+       cr.intended_status AS creative_status, cr.is_serving AS is_serving, toUInt64(a.impressions) AS impressions,
+       toUInt64(a.clicks) AS clicks, toDecimal64(a.cost, 2) AS cost, toUInt64(a.conversions) AS conversions,
+       toUInt64(a.landing_page_clicks) AS landing_page_clicks, toUInt64(a.likes) AS likes, toUInt64(a.shares) AS shares,
+       toUInt64(a.follows) AS follows
+FROM raw.linkedin_ads___ad_analytics_creatives AS a
+LEFT JOIN raw.linkedin_ads___creatives AS cr ON cr.id = a.creative_id
+LEFT JOIN raw.linkedin_ads___campaigns AS c ON c.id = cr.campaign_id;

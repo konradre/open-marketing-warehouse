@@ -1,0 +1,159 @@
+{
+ "paging": {
+  "start": 0,
+  "count": 6,
+  "links": []
+ },
+ "elements": [
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCreative:900001"
+   ],
+   "impressions": 16200,
+   "clicks": 85,
+   "costInLocalCurrency": "189.36",
+   "externalWebsiteConversions": 5,
+   "landingPageClicks": 72,
+   "likes": 10,
+   "shares": 2,
+   "follows": 1
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 1
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCreative:900002"
+   ],
+   "impressions": 8100,
+   "clicks": 54,
+   "costInLocalCurrency": "130.50",
+   "externalWebsiteConversions": 8,
+   "landingPageClicks": 45,
+   "likes": 4,
+   "shares": 0,
+   "follows": 0
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCreative:900001"
+   ],
+   "impressions": 16650,
+   "clicks": 90,
+   "costInLocalCurrency": "198.36",
+   "externalWebsiteConversions": 6,
+   "landingPageClicks": 75,
+   "likes": 10,
+   "shares": 2,
+   "follows": 1
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 2
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCreative:900002"
+   ],
+   "impressions": 8280,
+   "clicks": 56,
+   "costInLocalCurrency": "135.00",
+   "externalWebsiteConversions": 9,
+   "landingPageClicks": 46,
+   "likes": 4,
+   "shares": 0,
+   "follows": 0
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCreative:900001"
+   ],
+   "impressions": 17100,
+   "clicks": 94,
+   "costInLocalCurrency": "207.36",
+   "externalWebsiteConversions": 7,
+   "landingPageClicks": 79,
+   "likes": 10,
+   "shares": 2,
+   "follows": 1
+  },
+  {
+   "dateRange": {
+    "start": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    },
+    "end": {
+     "year": 2026,
+     "month": 10,
+     "day": 3
+    }
+   },
+   "pivotValues": [
+    "urn:li:sponsoredCreative:900002"
+   ],
+   "impressions": 8460,
+   "clicks": 59,
+   "costInLocalCurrency": "139.50",
+   "externalWebsiteConversions": 9,
+   "landingPageClicks": 48,
+   "likes": 4,
+   "shares": 0,
+   "follows": 0
+  }
+ ]
+}
