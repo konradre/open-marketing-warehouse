@@ -50,3 +50,25 @@ jobs:
       - name: Stop stack
         if: always()
         run: docker compose --env-file .env -f deploy/docker-compose.yml down -v
+
+  profiles:
+    # The optional compose profiles (LibreChat, Langfuse) boot with throwaway secrets and must answer over
+    # HTTP. Independent of the gate so a slow image pull never delays it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Throwaway secrets
+        run: deploy/profiles-env.sh .env
+
+      - name: Boot the chat and observability profiles
+        run: deploy/profiles-smoke.sh .env
+
+      - name: Stack logs
+        if: failure()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml --profile chat --profile observability logs --no-color --tail 200
+
+      - name: Stop stack
+        if: always()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml --profile chat --profile observability down -v

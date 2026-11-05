@@ -43,6 +43,8 @@ Optional UIs need their secrets in `.env` (see the comments in `.env.example`):
 ```bash
 make chat                       # LibreChat on 127.0.0.1:3080, with the warehouse MCP server wired in
 make observability              # Langfuse on 127.0.0.1:3000
+deploy/profiles-env.sh .env     # first boot: fills the LIBRECHAT_* and LANGFUSE_* secrets with random values
+make profiles-smoke             # boots both profiles and proves they answer (CI runs this on every push)
 ```
 
 ## Sources

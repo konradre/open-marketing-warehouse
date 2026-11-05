@@ -94,7 +94,9 @@ services:
 
   librechat-mongo:
     profiles: ["chat"]
-    image: mongo:8.0
+    # MongoDB 8.x refuses to start on Linux kernels 6.19 and newer (tcmalloc rseq bug, SERVER-121912), which
+    # GitHub's runners already use; the 7.0 line does not carry the check.
+    image: mongo:7.0.45
     command: mongod --noauth
     volumes:
       - librechat-mongo:/data/db
@@ -214,7 +216,9 @@ services:
 
   langfuse-clickhouse:
     profiles: ["observability"]
-    image: *clickhouse-image
+    # Langfuse's migrations need a newer ClickHouse than the warehouse runs (text indexes with tokenizer
+    # settings): the version Langfuse pins in its own compose file.
+    image: clickhouse/clickhouse-server:26.3.62.3
     user: "101:101"
     environment:
       CLICKHOUSE_DB: default
