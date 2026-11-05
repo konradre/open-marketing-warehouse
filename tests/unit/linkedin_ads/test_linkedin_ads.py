@@ -13,6 +13,7 @@ import requests
 import responses
 
 from omw.pipelines.linkedin_ads import run_daily
+from omw.pipelines.marts import SQL_DIR, statements
 from omw.sources.linkedin_ads import (
     LINKEDIN_VERSION,
     LinkedInAuth,
@@ -21,6 +22,7 @@ from omw.sources.linkedin_ads import (
     refresh_access_token,
 )
 from omw.sources.linkedin_ads.auth import TOKEN_URL
+from omw.sources.linkedin_ads.leads import lead_responses_path
 from omw.sources.linkedin_ads.shapes import shape_analytics, shape_campaign, shape_campaign_group, urn_id
 from omw.sources.linkedin_ads.source import API_BASE, analytics_path
 from omw.sources.linkedin_ads.version import VersionExpiredError
@@ -254,3 +256,28 @@ def test_creative_pivot_lands_in_its_own_table_keyed_by_creative(auth: LinkedInA
     hints: dict[str, Any] = dict(source.resources["ad_analytics_creatives"].compute_table_schema())
     assert hints["x-clickhouse-sort"] == ["account_id", "date", "creative_id"]
     assert "creative_id" in hints["columns"] and "campaign_id" not in hints["columns"]
+
+
+@responses.activate
+def test_lead_form_responses_are_optional_counted_and_keep_answers_in_raw(auth: LinkedInAuth) -> None:
+    register_api(responses)
+    path = lead_responses_path(ACCOUNT, WINDOW)
+    assert path.startswith("leadFormResponses?q=owner&owner=(sponsoredAccount:urn%3Ali%3AsponsoredAccount%3A")
+    assert (
+        "&leadType=(leadType:SPONSORED)&submittedAtTimeRange=(start:1790812800000,end:1791071999999)" in path
+    )
+    plain = linkedin_ads(account_ids=[ACCOUNT], auth=auth, session=fast_session(auth), window=WINDOW)
+    assert "lead_form_responses" not in plain.resources
+    source = linkedin_ads(
+        account_ids=[ACCOUNT], auth=auth, session=fast_session(auth), window=WINDOW, leads=True
+    )
+    rows = list(source.resources["lead_form_responses"])
+    assert [r["id"] for r in rows] == [f"urn:li:leadFormResponse:{3000000 + i}" for i in (1, 2, 3)]
+    assert rows[0]["campaign_id"] == "800001" and rows[2]["creative_id"] == "900002"
+    assert rows[0]["form_id"] == "6100001" and rows[0]["date"] == date(2026, 10, 1)
+    assert rows[0]["answer_count"] == 2 and "example.test" in rows[0]["answers"]
+    hints: dict[str, Any] = dict(source.resources["lead_form_responses"].compute_table_schema())
+    assert hints["write_disposition"] == "merge" and hints["x-clickhouse-sort"] == ["id"]
+    stmts = statements((SQL_DIR / "80_linkedin_ads_marts_leads.sql").read_text())
+    assert len(stmts) == 1 and "l.answers" not in stmts[0]
+    assert "FROM raw.linkedin_ads___lead_form_responses" in stmts[0]

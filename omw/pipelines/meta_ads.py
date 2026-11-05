@@ -39,6 +39,7 @@ def marts_sql(level: InsightsLevel) -> Path:
 
 
 ENTITIES_SQL = SQL_DIR / "20_meta_ads_marts_entities.sql"
+LEADS_SQL = SQL_DIR / "20_meta_ads_marts_leads.sql"
 
 
 def breakdown_sql(breakdown: str) -> Path:
@@ -116,6 +117,7 @@ def run(
     today: date | None = None,
     token_expires_at: date | str | None = None,
     breakdowns: Sequence[str] = (),
+    leads: bool = False,
     pacer: MetaPacer | None = None,
     apply_sql: bool = True,
     record_ops: bool = True,
@@ -147,6 +149,7 @@ def run(
                 mode=mode,
                 levels=levels,
                 breakdowns=breakdowns,
+                leads=leads,
                 pacer=pacer,
                 today=today,
                 **source_kwargs,
@@ -169,6 +172,8 @@ def run(
                 apply_marts(pipeline, breakdown_sql(breakdown))
         if _entities_loaded(pipeline, result.counts):
             apply_marts(pipeline, ENTITIES_SQL)
+        if leads and (result.counts.get("leads", 0) or _raw_table_exists(pipeline, "leads")):
+            apply_marts(pipeline, LEADS_SQL)
         if result.counts.get("campaigns", 0):
             sync_after_load(pipeline, SOURCE_NAME)
     if record_ops:
@@ -217,17 +222,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=tuple(BREAKDOWNS),
         help="campaign-level breakdown preset(s), each its own table; default none",
     )
+    parser.add_argument(
+        "--leads", action="store_true", help="also pull lead-ads submissions (needs leads_retrieval)"
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     account_ids = [str(a) for a in dlt.config["sources.meta_ads.account_ids"]]
+    leads = bool(args.leads or dlt.config.get("sources.meta_ads.leads", bool))
     levels: list[InsightsLevel] = args.level or list(
         dlt.config.get("sources.meta_ads.levels", list) or ["campaign"]
     )
     breakdowns: list[str] = args.breakdown or list(dlt.config.get("sources.meta_ads.breakdowns", list) or [])
     expires_at = dlt.config.get("sources.meta_ads.token_expires_at", str)
     result = run(
-        build_pipeline(), args.mode, account_ids, levels, token_expires_at=expires_at, breakdowns=breakdowns
+        build_pipeline(),
+        args.mode,
+        account_ids,
+        levels,
+        token_expires_at=expires_at,
+        breakdowns=breakdowns,
+        leads=leads,
     )
     log.info("%s sync loaded %s", args.mode, result.counts)
     if result.stopped is not None:

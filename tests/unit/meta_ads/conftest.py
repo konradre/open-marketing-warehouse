@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator, Sequence
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +70,7 @@ class FakeAccount:
         self.restated = restated or {}
         self.insight_params: list[dict[str, Any]] = []
         self.entity_calls: list[tuple[str, list[str], dict[str, Any]]] = []
+        self.lead_calls: list[tuple[str, dict[str, Any]]] = []
         self.currency_lookups = 0
 
     def api_get(self, fields: Sequence[str]) -> dict[str, Any]:
@@ -88,6 +89,15 @@ class FakeAccount:
 
     def get_ads(self, fields: Sequence[str], params: dict[str, Any]) -> Iterator[dict[str, Any]]:
         return self._entities("ads", fields, params)
+
+    def get_leads(self, ad_id: str, params: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        """Leads of one ad created after the ``time_created`` filter, as the SDK would page them."""
+        self.lead_calls.append((ad_id, dict(params)))
+        since = int(params["filtering"][0]["value"])
+        for row in fixture_rows("leads"):
+            created = datetime.strptime(row["created_time"], "%Y-%m-%dT%H:%M:%S%z")
+            if row["ad_id"] == ad_id and int(created.timestamp()) > since:
+                yield row
 
     def get_insights(self, params: dict[str, Any], is_async: bool = False) -> FakeJob:
         assert is_async
@@ -120,3 +130,8 @@ def pacer() -> MetaPacer:
 @pytest.fixture
 def account(pacer: MetaPacer) -> FakeAccount:
     return FakeAccount(pacer=pacer)
+
+
+def fake_lead_fetcher(account: Any, ad_id: str, params: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    rows: Iterator[dict[str, Any]] = account.get_leads(ad_id, params)
+    return rows

@@ -61,3 +61,11 @@ def test_breakdown_views_add_their_segment_columns() -> None:
         assert f"FROM raw.meta_ads___insights_{name}" in stmts[0] and ";" not in stmts[0]
         columns = re.findall(r"^\s+(\w+) [\w(), ]+ COMMENT '", stmts[0], re.MULTILINE)
         assert columns[7 : 7 + len(fields)] == fields
+
+
+def test_leads_view_counts_without_the_answers() -> None:
+    stmts = statements((SQL_DIR / "20_meta_ads_marts_leads.sql").read_text())
+    assert len(stmts) == 1 and "CREATE OR REPLACE VIEW marts.meta_ads_leads" in stmts[0]
+    assert "FROM raw.meta_ads___leads" in stmts[0] and "field_data" not in stmts[0] and ";" not in stmts[0]
+    columns = re.findall(r"^\s+(\w+) [\w(), ]+ COMMENT '", stmts[0], re.MULTILINE)
+    assert {"currency", "campaign_id", "is_organic", "answer_count"} <= set(columns)

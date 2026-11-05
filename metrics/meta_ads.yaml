@@ -53,6 +53,24 @@ reports:
     restatement_days: 28
     traps:
       - Sums to the campaigns grain on spend, impressions and clicks; reach does not.
+  - name: leads
+    view: marts.meta_ads_leads
+    description: Meta lead-ads submissions, one row per lead, dated by submission day.
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name as reported on the lead
+      adset_id: Meta ad set id
+      adset_name: Ad set name as reported on the lead
+      ad_id: Meta ad id
+      ad_name: Ad name as reported on the lead
+      form_id: Lead form id
+      is_organic: True when the lead came from the organic form, not the ad
+      platform: fb or ig
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    traps:
+      - Only loaded with --leads (needs leads_retrieval); organic leads cost nothing, filter is_organic for paid leads.
 metrics:
   - name: meta_spend
     report: campaigns
@@ -136,3 +154,10 @@ metrics:
     unit: count
     grains: [account_id, currency, campaign_id, campaign_name, publisher_platform, platform_position, campaign_key]
     description: Meta clicks by platform and position.
+  - name: meta_leads
+    report: leads
+    expr: count()
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, form_id, is_organic, platform, campaign_key]
+    aliases: [leads]
+    description: Lead-ads submissions on Meta, by submission day.

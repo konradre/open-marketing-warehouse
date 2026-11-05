@@ -27,7 +27,7 @@ from omw.sources.twenty.source import default_session as twenty_session
 from tests.integration.conftest import setting
 from tests.unit.google_ads.conftest import CUSTOMER, FakeGoogleAdsClient
 from tests.unit.linkedin_ads import conftest as linkedin_fixtures
-from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount
+from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, fake_lead_fetcher
 from tests.unit.stripe.conftest import FakeStripeClient
 from tests.unit.twenty import conftest as twenty_fixtures
 
@@ -84,6 +84,7 @@ def _load_http_sources(tmp_path_factory: pytest.TempPathFactory) -> None:
             today=TODAY,
             account_ids=[linkedin_fixtures.ACCOUNT],
             auth=LinkedInAuth(linkedin_fixtures.VERSION, token_provider=lambda: "t"),
+            leads=True,
         )
         twenty_pipeline.run_daily(
             _pipeline("twenty_ml", "twenty", tmp_path_factory),
@@ -114,6 +115,8 @@ def warehouse(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) ->
         pacer=pacer,
         accounts={ACCOUNT: FakeAccount(pacer=pacer)},
         record_ops=False,
+        leads=True,
+        lead_fetcher=fake_lead_fetcher,
     )
     google_pipeline.run_daily(
         dlt.pipeline(
@@ -338,3 +341,29 @@ def test_a_failed_check_on_the_source_becomes_a_caveat(
         assert answer.rows  # the numbers are still answered
     finally:
         admin_client.command("DELETE FROM ops.check_results WHERE source = 'twenty'")
+
+
+def test_cost_per_lead_joins_spend_to_leads_by_day(warehouse: Catalog, agent_client: Client) -> None:
+    answer = answer_request(
+        warehouse,
+        MetricRequest(
+            metrics=["meta_leads", "ad_spend", "cost_per_lead"],
+            dimensions=["date"],
+            filters={"currency": "USD"},
+            time_range=OCTOBER,
+        ),
+        clickhouse_executor(agent_client),
+        TODAY,
+    )
+    assert answer.mood is Mood.DISCLOSE, answer.reason
+    rows = {row[0]: row[1:] for row in answer.rows}
+    assert rows[date(2026, 10, 1)][0] == 1 and abs(float(rows[date(2026, 10, 1)][2]) - 70.60) < 1e-6
+    assert rows[date(2026, 10, 3)][0] == 2 and abs(float(rows[date(2026, 10, 3)][2]) - 76.60 / 2) < 1e-6
+    clarified = answer_request(
+        warehouse,
+        MetricRequest(metrics=["leads"], time_range=OCTOBER),
+        clickhouse_executor(agent_client),
+        TODAY,
+    )
+    assert clarified.mood is Mood.CLARIFY
+    assert [c["name"] for c in clarified.candidates] == ["linkedin_leads", "meta_leads"]

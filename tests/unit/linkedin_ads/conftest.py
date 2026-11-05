@@ -68,6 +68,12 @@ def register_api(mock: Any, analytics: str = "ad_analytics") -> None:
     )
     mock.add(
         responses.GET,
+        re.compile(re.escape(f"{API_BASE}leadFormResponses") + r".*"),
+        body=body("lead_form_responses"),
+        content_type="application/json",
+    )
+    mock.add(
+        responses.GET,
         re.compile(re.escape(f"{API_BASE}adAnalytics") + r".*"),
         body=body(analytics),
         content_type="application/json",

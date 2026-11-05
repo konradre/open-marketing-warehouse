@@ -60,6 +60,7 @@ def _run(pipeline: dlt.Pipeline, analytics: str = "ad_analytics") -> dict[str, i
             today=TODAY,
             account_ids=[ACCOUNT],
             auth=LinkedInAuth(VERSION, token_provider=lambda: "t"),
+            leads=True,
         )
 
 
@@ -73,7 +74,7 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
         pipelines_dir=str(tmp_path_factory.mktemp("dlt")),
     )
     counts = _run(pipeline)
-    assert counts["ad_analytics"] == 6
+    assert counts["ad_analytics"] == 6 and counts["lead_form_responses"] == 3
     yield pipeline
     _drop(admin_client)
 
@@ -130,6 +131,27 @@ def test_creatives_resolve_their_campaign_and_never_exceed_it(
         parameters={"t": f"{DATASET}_creatives"},
     ).result_rows
     assert columns and all(comment for _, comment in columns)
+
+
+def test_lead_responses_are_counted_per_campaign_without_answers(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    rows = agent_client.query(
+        "SELECT date, currency, campaign_id, campaign_name, creative_id, form_id, lead_type, answer_count "
+        f"FROM marts.{DATASET}_leads ORDER BY lead_id"
+    ).result_rows
+    assert len(rows) == 3 and rows[0][1] == "EUR" and rows[0][2] == "800001" and rows[0][3]
+    assert (
+        rows[2][4] == "900002" and rows[0][5] == "6100001" and rows[0][6] == "SPONSORED" and rows[0][7] == 2
+    )
+    columns = {
+        name
+        for name, _ in agent_client.query(
+            "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
+            parameters={"t": f"{DATASET}_leads"},
+        ).result_rows
+    }
+    assert "answers" not in columns and "answer_count" in columns
 
 
 def test_raw_conventions_and_invisibility(
