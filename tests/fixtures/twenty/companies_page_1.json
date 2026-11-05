@@ -1,0 +1,56 @@
+{
+ "data": {
+  "companies": [
+   {
+    "id": "11111111-aaaa-4bbb-8ccc-000000000001",
+    "name": "Acme Widgets",
+    "domainName": {
+     "primaryLinkUrl": "acme.example",
+     "primaryLinkLabel": ""
+    },
+    "employees": 120,
+    "annualRecurringRevenue": {
+     "amountMicros": 48000000000,
+     "currencyCode": "EUR"
+    },
+    "idealCustomerProfile": true,
+    "accountOwnerId": "99999999-0000-4000-8000-000000000001",
+    "createdAt": "2026-08-10T09:15:00.000Z",
+    "updatedAt": "2026-10-01T10:00:00.000Z",
+    "deletedAt": null,
+    "campaignKey": "meta:23850000000000001",
+    "utmSource": "facebook",
+    "utmMedium": "paid_social",
+    "utmCampaign": "widgets_q4"
+   },
+   {
+    "id": "11111111-aaaa-4bbb-8ccc-000000000002",
+    "name": "Globex",
+    "domainName": {
+     "primaryLinkUrl": "globex.example",
+     "primaryLinkLabel": ""
+    },
+    "employees": 40,
+    "annualRecurringRevenue": {
+     "amountMicros": null,
+     "currencyCode": "EUR"
+    },
+    "idealCustomerProfile": false,
+    "accountOwnerId": null,
+    "createdAt": "2026-09-02T14:30:00.000Z",
+    "updatedAt": "2026-10-02T08:00:00.000Z",
+    "deletedAt": null,
+    "campaignKey": "",
+    "utmSource": "",
+    "utmMedium": "",
+    "utmCampaign": ""
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": true,
+  "startCursor": "11111111-aaaa-4bbb-8ccc-000000000001",
+  "endCursor": "cursor-companies-2"
+ },
+ "totalCount": 2
+}

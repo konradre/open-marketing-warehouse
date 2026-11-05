@@ -28,6 +28,8 @@ ROWCOUNT_RULES: tuple[RowcountRule, ...] = (
     RowcountRule("stripe", "marts.stripe_revenue", "invoices"),
     RowcountRule("linkedin_ads", "marts.linkedin_ads_campaigns", "campaigns"),
 )
+"""Twenty has no daily grain (opportunities carry created/updated times, not a report day), so it is
+covered by the freshness check only."""
 
 
 def rowcount_sql(rule: RowcountRule, today: date, window_days: int = WINDOW_DAYS) -> str:

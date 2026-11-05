@@ -173,6 +173,23 @@ refresh token and sponsored account ids in `.dlt/secrets.toml` under `[sources.l
 uv run python -m omw.pipelines.linkedin_ads daily    # re-fetch the last 7 days and replace them
 ```
 
+### Twenty (CRM)
+
+`omw.sources.twenty` loads companies, people and opportunities from a self-hosted Twenty through dlt's
+declarative `rest_api` resources: cursor paging (`starting_after`), incremental on `updatedAt` (only
+records changed since the last run), merged on id. `marts.twenty_pipeline` is one row per opportunity
+with its stage, amount, company, point of contact and the campaign key resolved opportunity → person →
+company; `marts.twenty_pipeline_by_stage` sums it by stage, currency and campaign key.
+
+**Twenty access**: create an API key in Twenty (Settings > Developers > API keys) and put it with the
+instance URL in `.dlt/secrets.toml` under `[sources.twenty]`. For attribution, add custom fields named
+`campaignKey`, `utmSource`, `utmMedium` and `utmCampaign` (text) to the objects your sign-up flow writes
+to; the pipeline reads them when present and leaves the columns empty otherwise.
+
+```bash
+uv run python -m omw.pipelines.twenty daily    # everything changed since the last run
+```
+
 ## Post-sync checks
 
 `omw check` runs after the syncs and exits non-zero on any failure, so a scheduler sees it:
