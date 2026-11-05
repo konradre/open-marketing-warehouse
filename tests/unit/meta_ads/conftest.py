@@ -11,6 +11,7 @@ from typing import Any
 import pytest
 
 from omw.pacing import Decision, MetaPacer, StopReason
+from omw.sources.meta_ads.settings import BREAKDOWNS
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures" / "meta_ads"
 ACCOUNT = "100000000000001"
@@ -102,7 +103,11 @@ class FakeAccount:
                     "simulated",
                 )
             )
-        name = f"insights_{params['level']}s_{day}"
+        if params.get("breakdowns"):
+            report = next(n for n, f in BREAKDOWNS.items() if list(f) == params["breakdowns"])
+            name = f"insights_{report}_{day}"
+        else:
+            name = f"insights_{params['level']}s_{day}"
         rows = self.restated.get(day) or (fixture_rows(name) if (FIXTURES / f"{name}.json").exists() else [])
         return FakeJob(rows)
 

@@ -64,11 +64,13 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
         "daily",
         [ACCOUNT],
         levels=["campaign", "ad"],
+        breakdowns=["age_gender", "countries", "placements"],
         today=TODAY,
         pacer=pacer,
         accounts={ACCOUNT: FakeAccount(pacer=pacer)},
     )
     assert result.counts["insights_campaigns"] == 6 and result.counts["insights_ads"] == 6
+    assert result.counts["insights_age_gender"] == 12 and result.counts["insights_countries"] == 4
     yield pipeline
     _drop_everything(admin_client)
 
@@ -136,6 +138,25 @@ def test_entity_lists_carry_budgets_in_the_account_currency(
         and ad_sets["Prospecting - Broad"][1] == "USD"
     )
     for view in ("campaign_list", "ad_set_list"):
+        columns = agent_client.query(
+            "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
+            parameters={"t": f"{DATASET}_{view}"},
+        ).result_rows
+        assert columns and all(comment for _, comment in columns), view
+
+
+def test_breakdowns_sum_to_campaigns_on_spend_and_clicks(loaded: dlt.Pipeline, agent_client: Client) -> None:
+    for view in ("age_gender", "countries", "placements"):
+        rows = agent_client.query(
+            f"SELECT b.date, b.campaign_id, sum(b.spend), sum(b.clicks), any(c.spend), any(c.clicks) "
+            f"FROM marts.{DATASET}_{view} AS b "
+            f"JOIN marts.{DATASET}_campaigns AS c ON c.date = b.date AND c.campaign_id = b.campaign_id "
+            "GROUP BY b.date, b.campaign_id"
+        ).result_rows
+        assert rows, view
+        for _, _, spend, clicks, campaign_spend, campaign_clicks in rows:
+            assert Decimal(str(spend)) <= Decimal(str(campaign_spend)) and clicks <= campaign_clicks
+            assert Decimal(str(spend)) >= Decimal(str(campaign_spend)) - Decimal("0.02")
         columns = agent_client.query(
             "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
             parameters={"t": f"{DATASET}_{view}"},

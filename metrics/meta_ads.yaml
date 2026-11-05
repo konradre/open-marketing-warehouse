@@ -12,6 +12,47 @@ reports:
     restatement_days: 28
     traps:
       - Meta restates conversions and spend for up to 28 days; recent days change.
+  - name: age_gender
+    view: marts.meta_ads_age_gender
+    description: Meta Ads campaign insights by age bracket and gender, one row per campaign, segment and day.
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name at pull time
+      age: Age bracket (18-24, 25-34, ..., 65+, Unknown)
+      gender: female, male or unknown
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    restatement_days: 28
+    traps:
+      - Sums to the campaigns grain on spend, impressions and clicks; reach does not.
+  - name: countries
+    view: marts.meta_ads_countries
+    description: Meta Ads campaign insights by country, one row per campaign, country and day.
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name at pull time
+      country: ISO 3166-1 alpha-2 country of the people reached
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    restatement_days: 28
+    traps:
+      - Sums to the campaigns grain on spend, impressions and clicks; reach does not.
+  - name: placements
+    view: marts.meta_ads_placements
+    description: Meta Ads campaign insights by placement, one row per campaign, platform, position and day.
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name at pull time
+      publisher_platform: facebook, instagram, audience_network or messenger
+      platform_position: Position on the platform (feed, instagram_stories, instagram_reels, ...)
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    restatement_days: 28
+    traps:
+      - Sums to the campaigns grain on spend, impressions and clicks; reach does not.
 metrics:
   - name: meta_spend
     report: campaigns
@@ -59,3 +100,39 @@ metrics:
     grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
     aliases: [ctr]
     description: Meta click-through rate (0 to 1), recomputed at the requested grain.
+  - name: meta_age_gender_spend
+    report: age_gender
+    expr: sum(spend)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, age, gender, campaign_key]
+    description: Meta spend by age bracket and gender, in the account currency.
+  - name: meta_age_gender_clicks
+    report: age_gender
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, age, gender, campaign_key]
+    description: Meta clicks by age bracket and gender.
+  - name: meta_country_spend
+    report: countries
+    expr: sum(spend)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, country, campaign_key]
+    description: Meta spend by country of the people reached, in the account currency.
+  - name: meta_country_clicks
+    report: countries
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, country, campaign_key]
+    description: Meta clicks by country of the people reached.
+  - name: meta_placement_spend
+    report: placements
+    expr: sum(spend)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, publisher_platform, platform_position, campaign_key]
+    description: Meta spend by platform and position, in the account currency.
+  - name: meta_placement_clicks
+    report: placements
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, publisher_platform, platform_position, campaign_key]
+    description: Meta clicks by platform and position.

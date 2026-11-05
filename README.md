@@ -78,7 +78,9 @@ the data). The daily sync replaces the whole `(property, search type, day)` slic
 
 `omw.sources.meta_ads` pulls campaigns, ad sets and ads (merged on id) and daily insights at campaign level
 (and at ad level for live ad sets, with `--level ad`), exposed as `marts.meta_ads_campaigns` and
-`marts.meta_ads_ads`; `marts.meta_ads_campaign_list` and `marts.meta_ads_ad_set_list` list the entities with
+`marts.meta_ads_ads`; `--breakdown age_gender|countries|placements` (repeatable, or
+`sources.meta_ads.breakdowns`) pulls campaign-level breakdown presets into `marts.meta_ads_age_gender`,
+`marts.meta_ads_countries` and `marts.meta_ads_placements`, each checked against the campaigns grain; `marts.meta_ads_campaign_list` and `marts.meta_ads_ad_set_list` list the entities with
 their statuses, schedules and budgets in the account currency. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
 slows down above 75% utilisation, and ends the run cleanly near 100% or on a rate-limit error, writing the
 reason to `ops.pacing_events` instead of retrying into the limit.
@@ -98,7 +100,8 @@ uv run python -m omw.pipelines.meta_ads daily --level ad   # ad-level insights f
 
 `omw.sources.google_ads` runs GAQL through the REST `searchStream` endpoint: daily campaign and ad group
 performance (impressions, clicks, cost, conversions, conversion value) plus the campaign list, exposed as
-`marts.google_ads_campaigns`, `marts.google_ads_ad_groups` and `marts.google_ads_campaign_list`. Google
+`marts.google_ads_campaigns`, `marts.google_ads_ad_groups`, `marts.google_ads_search_terms` (the search term grain,
+which undercounts campaigns because Google withholds low-volume terms) and `marts.google_ads_campaign_list`. Google
 attributes conversions for up to 30 days, so the daily run re-fetches the last 30 days and replaces them.
 `cost_micros` is kept as Google reports it; the views divide it into a `Decimal` amount in the account
 currency.
@@ -180,7 +183,8 @@ uv run python -m omw.pipelines.linkedin_ads daily    # re-fetch the last 7 days 
 
 `omw.sources.twenty` loads companies, people and opportunities from a self-hosted Twenty through dlt's
 declarative `rest_api` resources: cursor paging (`starting_after`), incremental on `updatedAt` (only
-records changed since the last run), merged on id. `marts.twenty_pipeline` is one row per opportunity
+records changed since the last run), merged on id, plus a deleted-records pass per object (`deletedAt`
+filter, incremental on `deletedAt`) so soft-deleted records drop out of the marts. `marts.twenty_pipeline` is one row per opportunity
 with its stage, amount, company, point of contact and the campaign key resolved opportunity → person →
 company; `marts.twenty_pipeline_by_stage` sums it by stage, currency and campaign key.
 

@@ -1,0 +1,27 @@
+{
+ "data": {
+  "opportunities": [
+   {
+    "id": "33333333-aaaa-4bbb-8ccc-000000000002",
+    "name": "Globex - pilot",
+    "stage": "MEETING",
+    "amount": {
+     "amountMicros": 9000000000,
+     "currencyCode": "EUR"
+    },
+    "closeDate": null,
+    "companyId": "11111111-aaaa-4bbb-8ccc-000000000002",
+    "pointOfContactId": "22222222-aaaa-4bbb-8ccc-000000000002",
+    "createdAt": "2026-09-25T09:00:00.000Z",
+    "updatedAt": "2026-10-04T10:00:00.000Z",
+    "deletedAt": "2026-10-04T10:00:00.000Z"
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "33333333-aaaa-4bbb-8ccc-000000000002",
+  "endCursor": "33333333-aaaa-4bbb-8ccc-000000000002"
+ },
+ "totalCount": 1
+}

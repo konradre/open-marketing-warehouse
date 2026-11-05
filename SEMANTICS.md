@@ -12,12 +12,16 @@ time from their parts; never sum a rate yourself.
   Meta restates spend and conversions for up to **28 days**; recent days change. `meta_clicks` counts every
   click on the ad, not only link clicks. `meta_reach` is people reached and is **not additive**: ask for it
   at its own grain only. `meta_impressions` counts ad views; `meta_cpc` and `meta_ctr` are recomputed from
-  spend, clicks and impressions.
+  spend, clicks and impressions. `meta_age_gender_spend`, `meta_age_gender_clicks`, `meta_country_spend`,
+  `meta_country_clicks`, `meta_placement_spend` and `meta_placement_clicks` are breakdown grains that sum
+  to campaigns on spend and clicks.
 - **google_spend** (currency): Google Ads cost per customer account, campaign and day (`cost_micros` /
   1 000 000). Conversions are attributed for up to **30 days** after the click, so recent conversions grow.
   `google_conversions` are the account's own conversion actions, fractional with modelled attribution.
   `google_impressions`, `google_clicks` and `google_cpc` follow the same rules; `google_ad_group_spend` is
-  the ad group grain and sums to the campaign grain.
+  the ad group grain and sums to the campaign grain. `google_search_term_clicks`, `google_search_term_spend`
+  and `google_search_term_conversions` are the search term grain, which **undercounts** campaigns (Google
+  withholds low-volume terms).
 - **linkedin_spend** (currency): LinkedIn Ads cost per sponsored account, campaign and day. Cost and
   conversions settle over a few days (the last **7 days** are re-pulled). `linkedin_clicks` are chargeable
   clicks; `linkedin_conversions` are Insight Tag conversions, post-click and post-view;

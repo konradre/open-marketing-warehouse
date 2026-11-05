@@ -1,0 +1,100 @@
+{
+ "data": [
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-03",
+   "date_stop": "2026-10-03",
+   "age": "25-34",
+   "gender": "female",
+   "impressions": "7800",
+   "clicks": "156",
+   "reach": "5760",
+   "frequency": "1.354167",
+   "spend": "31.50",
+   "ctr": "2.000000",
+   "cpc": "0.201923",
+   "cpm": "4.038462",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "152"
+    }
+   ],
+   "action_values": []
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-03",
+   "date_stop": "2026-10-03",
+   "age": "35-44",
+   "gender": "male",
+   "impressions": "5200",
+   "clicks": "104",
+   "reach": "3840",
+   "frequency": "1.354167",
+   "spend": "21.00",
+   "ctr": "2.000000",
+   "cpc": "0.201923",
+   "cpm": "4.038462",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "101"
+    }
+   ],
+   "action_values": []
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000002",
+   "campaign_name": "Widgets - Retargeting",
+   "date_start": "2026-10-03",
+   "date_stop": "2026-10-03",
+   "age": "25-34",
+   "gender": "female",
+   "impressions": "1920",
+   "clicks": "96",
+   "reach": "1140",
+   "frequency": "1.684211",
+   "spend": "14.46",
+   "ctr": "5.000000",
+   "cpc": "0.150625",
+   "cpm": "7.531250",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "94"
+    }
+   ],
+   "action_values": []
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000002",
+   "campaign_name": "Widgets - Retargeting",
+   "date_start": "2026-10-03",
+   "date_stop": "2026-10-03",
+   "age": "35-44",
+   "gender": "male",
+   "impressions": "1280",
+   "clicks": "64",
+   "reach": "760",
+   "frequency": "1.684211",
+   "spend": "9.64",
+   "ctr": "5.000000",
+   "cpc": "0.150625",
+   "cpm": "7.531250",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "62"
+    }
+   ],
+   "action_values": []
+  }
+ ]
+}

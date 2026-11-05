@@ -1,0 +1,96 @@
+{
+ "data": [
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-01",
+   "date_stop": "2026-10-01",
+   "country": "DE",
+   "impressions": "7200",
+   "clicks": "144",
+   "reach": "5400",
+   "frequency": "1.333333",
+   "spend": "29.10",
+   "ctr": "2.000000",
+   "cpc": "0.202083",
+   "cpm": "4.041667",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "141"
+    }
+   ],
+   "action_values": []
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-01",
+   "date_stop": "2026-10-01",
+   "country": "FR",
+   "impressions": "4800",
+   "clicks": "96",
+   "reach": "3600",
+   "frequency": "1.333333",
+   "spend": "19.40",
+   "ctr": "2.000000",
+   "cpc": "0.202083",
+   "cpm": "4.041667",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "94"
+    }
+   ],
+   "action_values": []
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000002",
+   "campaign_name": "Widgets - Retargeting",
+   "date_start": "2026-10-01",
+   "date_stop": "2026-10-01",
+   "country": "DE",
+   "impressions": "1800",
+   "clicks": "90",
+   "reach": "1080",
+   "frequency": "1.666667",
+   "spend": "13.26",
+   "ctr": "5.000000",
+   "cpc": "0.147333",
+   "cpm": "7.366667",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "88"
+    }
+   ],
+   "action_values": []
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000002",
+   "campaign_name": "Widgets - Retargeting",
+   "date_start": "2026-10-01",
+   "date_stop": "2026-10-01",
+   "country": "FR",
+   "impressions": "1200",
+   "clicks": "60",
+   "reach": "720",
+   "frequency": "1.666667",
+   "spend": "8.84",
+   "ctr": "5.000000",
+   "cpc": "0.147333",
+   "cpm": "7.366667",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "58"
+    }
+   ],
+   "action_values": []
+  }
+ ]
+}

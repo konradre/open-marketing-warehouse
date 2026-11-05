@@ -42,7 +42,12 @@ class FakeGoogleAdsClient(GoogleAdsClient):
             raise ConnectionError(f"simulated outage for {customer_id}")
         if "segments.date" not in query:
             return fixture_results("campaign_entities")
-        name = "ad_groups_stream" if "FROM ad_group" in query else "campaigns_stream"
+        if "FROM search_term_view" in query:
+            name = "search_terms_stream"
+        elif "FROM ad_group" in query:
+            name = "ad_groups_stream"
+        else:
+            name = "campaigns_stream"
         start, end = _window(query)
         rows = fixture_results(name)
         if name == "campaigns_stream" and self.restated:

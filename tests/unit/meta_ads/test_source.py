@@ -179,3 +179,24 @@ def test_run_refuses_an_expired_token(tmp_path: Path, pacer: MetaPacer) -> None:
             record_ops=False,
             accounts={ACCOUNT: FakeAccount(pacer=pacer)},
         )
+
+
+def test_breakdowns_are_campaign_level_insights_in_their_own_tables(
+    account: FakeAccount, pacer: MetaPacer
+) -> None:
+    source = _source(account, pacer, breakdowns=["age_gender", "countries"])
+    assert {"insights_age_gender", "insights_countries"} <= set(source.resources)
+    hints: dict[str, Any] = dict(source.resources["insights_age_gender"].compute_table_schema())
+    assert hints["x-clickhouse-sort"] == ["account_id", "date", "campaign_id", "age", "gender"]
+    assert {"age", "gender"} <= set(hints["columns"])
+    rows = list(source.resources["insights_age_gender"])
+    assert account.insight_params[0]["breakdowns"] == ["age", "gender"]
+    assert account.insight_params[0]["level"] == "campaign"
+    assert rows and rows[0]["report"] == "age_gender" and rows[0]["gender"] in ("female", "male")
+    campaign_clicks = sum(int(r["clicks"]) for r in fixture_rows("insights_campaigns_2026-10-01"))
+    segment_clicks = sum(r["clicks"] for r in rows if r["date"].isoformat() == "2026-10-01")
+    assert (
+        campaign_clicks - 2 <= segment_clicks <= campaign_clicks
+    )  # integer shares never exceed the campaign
+    with pytest.raises(ValueError, match="unknown breakdowns"):
+        _source(account, pacer, breakdowns=["device"])

@@ -122,8 +122,15 @@ LEVEL_KEYS: dict[InsightsLevel, tuple[str, ...]] = {
 INSIGHTS_MERGE_KEY = ("account_id", "date")
 """The slice a run replaces: every (account, day) it fetched, per level table."""
 
+BREAKDOWNS: dict[str, tuple[str, ...]] = {
+    # report name -> Meta `breakdowns` fields, pulled at campaign level into their own table
+    "age_gender": ("age", "gender"),
+    "countries": ("country",),
+    "placements": ("publisher_platform", "platform_position"),
+}
 
-def insights_columns(level: InsightsLevel) -> dict[str, TColumnSchema]:
+
+def insights_columns(level: InsightsLevel, breakdown: str | None = None) -> dict[str, TColumnSchema]:
     hints: dict[str, TColumnSchema] = {
         "source": column("text"),
         "report": column("text"),
@@ -137,6 +144,8 @@ def insights_columns(level: InsightsLevel) -> dict[str, TColumnSchema]:
     if level == "ad":
         for name in ("adset_id", "adset_name", "ad_id", "ad_name"):
             hints[name] = column("text")
+    for name in BREAKDOWNS[breakdown] if breakdown else ():
+        hints[name] = column("text")
     hints.update(
         {
             "impressions": column("bigint"),
@@ -154,5 +163,5 @@ def insights_columns(level: InsightsLevel) -> dict[str, TColumnSchema]:
     return hints
 
 
-def insights_sort_key(level: InsightsLevel) -> list[str]:
-    return [*INSIGHTS_MERGE_KEY, *LEVEL_KEYS[level]]
+def insights_sort_key(level: InsightsLevel, breakdown: str | None = None) -> list[str]:
+    return [*INSIGHTS_MERGE_KEY, *LEVEL_KEYS[level], *(BREAKDOWNS[breakdown] if breakdown else ())]
