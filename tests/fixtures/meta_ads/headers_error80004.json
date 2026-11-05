@@ -1,0 +1,17 @@
+{
+ "status": 400,
+ "headers": {
+  "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 55.0, \"acc_id_util_pct\": 96.5, \"ads_api_access_tier\": \"development_access\"}",
+  "x-ad-account-usage": "{\"acc_id_util_pct\": 96.5, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+  "x-app-usage": "{\"call_count\": 40, \"total_cputime\": 22, \"total_time\": 25}"
+ },
+ "body": {
+  "error": {
+   "message": "(#80004) There have been too many calls to this ad-account. Wait a bit and try again.",
+   "type": "OAuthException",
+   "code": 80004,
+   "error_subcode": 2446079,
+   "fbtrace_id": "A0000000000000000000000001"
+  }
+ }
+}

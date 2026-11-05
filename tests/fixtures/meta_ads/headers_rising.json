@@ -1,0 +1,56 @@
+[
+ {
+  "status": 200,
+  "headers": {
+   "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 10.0, \"acc_id_util_pct\": 2.5, \"ads_api_access_tier\": \"development_access\"}",
+   "x-ad-account-usage": "{\"acc_id_util_pct\": 4.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+   "x-app-usage": "{\"call_count\": 5, \"total_cputime\": 3, \"total_time\": 4}",
+   "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 5, \"total_cputime\": 3, \"total_time\": 4, \"estimated_time_to_regain_access\": 0}]}"
+  }
+ },
+ {
+  "status": 200,
+  "headers": {
+   "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 40.0, \"acc_id_util_pct\": 11.0, \"ads_api_access_tier\": \"development_access\"}",
+   "x-ad-account-usage": "{\"acc_id_util_pct\": 20.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+   "x-app-usage": "{\"call_count\": 12, \"total_cputime\": 8, \"total_time\": 9}",
+   "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 12, \"total_cputime\": 8, \"total_time\": 9, \"estimated_time_to_regain_access\": 0}]}"
+  }
+ },
+ {
+  "status": 200,
+  "headers": {
+   "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 76.0, \"acc_id_util_pct\": 30.0, \"ads_api_access_tier\": \"development_access\"}",
+   "x-ad-account-usage": "{\"acc_id_util_pct\": 55.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+   "x-app-usage": "{\"call_count\": 20, \"total_cputime\": 14, \"total_time\": 15}",
+   "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 20, \"total_cputime\": 14, \"total_time\": 15, \"estimated_time_to_regain_access\": 0}]}"
+  }
+ },
+ {
+  "status": 200,
+  "headers": {
+   "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 85.0, \"acc_id_util_pct\": 42.0, \"ads_api_access_tier\": \"development_access\"}",
+   "x-ad-account-usage": "{\"acc_id_util_pct\": 70.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+   "x-app-usage": "{\"call_count\": 28, \"total_cputime\": 20, \"total_time\": 21}",
+   "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 28, \"total_cputime\": 20, \"total_time\": 21, \"estimated_time_to_regain_access\": 0}]}"
+  }
+ },
+ {
+  "status": 200,
+  "headers": {
+   "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 93.0, \"acc_id_util_pct\": 51.0, \"ads_api_access_tier\": \"development_access\"}",
+   "x-ad-account-usage": "{\"acc_id_util_pct\": 80.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+   "x-app-usage": "{\"call_count\": 33, \"total_cputime\": 24, \"total_time\": 25}",
+   "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 33, \"total_cputime\": 24, \"total_time\": 25, \"estimated_time_to_regain_access\": 0}]}"
+  }
+ },
+ {
+  "status": 200,
+  "headers": {
+   "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 97.0, \"acc_id_util_pct\": 60.0, \"ads_api_access_tier\": \"development_access\"}",
+   "x-ad-account-usage": "{\"acc_id_util_pct\": 88.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+   "x-app-usage": "{\"call_count\": 36, \"total_cputime\": 27, \"total_time\": 28}",
+   "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 36, \"total_cputime\": 27, \"total_time\": 28, \"estimated_time_to_regain_access\": 0}]}"
+  }
+ }
+]

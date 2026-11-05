@@ -1,0 +1,74 @@
+{
+ "data": [
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-03",
+   "date_stop": "2026-10-03",
+   "impressions": "7600",
+   "clicks": "152",
+   "reach": "5900",
+   "frequency": "1.288136",
+   "spend": "30.00",
+   "ctr": "2.000000",
+   "cpc": "0.197368",
+   "cpm": "3.947368",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "149"
+    },
+    {
+     "action_type": "purchase",
+     "value": "7"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "purchase",
+     "value": "343.00"
+    }
+   ],
+   "adset_id": "23860000000000001",
+   "adset_name": "Prospecting - Broad",
+   "ad_id": "23870000000000001",
+   "ad_name": "Prospecting - Video A"
+  },
+  {
+   "account_id": "100000000000001",
+   "campaign_id": "23850000000000001",
+   "campaign_name": "Widgets - Prospecting",
+   "date_start": "2026-10-03",
+   "date_stop": "2026-10-03",
+   "impressions": "5400",
+   "clicks": "108",
+   "reach": "4200",
+   "frequency": "1.285714",
+   "spend": "22.50",
+   "ctr": "2.000000",
+   "cpc": "0.208333",
+   "cpm": "4.166667",
+   "actions": [
+    {
+     "action_type": "link_click",
+     "value": "105"
+    },
+    {
+     "action_type": "purchase",
+     "value": "5"
+    }
+   ],
+   "action_values": [
+    {
+     "action_type": "purchase",
+     "value": "245.00"
+    }
+   ],
+   "adset_id": "23860000000000001",
+   "adset_name": "Prospecting - Broad",
+   "ad_id": "23870000000000002",
+   "ad_name": "Prospecting - Image B"
+  }
+ ]
+}

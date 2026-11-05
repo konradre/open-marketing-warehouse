@@ -1,0 +1,46 @@
+{
+ "data": [
+  {
+   "id": "23870000000000001",
+   "account_id": "100000000000001",
+   "adset_id": "23860000000000001",
+   "campaign_id": "23850000000000001",
+   "name": "Prospecting - Video A",
+   "status": "ACTIVE",
+   "effective_status": "ACTIVE",
+   "creative": {
+    "id": "23880000000000001"
+   },
+   "created_time": "2026-08-01T10:00:00+0000",
+   "updated_time": "2026-10-01T10:00:00+0000"
+  },
+  {
+   "id": "23870000000000002",
+   "account_id": "100000000000001",
+   "adset_id": "23860000000000001",
+   "campaign_id": "23850000000000001",
+   "name": "Prospecting - Image B",
+   "status": "ACTIVE",
+   "effective_status": "ACTIVE",
+   "creative": {
+    "id": "23880000000000002"
+   },
+   "created_time": "2026-08-01T10:00:00+0000",
+   "updated_time": "2026-10-01T10:00:00+0000"
+  },
+  {
+   "id": "23870000000000003",
+   "account_id": "100000000000001",
+   "adset_id": "23860000000000002",
+   "campaign_id": "23850000000000002",
+   "name": "Retargeting - Carousel",
+   "status": "ACTIVE",
+   "effective_status": "ADSET_PAUSED",
+   "creative": {
+    "id": "23880000000000003"
+   },
+   "created_time": "2026-08-01T10:00:00+0000",
+   "updated_time": "2026-10-02T10:00:00+0000"
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "status": 200,
+ "headers": {
+  "x-fb-ads-insights-throttle": "{\"app_id_util_pct\": 40.0, \"acc_id_util_pct\": 30.0, \"ads_api_access_tier\": \"development_access\"}",
+  "x-ad-account-usage": "{\"acc_id_util_pct\": 30.0, \"reset_time_duration\": 100, \"ads_api_access_tier\": \"development_access\"}",
+  "x-app-usage": "{\"call_count\": 50, \"total_cputime\": 30, \"total_time\": 35}",
+  "x-business-use-case-usage": "{\"100200300400500\": [{\"type\": \"ads_insights\", \"call_count\": 100, \"total_cputime\": 90, \"total_time\": 95, \"estimated_time_to_regain_access\": 15}]}"
+ }
+}
