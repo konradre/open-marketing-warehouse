@@ -1,0 +1,32 @@
+{
+ "data": {
+  "taskTargets": [
+   {
+    "id": "88888888-aaaa-4bbb-8ccc-000000000001",
+    "taskId": "55555555-aaaa-4bbb-8ccc-000000000001",
+    "personId": null,
+    "companyId": null,
+    "opportunityId": "33333333-aaaa-4bbb-8ccc-000000000001",
+    "createdAt": "2026-10-01T11:00:00.000Z",
+    "updatedAt": "2026-10-01T11:00:00.000Z",
+    "deletedAt": null
+   },
+   {
+    "id": "88888888-aaaa-4bbb-8ccc-000000000002",
+    "taskId": "55555555-aaaa-4bbb-8ccc-000000000002",
+    "personId": null,
+    "companyId": null,
+    "opportunityId": "33333333-aaaa-4bbb-8ccc-000000000003",
+    "createdAt": "2026-10-03T08:30:00.000Z",
+    "updatedAt": "2026-10-03T08:30:00.000Z",
+    "deletedAt": null
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "88888888-aaaa-4bbb-8ccc-000000000001",
+  "endCursor": "88888888-aaaa-4bbb-8ccc-000000000002"
+ },
+ "totalCount": 2
+}

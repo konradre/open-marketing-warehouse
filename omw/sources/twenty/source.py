@@ -19,6 +19,16 @@ from dlt.sources.rest_api import rest_api_resources
 from dlt.sources.rest_api.typing import Endpoint, EndpointResource, RESTAPIConfig
 
 from omw.sources.columns import column
+from omw.sources.twenty.activity import (
+    NOTE_COLUMNS,
+    NOTE_TARGET_COLUMNS,
+    TASK_COLUMNS,
+    TASK_TARGET_COLUMNS,
+    shape_note,
+    shape_note_target,
+    shape_task,
+    shape_task_target,
+)
 from omw.sources.twenty.shapes import (
     COMPANY_COLUMNS,
     OPPORTUNITY_COLUMNS,
@@ -40,6 +50,10 @@ OBJECTS: dict[str, tuple[str, Callable[[Mapping[str, Any]], dict[str, Any]], dic
     "companies": ("companies", shape_company, COMPANY_COLUMNS),
     "people": ("people", shape_person, PERSON_COLUMNS),
     "opportunities": ("opportunities", shape_opportunity, OPPORTUNITY_COLUMNS),
+    "notes": ("notes", shape_note, NOTE_COLUMNS),
+    "tasks": ("tasks", shape_task, TASK_COLUMNS),
+    "note_targets": ("noteTargets", shape_note_target, NOTE_TARGET_COLUMNS),
+    "task_targets": ("taskTargets", shape_task_target, TASK_TARGET_COLUMNS),
 }
 
 
@@ -145,7 +159,8 @@ def twenty(
     api_key: str | None = dlt.secrets.value,
     session: requests.Session | None = None,
 ) -> Iterator[DltResource]:
-    """Companies, people and opportunities from a self-hosted Twenty, changed or deleted since the last run.
+    """Companies, people, opportunities, notes and tasks (with their targets) from a self-hosted Twenty,
+    changed or deleted since the last run.
 
     ``base_url`` is the Twenty instance (``https://twenty.example.com``); ``api_key`` an API key from
     Settings > Developers. ``session`` is injectable for tests.

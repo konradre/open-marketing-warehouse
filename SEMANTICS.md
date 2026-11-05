@@ -74,6 +74,8 @@ cross-source measures are computed at query time from their parts; never sum a r
   **won_opportunities** and **won_amount** are the ones now in the `CUSTOMER` stage (the default closed-won
   stage; stage names are the Twenty configuration). `campaign_key` resolves opportunity, then contact, then
   company; unattributed pipeline is real pipeline.
+- **crm_activities**, **crm_notes**, **crm_tasks**: distinct notes and tasks by creation day on the `activity`
+  grain (one row per attached record), so **not additive** across records: ask at their own grain.
 
 ## Cross-source measures
 

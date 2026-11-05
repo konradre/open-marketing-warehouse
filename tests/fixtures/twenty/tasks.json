@@ -1,0 +1,48 @@
+{
+ "data": {
+  "tasks": [
+   {
+    "id": "55555555-aaaa-4bbb-8ccc-000000000001",
+    "title": "Send proposal",
+    "bodyV2": {
+     "markdown": "",
+     "blocknote": "[]"
+    },
+    "status": "DONE",
+    "dueAt": "2026-10-03T12:00:00.000Z",
+    "assigneeId": "66666666-aaaa-4bbb-8ccc-000000000001",
+    "createdBy": {
+     "source": "MANUAL",
+     "name": "Dana Rep"
+    },
+    "createdAt": "2026-10-01T11:00:00.000Z",
+    "updatedAt": "2026-10-03T09:00:00.000Z",
+    "deletedAt": null
+   },
+   {
+    "id": "55555555-aaaa-4bbb-8ccc-000000000002",
+    "title": "Schedule demo",
+    "bodyV2": {
+     "markdown": "",
+     "blocknote": "[]"
+    },
+    "status": "TODO",
+    "dueAt": "2026-10-10T09:00:00.000Z",
+    "assigneeId": "66666666-aaaa-4bbb-8ccc-000000000001",
+    "createdBy": {
+     "source": "MANUAL",
+     "name": "Dana Rep"
+    },
+    "createdAt": "2026-10-03T08:30:00.000Z",
+    "updatedAt": "2026-10-03T08:30:00.000Z",
+    "deletedAt": null
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "55555555-aaaa-4bbb-8ccc-000000000001",
+  "endCursor": "55555555-aaaa-4bbb-8ccc-000000000002"
+ },
+ "totalCount": 2
+}

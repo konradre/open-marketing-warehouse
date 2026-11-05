@@ -194,7 +194,8 @@ declarative `rest_api` resources: cursor paging (`starting_after`), incremental 
 records changed since the last run), merged on id, plus a deleted-records pass per object (`deletedAt`
 filter, incremental on `deletedAt`) so soft-deleted records drop out of the marts. `marts.twenty_pipeline` is one row per opportunity
 with its stage, amount, company, point of contact and the campaign key resolved opportunity → person →
-company; `marts.twenty_pipeline_by_stage` sums it by stage, currency and campaign key.
+company; `marts.twenty_pipeline_by_stage` sums it by stage, currency and campaign key; `marts.twenty_activity` is one
+row per note or task and the company, person or opportunity it is attached to, with the opportunity's campaign key.
 
 **Twenty access**: create an API key in Twenty (Settings > Developers > API keys) and put it with the
 instance URL in `.dlt/secrets.toml` under `[sources.twenty]`. For attribution, add custom fields named

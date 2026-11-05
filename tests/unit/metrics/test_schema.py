@@ -54,7 +54,7 @@ def test_every_mart_view_from_the_sources_is_a_report(catalog: Catalog) -> None:
 
 def test_semantics_names_every_metric_and_stays_small(catalog: Catalog) -> None:
     text = SEMANTICS.read_text()
-    assert len(text.encode()) < 6_500
+    assert len(text.encode()) < 8_000  # the agent's whole reference for ten sources
     for name in list(catalog.metrics) + list(catalog.derived):
         assert name in text, name
     for word in ("serve", "disclose", "clarify", "refuse", "(other)", "28 days", "30 days"):
