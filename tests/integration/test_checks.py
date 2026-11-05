@@ -54,7 +54,8 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
     for dataset in ("ga4", "search_console"):
         _drop(admin_client, dataset)
     admin_client.command("DROP TABLE IF EXISTS ops.check_results")
-    admin_client.command("DROP VIEW IF EXISTS ops.freshness")
+    # DROP TABLE removes a view too; the T1 boundary fixture may have left a placeholder table here.
+    admin_client.command("DROP TABLE IF EXISTS ops.freshness")
     ga4_pipeline.run_daily(
         dlt.pipeline(
             "ga4_ck",
