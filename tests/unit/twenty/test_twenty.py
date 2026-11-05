@@ -12,6 +12,7 @@ import dlt
 import pytest
 import responses
 
+from omw.pipelines.marts import SQL_DIR, statements
 from omw.pipelines.twenty import run_daily
 from omw.sources.twenty import ATTRIBUTION_FIELDS, shape_company, shape_opportunity, shape_person, twenty
 from omw.sources.twenty.source import default_session, updated_at_filter
@@ -63,9 +64,17 @@ def test_resources_page_with_the_cursor_and_carry_the_key() -> None:
         "companies",
         "people",
         "opportunities",
+        "notes",
+        "tasks",
+        "note_targets",
+        "task_targets",
         "deleted_companies",
         "deleted_people",
         "deleted_opportunities",
+        "deleted_notes",
+        "deleted_tasks",
+        "deleted_note_targets",
+        "deleted_task_targets",
         "sync_windows",
     }
     companies = list(source.resources["companies"])
@@ -139,10 +148,8 @@ def test_second_run_asks_only_for_records_updated_since_the_last_one(tmp_path: P
 
 
 def test_marts_sql_views() -> None:
-    from omw.pipelines.marts import SQL_DIR, statements
-
     stmts = statements((SQL_DIR / "90_twenty_marts.sql").read_text())
-    assert len(stmts) == 2 and all(
+    assert len(stmts) == 3 and all(
         "DEFINER = CURRENT_USER SQL SECURITY DEFINER AS" in s and ";" not in s for s in stmts
     )
     assert (
@@ -167,3 +174,29 @@ def test_deleted_pass_asks_for_soft_deleted_records_into_the_same_table() -> Non
     assert list(source.resources["deleted_companies"]) == []
     hints: dict[str, Any] = dict(deleted.compute_table_schema())
     assert hints["write_disposition"] == "merge" and hints["name"] == "opportunities"
+
+
+@responses.activate
+def test_notes_tasks_and_targets_flatten_bodies_and_owners(tmp_path: Path) -> None:
+    register_api(responses)
+    # A fresh pipeline context: the incremental cursors of the pipeline tests above must not apply here.
+    dlt.pipeline(
+        "twenty_unit_activity", destination=dlt.destinations.dummy(), pipelines_dir=str(tmp_path)
+    ).activate()
+    source = twenty(base_url=BASE_URL, api_key="twenty-key", session=_session())
+    notes = list(source.resources["notes"])
+    assert [n["title"] for n in notes] == ["Kick-off call", "Pricing questions"]
+    assert notes[0]["body"] == "Agreed on a 120-seat pilot." and notes[0]["created_by"] == "Dana Rep"
+    tasks = list(source.resources["tasks"])
+    assert tasks[0]["status"] == "DONE" and tasks[0]["due_at"].day == 3 and tasks[1]["status"] == "TODO"
+    note_targets = list(source.resources["note_targets"])
+    assert note_targets[0]["note_id"] == notes[0]["id"] and note_targets[0]["opportunity_id"].endswith("0001")
+    assert note_targets[2]["person_id"].endswith("0002") and note_targets[2]["company_id"] == ""
+    task_targets = list(source.resources["task_targets"])
+    assert [t["task_id"] for t in task_targets] == [tasks[0]["id"], tasks[1]["id"]]
+    query = parse_qs(urlparse(str(responses.calls[-1].request.url)).query)
+    assert "/rest/taskTargets" in str(responses.calls[-1].request.url) and query["limit"] == ["60"]
+    hints: dict[str, Any] = dict(source.resources["note_targets"].compute_table_schema())
+    assert hints["x-clickhouse-sort"] == ["id"] and "note_id" in hints["columns"]
+    stmts = statements((SQL_DIR / "90_twenty_marts.sql").read_text())
+    assert "CREATE OR REPLACE VIEW marts.twenty_activity" in stmts[2] and "UNION ALL" in stmts[2]

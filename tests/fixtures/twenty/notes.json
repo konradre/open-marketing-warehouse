@@ -1,0 +1,42 @@
+{
+ "data": {
+  "notes": [
+   {
+    "id": "44444444-aaaa-4bbb-8ccc-000000000001",
+    "title": "Kick-off call",
+    "bodyV2": {
+     "markdown": "Agreed on a 120-seat pilot.",
+     "blocknote": "[]"
+    },
+    "createdBy": {
+     "source": "MANUAL",
+     "name": "Dana Rep"
+    },
+    "createdAt": "2026-10-01T10:00:00.000Z",
+    "updatedAt": "2026-10-01T10:00:00.000Z",
+    "deletedAt": null
+   },
+   {
+    "id": "44444444-aaaa-4bbb-8ccc-000000000002",
+    "title": "Pricing questions",
+    "bodyV2": {
+     "markdown": "Asked about annual billing.",
+     "blocknote": "[]"
+    },
+    "createdBy": {
+     "source": "MANUAL",
+     "name": "Dana Rep"
+    },
+    "createdAt": "2026-10-02T15:30:00.000Z",
+    "updatedAt": "2026-10-02T15:30:00.000Z",
+    "deletedAt": null
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "44444444-aaaa-4bbb-8ccc-000000000001",
+  "endCursor": "44444444-aaaa-4bbb-8ccc-000000000002"
+ },
+ "totalCount": 2
+}

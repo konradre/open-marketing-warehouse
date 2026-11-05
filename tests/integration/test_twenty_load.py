@@ -67,7 +67,7 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
         pipelines_dir=str(tmp_path_factory.mktemp("dlt")),
     )
     counts = _run(pipeline)
-    assert counts["opportunities"] == 3
+    assert counts["opportunities"] == 3 and counts["notes"] == 2 and counts["task_targets"] == 2
     yield pipeline
     _drop(admin_client)
 
@@ -108,6 +108,28 @@ def test_pipeline_views_resolve_attribution_and_amounts(loaded: dlt.Pipeline, ag
     assert by_stage[("PROPOSAL", "EUR")][0] == 1 and Decimal(str(by_stage[("NEW", "USD")][1])) == Decimal(
         "120000"
     )
+
+
+def test_activity_attaches_notes_and_tasks_to_their_records(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    rows = agent_client.query(
+        "SELECT kind, title, status, opportunity_name, company_name, person_id != '', campaign_key, date "
+        "FROM marts.twenty_activity ORDER BY created_at, opportunity_name, company_name"
+    ).result_rows
+    assert len(rows) == 5  # two notes (one on two records), two tasks, one row per attached record
+    kickoff = [r for r in rows if r[1] == "Kick-off call"]
+    assert {(r[3], r[4]) for r in kickoff} == {("Acme - 120 seats", "Acme Widgets"), ("", "Acme Widgets")}
+    assert all(r[6] == "meta:23850000000000001" for r in kickoff)  # from the opportunity's company
+    pricing = next(r for r in rows if r[1] == "Pricing questions")
+    assert bool(pricing[5]) and pricing[6] == "search_console:example"  # the attached person's key
+    demo = next(r for r in rows if r[1] == "Schedule demo")
+    assert demo[0] == "task" and demo[2] == "TODO" and demo[3] == "Initech - enterprise"
+    assert demo[6] == "events:webinar_oct" and demo[7].isoformat() == "2026-10-03"
+    columns = agent_client.query(
+        "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = 'twenty_activity'"
+    ).result_rows
+    assert columns and all(comment for _, comment in columns)
 
 
 def test_a_moved_opportunity_is_merged_not_duplicated(

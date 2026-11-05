@@ -39,7 +39,7 @@ def register_api(
     mock: Any, opportunities: str = "opportunities", deleted_opportunities: str | None = None
 ) -> None:
     # The deleted pass first: its requests also carry limit=60 and would match the live mocks below.
-    for path in ("companies", "people", "opportunities"):
+    for path in ("companies", "people", "opportunities", "notes", "tasks", "noteTargets", "taskTargets"):
         deleted = deleted_opportunities if path == "opportunities" and deleted_opportunities else None
         mock.add(
             responses.GET,
@@ -78,3 +78,15 @@ def register_api(
         body=body(opportunities),
         content_type="application/json",
     )
+    for path, name in (
+        ("notes", "notes"),
+        ("tasks", "tasks"),
+        ("noteTargets", "note_targets"),
+        ("taskTargets", "task_targets"),
+    ):
+        mock.add(
+            responses.GET,
+            re.compile(re.escape(f"{REST}{path}") + r"(\?.*)?$"),
+            body=body(name),
+            content_type="application/json",
+        )

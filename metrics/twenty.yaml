@@ -16,6 +16,21 @@ reports:
     traps:
       - Opportunities are dated by creation day and reflect their current stage and amount, so past days change as deals move.
       - Stage names are the Twenty configuration. CUSTOMER is the default closed-won stage.
+  - name: activity
+    view: marts.twenty_activity
+    description: Twenty CRM notes and tasks, one row per activity and attached record, dated by creation day.
+    dimensions:
+      kind: note or task
+      status: Task status (TODO, IN_PROGRESS, DONE as configured), empty for notes
+      created_by: Workspace member or system that created it
+      person_id: Attached person id, empty when none
+      company_id: Attached company id, else the attached opportunity's company
+      company_name: Company name at the last sync
+      opportunity_id: Attached opportunity id, empty when none
+      opportunity_name: Opportunity name at the last sync
+    campaign_key: campaign_key
+    traps:
+      - A note or task attached to several records is one row per record; the counts here are distinct activities.
 metrics:
   - name: opportunities
     report: opportunities
@@ -45,3 +60,27 @@ metrics:
     grains: [currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
     aliases: [closed_won_amount]
     description: Amount of the opportunities now in the CUSTOMER stage, by creation day.
+  - name: crm_activities
+    report: activity
+    expr: uniqExact(activity_id)
+    unit: count
+    aggregation: native
+    grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
+    aliases: [activities]
+    description: Distinct notes and tasks created, by creation day. Not additive across the attached records.
+  - name: crm_notes
+    report: activity
+    expr: uniqExactIf(activity_id, kind = 'note')
+    unit: count
+    aggregation: native
+    grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
+    aliases: [notes]
+    description: Distinct notes created, by creation day.
+  - name: crm_tasks
+    report: activity
+    expr: uniqExactIf(activity_id, kind = 'task')
+    unit: count
+    aggregation: native
+    grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
+    aliases: [tasks]
+    description: Distinct tasks created, by creation day; filter status for open ones.

@@ -1,4 +1,5 @@
--- Twenty CRM marts (DESIGN.md §4): the sales pipeline by opportunity, and by stage and campaign key.
+-- Twenty CRM marts (DESIGN.md §4): the sales pipeline by opportunity, by stage and campaign key, and the sales activity
+-- (notes and tasks) attached to companies, people and opportunities.
 -- Attribution custom fields resolve opportunity, then its point of contact, then its company.
 -- Applied by omw.pipelines.twenty after each successful load. SQL SECURITY DEFINER keeps raw invisible to the agent.
 
@@ -55,3 +56,48 @@ SELECT source, 'pipeline_by_stage' AS report, stage, currency, campaign_key, utm
        count() AS opportunities, sum(amount) AS amount
 FROM marts.twenty_pipeline
 GROUP BY source, stage, currency, campaign_key, utm_source, utm_medium, utm_campaign;
+
+CREATE OR REPLACE VIEW marts.twenty_activity (
+    source LowCardinality(String) COMMENT 'Always twenty',
+    report LowCardinality(String) COMMENT 'Report grain, always activity: one row per note or task and the record it is attached to (a note on two records is two rows). Count distinct activity_id for activities',
+    date Date COMMENT 'Day the note or task was created (UTC)',
+    activity_id String COMMENT 'Twenty note or task id',
+    kind LowCardinality(String) COMMENT 'note or task',
+    title String COMMENT 'Title of the note or task',
+    status LowCardinality(String) COMMENT 'Task status (TODO, IN_PROGRESS, DONE as configured), empty for notes',
+    due_at DateTime COMMENT 'Task due date (UTC), 1970-01-01 when unset or for notes',
+    created_by String COMMENT 'Workspace member or system that created it',
+    person_id String COMMENT 'Person the activity is attached to, empty when none',
+    company_id String COMMENT 'Company the activity is attached to, else the company of the attached opportunity, empty when none',
+    company_name String COMMENT 'Company name at the last sync',
+    opportunity_id String COMMENT 'Opportunity the activity is attached to, empty when none',
+    opportunity_name String COMMENT 'Opportunity name at the last sync',
+    campaign_key String COMMENT 'Campaign key of the attached opportunity, else person, else company (DESIGN.md §6), empty when unattributed',
+    created_at DateTime COMMENT 'When the note or task was created (UTC)'
+) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
+SELECT a.source AS source, 'activity' AS report, toDate(a.created_at) AS date, a.id AS activity_id, a.kind AS kind,
+       a.title AS title, a.status AS status, a.due_at AS due_at, a.created_by AS created_by, t.person_id AS person_id,
+       if(t.company_id != '', t.company_id, o.company_id) AS company_id, if(c.name != '', c.name, oc.name) AS company_name,
+       t.opportunity_id AS opportunity_id, o.name AS opportunity_name,
+       multiIf(o.campaign_key != '', o.campaign_key, p.campaign_key != '', p.campaign_key, c.campaign_key != '', c.campaign_key,
+               oc.campaign_key) AS campaign_key,
+       a.created_at AS created_at
+FROM (
+    SELECT source, id, 'note' AS kind, title, '' AS status, toDateTime(0) AS due_at, created_by, created_at, deleted_at
+    FROM raw.twenty___notes
+    UNION ALL
+    SELECT source, id, 'task' AS kind, title, status, due_at, created_by, created_at, deleted_at
+    FROM raw.twenty___tasks
+) AS a
+LEFT JOIN (
+    SELECT note_id AS activity_id, person_id, company_id, opportunity_id FROM raw.twenty___note_targets
+    WHERE deleted_at = toDateTime('1970-01-01 00:00:00')
+    UNION ALL
+    SELECT task_id AS activity_id, person_id, company_id, opportunity_id FROM raw.twenty___task_targets
+    WHERE deleted_at = toDateTime('1970-01-01 00:00:00')
+) AS t ON t.activity_id = a.id
+LEFT JOIN raw.twenty___opportunities AS o ON o.id = t.opportunity_id
+LEFT JOIN raw.twenty___people AS p ON p.id = t.person_id
+LEFT JOIN raw.twenty___companies AS c ON c.id = t.company_id
+LEFT JOIN raw.twenty___companies AS oc ON oc.id = o.company_id
+WHERE a.deleted_at = toDateTime('1970-01-01 00:00:00');
