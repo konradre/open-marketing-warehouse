@@ -1,0 +1,69 @@
+source: search_console
+reports:
+  - name: core
+    view: marts.search_console_core
+    description: Search Console totals per property, search type and day. The reference for the breakdowns.
+    dimensions:
+      site_url: Search Console property
+      search_type: web, image, video, news, discover or googleNews
+    restatement_days: 3
+  - name: queries
+    view: marts.search_console_queries
+    description: Search Console per query. Undercounts core because Google withholds anonymised queries.
+    dimensions:
+      site_url: Search Console property
+      search_type: web, image, video, news, discover or googleNews
+      query: Search query text
+    restatement_days: 3
+    traps:
+      - Google withholds anonymised (rare or private) queries; query totals are lower than core.
+  - name: pages
+    view: marts.search_console_pages
+    description: Search Console per landing page.
+    dimensions:
+      site_url: Search Console property
+      search_type: web, image, video, news, discover or googleNews
+      page: Canonical URL of the page
+    restatement_days: 3
+metrics:
+  - name: search_clicks
+    report: core
+    expr: sum(clicks)
+    unit: count
+    grains: [site_url, search_type]
+    aliases: [clicks, organic_clicks]
+    description: Clicks from Google Search results to the property.
+  - name: search_impressions
+    report: core
+    expr: sum(impressions)
+    unit: count
+    grains: [site_url, search_type]
+    aliases: [impressions, organic_impressions]
+    description: Times the property appeared in Google Search results.
+  - name: search_ctr
+    report: core
+    expr: sum(clicks) / nullIf(sum(impressions), 0)
+    unit: ratio
+    aggregation: rate
+    grains: [site_url, search_type]
+    aliases: [ctr]
+    description: Search click-through rate (0 to 1), recomputed at the requested grain.
+  - name: search_position
+    report: core
+    expr: sum(position * impressions) / nullIf(sum(impressions), 0)
+    unit: position
+    aggregation: rate
+    grains: [site_url, search_type]
+    description: Impression-weighted average position in results, 1 = top.
+  - name: query_clicks
+    report: queries
+    expr: sum(clicks)
+    unit: count
+    grains: [site_url, search_type, query]
+    description: Clicks per search query. Lower than search_clicks because of anonymised queries.
+  - name: page_clicks
+    report: pages
+    expr: sum(clicks)
+    unit: count
+    grains: [site_url, search_type, page]
+    description: Clicks per landing page.

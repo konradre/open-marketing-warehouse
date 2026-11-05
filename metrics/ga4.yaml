@@ -1,0 +1,69 @@
+source: ga4
+reports:
+  - name: core
+    view: marts.ga4_core
+    description: GA4 totals per property and day.
+    dimensions:
+      property_id: Numeric GA4 property id
+    restatement_days: 3
+  - name: channels
+    view: marts.ga4_channels
+    description: GA4 per session default channel group, including the (other) row GA4 folds overflow into.
+    dimensions:
+      property_id: Numeric GA4 property id
+      channel_group: Organic Search, Paid Search, Direct, Referral, Organic Social, Email, ... or (other)
+      is_other: True for the (other) overflow row
+    restatement_days: 3
+    traps:
+      - GA4 folds high-cardinality values into an (other) row; it is kept and flagged with is_other.
+  - name: campaigns
+    view: marts.ga4_campaigns
+    description: GA4 per session campaign, source and medium.
+    dimensions:
+      property_id: Numeric GA4 property id
+      campaign: Session campaign name, (not set) or (other)
+      source_name: Session source
+      medium: Session medium
+      is_other: True for the (other) overflow row
+    restatement_days: 3
+    traps:
+      - GA4 folds high-cardinality values into an (other) row; it is kept and flagged with is_other.
+metrics:
+  - name: sessions
+    report: core
+    expr: sum(sessions)
+    unit: count
+    grains: [property_id]
+    description: GA4 sessions.
+  - name: users
+    report: core
+    expr: sum(total_users)
+    unit: count
+    aggregation: native
+    grains: [property_id]
+    description: Distinct active users per property and day. Not additive across days.
+  - name: new_users
+    report: core
+    expr: sum(new_users)
+    unit: count
+    grains: [property_id]
+    description: Users whose first session was on the day.
+  - name: key_events
+    report: core
+    expr: sum(key_events)
+    unit: events
+    grains: [property_id]
+    aliases: [conversions, ga4_conversions]
+    description: GA4 key events (formerly conversions) as configured on the property.
+  - name: channel_sessions
+    report: channels
+    expr: sum(sessions)
+    unit: count
+    grains: [property_id, channel_group, is_other]
+    description: Sessions per default channel group.
+  - name: campaign_sessions
+    report: campaigns
+    expr: sum(sessions)
+    unit: count
+    grains: [property_id, campaign, source_name, medium, is_other]
+    description: Sessions per session campaign, source and medium.

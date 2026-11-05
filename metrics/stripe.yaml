@@ -1,0 +1,44 @@
+source: stripe
+reports:
+  - name: invoices
+    view: marts.stripe_revenue
+    description: One row per paid Stripe invoice with the campaign key resolved invoice, subscription, customer.
+    dimensions:
+      currency: ISO 4217 currency of the invoice, upper case
+      customer_id: Stripe customer id
+      subscription_id: Stripe subscription id, empty for one-off invoices
+      billing_reason: subscription_create, subscription_cycle, manual, ...
+      utm_source: utm_source from metadata, empty when absent
+      utm_medium: utm_medium from metadata, empty when absent
+      utm_campaign: utm_campaign from metadata, empty when absent
+      attributed: True when any attribution metadata exists
+    campaign_key: campaign_key
+    traps:
+      - Refunds and voids are not netted; unattributed revenue (campaign_key empty) is real revenue.
+metrics:
+  - name: revenue
+    report: invoices
+    expr: sum(amount)
+    unit: currency
+    grains: [currency, customer_id, subscription_id, billing_reason, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    aliases: [stripe_revenue, paid_revenue]
+    description: Paid invoice amounts in the invoice currency.
+  - name: paid_invoices
+    report: invoices
+    expr: count()
+    unit: count
+    grains: [currency, customer_id, subscription_id, billing_reason, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    description: Number of paid invoices.
+  - name: paying_customers
+    report: invoices
+    expr: uniqExact(customer_id)
+    unit: count
+    aggregation: native
+    grains: [currency, billing_reason, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    description: Distinct customers with a paid invoice at the requested grain. Not additive across days.
+  - name: new_customers
+    report: invoices
+    expr: countIf(billing_reason = 'subscription_create')
+    unit: count
+    grains: [currency, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    description: First subscription invoices paid, a proxy for new paying customers.

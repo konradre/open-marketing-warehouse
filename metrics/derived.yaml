@@ -1,0 +1,22 @@
+derived:
+  - name: ad_spend
+    derived: meta_spend + google_spend
+    unit: currency
+    requires_common_grain: [date, campaign_key, currency]
+    aliases: [total_spend, paid_media_spend]
+    description: Meta plus Google Ads spend. Only comparable within one currency.
+  - name: roas
+    derived: revenue / ad_spend
+    unit: ratio
+    requires_common_grain: [date, campaign_key, currency]
+    description: Stripe paid revenue divided by ad spend, each aggregated to the common grain first.
+  - name: cac
+    derived: ad_spend / new_customers
+    unit: currency
+    requires_common_grain: [date, campaign_key, currency]
+    description: Ad spend per new paying customer, each aggregated to the common grain first.
+  - name: blended_cpc
+    derived: ad_spend / (meta_clicks + google_clicks)
+    unit: currency
+    requires_common_grain: [date, campaign_key, currency]
+    description: Ad spend per click across Meta and Google.
