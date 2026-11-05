@@ -65,3 +65,24 @@ def test_optional_profiles_do_not_block_the_core_stack() -> None:
     """Compose interpolates inactive profiles too, so their secrets must not use the `:?` form."""
     text = (REPO / "deploy/docker-compose.yml").read_text()
     assert ":?" not in text
+
+
+def test_ci_boots_the_optional_profiles_in_their_own_job() -> None:
+    workflow = yaml.safe_load((REPO / ".github/workflows/ci.yml").read_text())
+    jobs = workflow["jobs"]
+    assert set(jobs) == {"gate", "profiles"} and "needs" not in jobs["profiles"]
+    steps = " ".join(str(step.get("run", "")) for step in jobs["profiles"]["steps"])
+    assert "deploy/profiles-env.sh .env" in steps and "deploy/profiles-smoke.sh .env" in steps
+    assert "down -v" in steps
+    for uses in (step["uses"] for job in jobs.values() for step in job["steps"] if "uses" in step):
+        assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", uses), uses  # pinned by commit sha
+
+
+def test_profile_scripts_are_executable_and_cover_every_profile_secret() -> None:
+    env_script = (REPO / "deploy/profiles-env.sh").read_text()
+    smoke = REPO / "deploy/profiles-smoke.sh"
+    assert smoke.stat().st_mode & 0o111 and (REPO / "deploy/profiles-env.sh").stat().st_mode & 0o111
+    example = (REPO / ".env.example").read_text()
+    empty_keys = re.findall(r"^((?:LIBRECHAT|LANGFUSE)_\w+)=$", example, re.MULTILINE)
+    assert empty_keys and all(key in env_script for key in empty_keys), empty_keys
+    assert "--profile chat --profile observability" in smoke.read_text()

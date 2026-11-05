@@ -2,7 +2,7 @@
 ENV_FILE := $(wildcard .env)
 COMPOSE  := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE)) -f deploy/docker-compose.yml
 
-.PHONY: up down logs bootstrap chat observability sync lint format typecheck test unit integration gate clean check campaign-keys
+.PHONY: up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys
 
 up: ## start ClickHouse and mcp-clickhouse, wait until healthy
 	$(COMPOSE) up -d --wait clickhouse mcp-clickhouse
@@ -27,6 +27,9 @@ chat: ## also start LibreChat (profile chat); needs the LIBRECHAT_* secrets in .
 observability: ## also start Langfuse (profile observability); needs the LANGFUSE_* secrets in .env
 	deploy/require-env.sh .env $(OBS_SECRETS)
 	$(COMPOSE) --profile observability up -d --wait
+
+profiles-smoke: ## boot both optional profiles (needs the secrets in .env; deploy/profiles-env.sh writes throwaway ones) and prove they answer
+	deploy/profiles-smoke.sh .env
 
 sync:
 	uv sync --all-groups
