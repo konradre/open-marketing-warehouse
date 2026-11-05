@@ -5,7 +5,7 @@ import re
 from omw.pipelines.marts import SQL_DIR, statements
 
 
-def test_four_commented_definer_views() -> None:
+def test_five_commented_definer_views() -> None:
     stmts = statements((SQL_DIR / "30_google_ads_marts.sql").read_text())
     names = [re.search(r"CREATE OR REPLACE VIEW marts\.(\w+)", s).group(1) for s in stmts]  # type: ignore[union-attr]
     assert names == [
@@ -13,6 +13,7 @@ def test_four_commented_definer_views() -> None:
         "google_ads_ad_groups",
         "google_ads_campaign_list",
         "google_ads_search_terms",
+        "google_ads_asset_groups",
     ]
     for statement in stmts:
         assert "DEFINER = CURRENT_USER SQL SECURITY DEFINER AS" in statement

@@ -25,8 +25,11 @@ def test_resources_and_hints(fake_client: FakeGoogleAdsClient) -> None:
         "performance_campaigns",
         "performance_ad_groups",
         "performance_search_terms",
+        "performance_asset_groups",
         "sync_windows",
     }
+    assets: dict[str, Any] = dict(source.resources["performance_asset_groups"].compute_table_schema())
+    assert assets["x-clickhouse-sort"] == ["customer_id", "date", "campaign_id", "asset_group_id"]
     terms: dict[str, Any] = dict(source.resources["performance_search_terms"].compute_table_schema())
     assert terms["x-clickhouse-sort"] == ["customer_id", "date", "campaign_id", "ad_group_id", "search_term"]
     assert {"search_term", "search_term_status", "ad_group_id"} <= set(terms["columns"])

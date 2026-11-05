@@ -147,6 +147,24 @@ def test_search_terms_never_exceed_their_campaign(loaded: dlt.Pipeline, agent_cl
     assert columns and all(comment for _, comment in columns)
 
 
+def test_asset_groups_sum_to_their_performance_max_campaign(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    groups = agent_client.query(
+        "SELECT date, campaign_id, sum(clicks), sum(cost_micros), count() FROM marts.google_ads_asset_groups "
+        "GROUP BY date, campaign_id ORDER BY date"
+    ).result_rows
+    assert len(groups) == 3 and all(r[1] == "20010003" and r[4] == 2 for r in groups)
+    for day, campaign_id, clicks, cost_micros, _ in groups:
+        campaign = agent_client.query(
+            "SELECT clicks, cost_micros, channel_type FROM marts.google_ads_campaigns "
+            "WHERE date = {d:Date} AND campaign_id = {c:String}",
+            parameters={"d": day, "c": campaign_id},
+        ).result_rows[0]
+        assert campaign[2] == "PERFORMANCE_MAX" and clicks <= campaign[0] and cost_micros <= campaign[1]
+        assert clicks >= campaign[0] - 2 and cost_micros >= campaign[1] - 2  # integer shares of the campaign
+
+
 def test_raw_stays_invisible_to_the_agent(loaded: dlt.Pipeline, agent_client: Client) -> None:
     with pytest.raises(DatabaseError, match="Code: 497"):
         agent_client.query(f"SELECT count() FROM raw.{DATASET}___performance_campaigns")

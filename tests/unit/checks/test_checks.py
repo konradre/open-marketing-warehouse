@@ -99,7 +99,13 @@ def test_every_overcount_rule_names_views_from_the_marts() -> None:
     for rule in OVERCOUNT_RULES:
         assert rule.core.startswith("marts.") and rule.breakdown.startswith("marts.") and "date" in rule.keys
         assert len(rule.measures) == 2, rule.report
-    assert {r.source for r in OVERCOUNT_RULES} == {"search_console", "ga4", "google_ads", "meta_ads"}
+    assert {r.source for r in OVERCOUNT_RULES} == {
+        "search_console",
+        "ga4",
+        "google_ads",
+        "meta_ads",
+        "linkedin_ads",
+    }
     assert len({(r.source, r.report) for r in OVERCOUNT_RULES}) == len(OVERCOUNT_RULES)
 
 

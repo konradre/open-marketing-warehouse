@@ -26,8 +26,20 @@ def body(name: str) -> str:
     return (FIXTURES / f"{name}.json").read_text()
 
 
+def _creative_pivot(request: Any) -> tuple[bool, str]:
+    return "pivot=CREATIVE" in str(request.url), "not the creative pivot"
+
+
 def register_api(mock: Any, analytics: str = "ad_analytics") -> None:
-    """The whole API surface the source touches, served from fixtures."""
+    """The whole API surface the source touches, served from fixtures. The creative pivot is registered
+    before the catch-all campaign analytics mock."""
+    mock.add(
+        responses.GET,
+        re.compile(re.escape(f"{API_BASE}adAnalytics") + r".*"),
+        body=body("ad_analytics_creatives"),
+        content_type="application/json",
+        match=[_creative_pivot],
+    )
     mock.get(f"{API_BASE}adAccounts/{ACCOUNT}", body=body("ad_account"), content_type="application/json")
     mock.get(f"{API_BASE}adAccounts", body=body("ad_accounts"), content_type="application/json")
     mock.get(

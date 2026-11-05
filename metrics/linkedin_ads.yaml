@@ -12,6 +12,21 @@ reports:
     restatement_days: 7
     traps:
       - LinkedIn settles cost and conversions over a few days; the last 7 days are re-pulled and may change.
+  - name: creatives
+    view: marts.linkedin_ads_creatives
+    description: LinkedIn Ads creative daily analytics, one row per sponsored account, creative and day.
+    dimensions:
+      account_id: LinkedIn sponsored account id
+      currency: ISO 4217 currency of the sponsored account
+      campaign_id: LinkedIn campaign the creative belongs to, empty when no longer listed
+      campaign_name: Campaign name at the last entity pull
+      creative_id: LinkedIn creative id
+      creative_status: Intended status at the last entity pull
+      is_serving: Whether the creative was serving at the last entity pull
+    campaign_key: "concat('linkedin_ads:', campaign_id)"
+    restatement_days: 7
+    traps:
+      - Sums to the campaigns grain on cost, impressions and clicks.
 metrics:
   - name: linkedin_spend
     report: campaigns
@@ -49,3 +64,21 @@ metrics:
     grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
     aliases: [cpc]
     description: LinkedIn cost per click, recomputed at the requested grain.
+  - name: linkedin_creative_spend
+    report: creatives
+    expr: sum(cost)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, creative_id, creative_status, is_serving, campaign_key]
+    description: LinkedIn spend per creative, in the account currency.
+  - name: linkedin_creative_clicks
+    report: creatives
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, creative_id, creative_status, is_serving, campaign_key]
+    description: Chargeable clicks per LinkedIn creative.
+  - name: linkedin_creative_conversions
+    report: creatives
+    expr: sum(conversions)
+    unit: events
+    grains: [account_id, currency, campaign_id, campaign_name, creative_id, creative_status, is_serving, campaign_key]
+    description: Insight Tag conversions per LinkedIn creative.

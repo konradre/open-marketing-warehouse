@@ -112,6 +112,26 @@ def test_agent_reads_the_views_with_budgets_and_cost(loaded: dlt.Pipeline, agent
     assert listing["800003"][3] is False and Decimal(str(listing["800003"][2])) == Decimal("0")
 
 
+def test_creatives_resolve_their_campaign_and_never_exceed_it(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    rows = agent_client.query(
+        "SELECT cr.date, cr.campaign_id, cr.campaign_name, cr.creative_id, cr.is_serving, cr.cost, "
+        f"cr.clicks, c.cost, c.clicks FROM marts.{DATASET}_creatives AS cr "
+        f"JOIN marts.{DATASET}_campaigns AS c ON c.date = cr.date AND c.campaign_id = cr.campaign_id "
+        "ORDER BY cr.date, cr.creative_id"
+    ).result_rows
+    assert len(rows) == 6 and rows[0][1] == "800001" and rows[0][3] == "900001" and rows[0][2]
+    assert rows[0][4] is True and Decimal(str(rows[0][5])) == Decimal("189.36")
+    for row in rows:
+        assert Decimal(str(row[5])) <= Decimal(str(row[7])) and row[6] <= row[8]
+    columns = agent_client.query(
+        "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
+        parameters={"t": f"{DATASET}_creatives"},
+    ).result_rows
+    assert columns and all(comment for _, comment in columns)
+
+
 def test_raw_conventions_and_invisibility(
     loaded: dlt.Pipeline, admin_client: Client, agent_client: Client
 ) -> None:

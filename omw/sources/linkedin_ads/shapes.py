@@ -193,16 +193,24 @@ ANALYTICS_FIELDS = (
 )
 
 
-def shape_analytics(account_id: str, currency: str, obj: Mapping[str, Any]) -> dict[str, Any]:
+PIVOT_REPORT: dict[str, str] = {"CAMPAIGN": "campaigns", "CREATIVE": "creatives"}
+"""adAnalytics pivots -> report names. A CREATIVE pivot carries the creative urn only; the campaign comes
+from the creatives entity table in the marts view."""
+
+
+def shape_analytics(
+    account_id: str, currency: str, obj: Mapping[str, Any], pivot: str = "CAMPAIGN"
+) -> dict[str, Any]:
     pivots = obj.get("pivotValues") or []
     cost = obj.get("costInLocalCurrency")
+    pivot_id = urn_id(pivots[0]) if pivots else ""
     return {
         "source": SOURCE,
-        "report": "campaigns",
+        "report": PIVOT_REPORT[pivot],
         "account_id": account_id,
         "currency": currency,
         "date": range_date((obj.get("dateRange") or {}).get("start")),
-        "campaign_id": urn_id(pivots[0]) if pivots else "",
+        **({"creative_id": pivot_id} if pivot == "CREATIVE" else {"campaign_id": pivot_id}),
         "impressions": int(obj.get("impressions") or 0),
         "clicks": int(obj.get("clicks") or 0),
         "cost": Decimal(str(cost)) if cost not in (None, "") else Decimal(0),
@@ -212,6 +220,14 @@ def shape_analytics(account_id: str, currency: str, obj: Mapping[str, Any]) -> d
         "shares": int(obj.get("shares") or 0),
         "follows": int(obj.get("follows") or 0),
     }
+
+
+def analytics_columns(pivot: str = "CAMPAIGN") -> dict[str, TColumnSchema]:
+    hints = dict(ANALYTICS_COLUMNS)
+    if pivot == "CREATIVE":
+        del hints["campaign_id"]
+        hints = {**hints, "creative_id": column("text")}
+    return hints
 
 
 ANALYTICS_COLUMNS: dict[str, TColumnSchema] = {

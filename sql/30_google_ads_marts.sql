@@ -89,3 +89,26 @@ SELECT source, report, customer_id, currency, date, campaign_id, campaign_name, 
        search_term_status, toUInt64(impressions) AS impressions, toUInt64(clicks) AS clicks,
        toDecimal64(cost_micros, 6) / 1000000 AS cost, cost_micros, conversions, conversions_value
 FROM raw.google_ads___performance_search_terms;
+
+CREATE OR REPLACE VIEW marts.google_ads_asset_groups (
+    source LowCardinality(String) COMMENT 'Always google_ads',
+    report LowCardinality(String) COMMENT 'Report grain, always asset_groups: one row per customer, Performance Max asset group and day. Sums to the campaigns grain for PERFORMANCE_MAX campaigns only. Never combine grains',
+    customer_id LowCardinality(String) COMMENT 'Google Ads customer (account) id, digits only',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency of the customer account. cost is in this currency',
+    date Date COMMENT 'Day in the account time zone. The last 30 days are re-pulled daily for conversion lag and may change',
+    campaign_id String COMMENT 'Google Ads campaign id (a PERFORMANCE_MAX campaign)',
+    campaign_name String COMMENT 'Campaign name at the time of the pull',
+    asset_group_id String COMMENT 'Google Ads asset group id',
+    asset_group_name String COMMENT 'Asset group name at the time of the pull',
+    asset_group_status LowCardinality(String) COMMENT 'ENABLED, PAUSED or REMOVED at pull time',
+    impressions UInt64 COMMENT 'Times an ad of the asset group was shown',
+    clicks UInt64 COMMENT 'Clicks on the ads',
+    cost Decimal(18, 6) COMMENT 'Amount spent in the account currency (cost_micros / 1 000 000)',
+    cost_micros Int64 COMMENT 'Amount spent in micro units of the account currency, as Google reports it',
+    conversions Float64 COMMENT 'Conversions counted by the account conversion actions, fractional with modelled attribution',
+    conversions_value Float64 COMMENT 'Value of the conversions in the account currency'
+) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
+SELECT source, report, customer_id, currency, date, campaign_id, campaign_name, asset_group_id, asset_group_name,
+       asset_group_status, toUInt64(impressions) AS impressions, toUInt64(clicks) AS clicks,
+       toDecimal64(cost_micros, 6) / 1000000 AS cost, cost_micros, conversions, conversions_value
+FROM raw.google_ads___performance_asset_groups;

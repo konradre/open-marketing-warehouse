@@ -101,7 +101,8 @@ uv run python -m omw.pipelines.meta_ads daily --level ad   # ad-level insights f
 `omw.sources.google_ads` runs GAQL through the REST `searchStream` endpoint: daily campaign and ad group
 performance (impressions, clicks, cost, conversions, conversion value) plus the campaign list, exposed as
 `marts.google_ads_campaigns`, `marts.google_ads_ad_groups`, `marts.google_ads_search_terms` (the search term grain,
-which undercounts campaigns because Google withholds low-volume terms) and `marts.google_ads_campaign_list`. Google
+which undercounts campaigns because Google withholds low-volume terms), `marts.google_ads_asset_groups` (Performance
+Max asset groups) and `marts.google_ads_campaign_list`. Google
 attributes conversions for up to 30 days, so the daily run re-fetches the last 30 days and replaces them.
 `cost_micros` is kept as Google reports it; the views divide it into a `Decimal` amount in the account
 currency.
@@ -163,8 +164,8 @@ uv run python -m omw.pipelines.stripe daily
 
 `omw.sources.linkedin_ads` loads ad accounts, campaign groups (with their daily/total budgets and the
 budget-optimisation flag), campaigns and creatives through dlt's declarative `rest_api` resources, and
-daily campaign analytics (`adAnalytics`, pivot `CAMPAIGN`), exposed as `marts.linkedin_ads_campaigns` and
-`marts.linkedin_ads_campaign_list`. The daily run re-fetches the last 7 days and replaces them. The
+daily campaign and creative analytics (`adAnalytics`, pivots `CAMPAIGN` and `CREATIVE`), exposed as
+`marts.linkedin_ads_campaigns`, `marts.linkedin_ads_creatives` and `marts.linkedin_ads_campaign_list`. The daily run re-fetches the last 7 days and replaces them. The
 `LinkedIn-Version` header is pinned in `omw/sources/linkedin_ads/version.py`; every run warns three months
 before LinkedIn retires that version and refuses to run after it.
 

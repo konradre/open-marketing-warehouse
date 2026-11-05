@@ -44,6 +44,8 @@ class FakeGoogleAdsClient(GoogleAdsClient):
             return fixture_results("campaign_entities")
         if "FROM search_term_view" in query:
             name = "search_terms_stream"
+        elif "FROM asset_group" in query:
+            name = "asset_groups_stream"
         elif "FROM ad_group" in query:
             name = "ad_groups_stream"
         else:

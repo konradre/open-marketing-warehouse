@@ -110,6 +110,22 @@ OVERCOUNT_RULES: tuple[OvercountRule, ...] = (
         ("cost_micros", "clicks"),
     ),
     OvercountRule(
+        "google_ads",
+        "marts.google_ads_campaigns",
+        "marts.google_ads_asset_groups",
+        "asset_groups",
+        ("customer_id", "campaign_id", "date"),
+        ("cost_micros", "clicks"),
+    ),
+    OvercountRule(
+        "linkedin_ads",
+        "marts.linkedin_ads_campaigns",
+        "marts.linkedin_ads_creatives",
+        "creatives",
+        ("account_id", "campaign_id", "date"),
+        ("cost", "clicks"),
+    ),
+    OvercountRule(
         "meta_ads",
         "marts.meta_ads_campaigns",
         "marts.meta_ads_ads",
