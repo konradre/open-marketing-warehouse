@@ -1,0 +1,61 @@
+source: meta_ads
+reports:
+  - name: campaigns
+    view: marts.meta_ads_campaigns
+    description: Meta Ads campaign-level insights, one row per account, campaign and day.
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account; spend is in it
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name at pull time
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    restatement_days: 28
+    traps:
+      - Meta restates conversions and spend for up to 28 days; recent days change.
+metrics:
+  - name: meta_spend
+    report: campaigns
+    expr: sum(spend)
+    unit: currency
+    aggregation: sum
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [spend, ad_spend_meta]
+    description: Amount spent on Meta Ads, in the account currency.
+  - name: meta_impressions
+    report: campaigns
+    expr: sum(impressions)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [impressions]
+    description: Times a Meta ad was on screen.
+  - name: meta_clicks
+    report: campaigns
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [clicks]
+    description: All clicks on Meta ads, not only link clicks.
+  - name: meta_reach
+    report: campaigns
+    expr: sum(reach)
+    unit: count
+    aggregation: native
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [reach]
+    description: "People reached per campaign and day. Not additive: a person counts once per row."
+  - name: meta_cpc
+    report: campaigns
+    expr: sum(spend) / nullIf(sum(clicks), 0)
+    unit: currency
+    aggregation: rate
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [cpc]
+    description: Meta cost per click, recomputed from spend and clicks at the requested grain.
+  - name: meta_ctr
+    report: campaigns
+    expr: sum(clicks) / nullIf(sum(impressions), 0)
+    unit: ratio
+    aggregation: rate
+    grains: [account_id, currency, campaign_id, campaign_name, campaign_key]
+    aliases: [ctr]
+    description: Meta click-through rate (0 to 1), recomputed at the requested grain.

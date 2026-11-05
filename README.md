@@ -153,10 +153,28 @@ invoices and balance transactions, and put it in `.dlt/secrets.toml` under `[sou
 uv run python -m omw.pipelines.stripe daily
 ```
 
+## Metric layer
+
+`SEMANTICS.md` says what every measure means. `metrics/*.yaml` defines the metrics (one report grain per
+`marts` view, one measure per entry, derived cross-source measures such as `roas` and `cac`), validated by
+the pydantic schema in `omw/metrics/schema.py` on every test run. `omw.metrics.server` is the
+`query_metrics` MCP server (stdio): `list_metrics`, `list_dimensions` and `query_metrics(metrics,
+dimensions, filters, time_range, compare)`. It compiles one `SELECT` per request (one CTE per source for
+cross-source measures, joined on the common grain), checks it is a single `SELECT`/`WITH`, runs it as the
+`agent` user, and answers with a mood: `serve`, `disclose` (with caveats), `clarify` (with candidates) or
+`refuse` (with the reason).
+
+```bash
+uv run python -m omw.metrics.setup     # once: creates marts.campaign_keys (the cross-platform campaign key mapping)
+uv run python -m omw.metrics.server    # the MCP server on stdio; OMW_CLICKHOUSE_HOST / OMW_AGENT_PASSWORD from the environment
+```
+
 ## Layout
 
 ```
-omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/
+omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server)
+metrics/        metric definitions (YAML), validated by omw/metrics/schema.py
+SEMANTICS.md    business semantics for the agent
 sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), NN_<source>_* marts views
 deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config
 tests/          unit/ (no services), integration/ (ClickHouse + mcp-clickhouse), fixtures/<source>/

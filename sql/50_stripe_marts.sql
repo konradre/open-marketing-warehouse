@@ -9,7 +9,7 @@ CREATE OR REPLACE VIEW marts.stripe_revenue (
     invoice_id String COMMENT 'Stripe invoice id',
     customer_id String COMMENT 'Stripe customer id',
     subscription_id String COMMENT 'Stripe subscription id, empty for one-off invoices',
-    currency LowCardinality(String) COMMENT 'ISO 4217 currency of the invoice, lower case as Stripe reports it',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency of the invoice, upper case (Stripe reports lower case)',
     amount Decimal(18, 2) COMMENT 'Amount paid in the invoice currency (minor units / 100, whole units for zero-decimal currencies)',
     amount_minor Int64 COMMENT 'Amount paid in Stripe minor units, as reported',
     billing_reason LowCardinality(String) COMMENT 'subscription_create, subscription_cycle, subscription_update, manual, ...',
@@ -20,7 +20,7 @@ CREATE OR REPLACE VIEW marts.stripe_revenue (
     attributed Bool COMMENT 'True when any attribution metadata exists for the invoice. Unattributed revenue is real revenue: never drop it when comparing to spend'
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT 'stripe' AS source, 'invoices' AS report, toDate(i.paid_at) AS date, i.id AS invoice_id,
-       i.customer_id AS customer_id, i.subscription_id AS subscription_id, i.currency AS currency,
+       i.customer_id AS customer_id, i.subscription_id AS subscription_id, upper(i.currency) AS currency,
        if(i.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
           toDecimal64(i.amount_paid, 2), toDecimal64(i.amount_paid, 2) / 100) AS amount,
        i.amount_paid AS amount_minor, i.billing_reason AS billing_reason,
@@ -38,7 +38,7 @@ CREATE OR REPLACE VIEW marts.stripe_revenue_daily (
     source LowCardinality(String) COMMENT 'Always stripe',
     report LowCardinality(String) COMMENT 'Report grain, always revenue_daily: one row per day, currency and campaign key. Sums to stripe_revenue',
     date Date COMMENT 'Day the invoices were paid (UTC)',
-    currency LowCardinality(String) COMMENT 'ISO 4217 currency, lower case. Never sum across currencies',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency, upper case. Never sum across currencies',
     campaign_key String COMMENT 'Campaign key for cross-source joins, empty for unattributed revenue',
     utm_source String COMMENT 'utm_source of the attribution, empty when absent',
     utm_medium String COMMENT 'utm_medium of the attribution, empty when absent',
@@ -59,7 +59,7 @@ CREATE OR REPLACE VIEW marts.stripe_subscriptions (
     status LowCardinality(String) COMMENT 'active, trialing, past_due, canceled, unpaid, incomplete, incomplete_expired, paused',
     created DateTime COMMENT 'When the subscription was created (UTC)',
     canceled_at DateTime COMMENT 'When it was canceled (UTC), 1970-01-01 when not canceled',
-    currency LowCardinality(String) COMMENT 'ISO 4217 currency, lower case',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency, upper case',
     interval LowCardinality(String) COMMENT 'Billing interval of the first item: month, year, week, day',
     unit_amount Decimal(18, 2) COMMENT 'Price of the first item per interval in the currency',
     quantity UInt64 COMMENT 'Quantity of the first item',
@@ -70,7 +70,7 @@ CREATE OR REPLACE VIEW marts.stripe_subscriptions (
     utm_campaign String COMMENT 'utm_campaign, same precedence'
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT s.source AS source, s.id AS subscription_id, s.customer_id AS customer_id, s.status AS status, s.created AS created,
-       s.canceled_at AS canceled_at, s.currency AS currency, s.interval AS interval,
+       s.canceled_at AS canceled_at, upper(s.currency) AS currency, s.interval AS interval,
        toDecimal64(s.unit_amount, 2) / 100 AS unit_amount, toUInt64(s.quantity) AS quantity, s.product_id AS product_id,
        if(s.campaign_key != '', s.campaign_key, c.campaign_key) AS campaign_key,
        if(s.utm_source != '', s.utm_source, c.utm_source) AS utm_source,

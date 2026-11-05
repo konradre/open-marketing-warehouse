@@ -1,0 +1,70 @@
+source: google_ads
+reports:
+  - name: campaigns
+    view: marts.google_ads_campaigns
+    description: Google Ads campaign daily performance, one row per customer, campaign and day.
+    dimensions:
+      customer_id: Google Ads customer (account) id
+      currency: ISO 4217 currency of the account; cost is in it
+      campaign_id: Google Ads campaign id
+      campaign_name: Campaign name at pull time
+      channel_type: SEARCH, DISPLAY, SHOPPING, VIDEO, PERFORMANCE_MAX, ...
+    campaign_key: "concat('google_ads:', campaign_id)"
+    restatement_days: 30
+    traps:
+      - Google attributes conversions for up to 30 days after the click; recent conversions grow.
+  - name: ad_groups
+    view: marts.google_ads_ad_groups
+    description: Google Ads ad group daily performance.
+    dimensions:
+      customer_id: Google Ads customer (account) id
+      currency: ISO 4217 currency of the account
+      campaign_id: Google Ads campaign id
+      campaign_name: Campaign name at pull time
+      ad_group_id: Google Ads ad group id
+      ad_group_name: Ad group name at pull time
+    campaign_key: "concat('google_ads:', campaign_id)"
+    restatement_days: 30
+metrics:
+  - name: google_spend
+    report: campaigns
+    expr: sum(cost)
+    unit: currency
+    grains: [customer_id, currency, campaign_id, campaign_name, channel_type, campaign_key]
+    aliases: [spend, cost, ad_spend_google]
+    description: Amount spent on Google Ads, in the account currency.
+  - name: google_impressions
+    report: campaigns
+    expr: sum(impressions)
+    unit: count
+    grains: [customer_id, currency, campaign_id, campaign_name, channel_type, campaign_key]
+    aliases: [impressions]
+    description: Times a Google ad was shown.
+  - name: google_clicks
+    report: campaigns
+    expr: sum(clicks)
+    unit: count
+    grains: [customer_id, currency, campaign_id, campaign_name, channel_type, campaign_key]
+    aliases: [clicks]
+    description: Clicks on Google ads.
+  - name: google_conversions
+    report: campaigns
+    expr: sum(conversions)
+    unit: events
+    grains: [customer_id, currency, campaign_id, campaign_name, channel_type, campaign_key]
+    aliases: [conversions]
+    description: Google Ads conversions as the account's conversion actions count them, fractional.
+  - name: google_cpc
+    report: campaigns
+    expr: sum(cost) / nullIf(sum(clicks), 0)
+    unit: currency
+    aggregation: rate
+    grains: [customer_id, currency, campaign_id, campaign_name, channel_type, campaign_key]
+    aliases: [cpc]
+    description: Google cost per click, recomputed at the requested grain.
+  - name: google_ad_group_spend
+    report: ad_groups
+    expr: sum(cost)
+    unit: currency
+    grains: [customer_id, currency, campaign_id, campaign_name, ad_group_id, ad_group_name, campaign_key]
+    description: Google Ads spend at ad group grain.
