@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -108,6 +108,39 @@ def test_agent_reads_both_grains_through_commented_views(loaded: dlt.Pipeline, a
         f"SELECT sum(spend) FROM marts.{DATASET}_campaigns WHERE date = '2026-10-01'"
     ).result_rows[0][0]
     assert Decimal(str(spend)) == Decimal("70.60")
+
+
+def test_entity_lists_carry_budgets_in_the_account_currency(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    campaigns = {
+        r[0]: r[1:]
+        for r in agent_client.query(
+            "SELECT campaign_name, currency, daily_budget, lifetime_budget, status, stop_time "
+            f"FROM marts.{DATASET}_campaign_list"
+        ).result_rows
+    }
+    prospecting = campaigns["Widgets - Prospecting"]
+    assert prospecting[0] == "USD" and Decimal(str(prospecting[1])) == Decimal("50")  # "5000" cents
+    assert Decimal(str(prospecting[2])) == Decimal("0") and prospecting[3] == "ACTIVE"
+    assert prospecting[4] == datetime(1970, 1, 1)  # open-ended: the optional time is absent in the fixture
+    ad_sets = {
+        r[0]: r[1:]
+        for r in agent_client.query(
+            "SELECT adset_name, campaign_name, currency, bid_amount, daily_budget "
+            f"FROM marts.{DATASET}_ad_set_list"
+        ).result_rows
+    }
+    assert (
+        ad_sets["Prospecting - Broad"][0] == "Widgets - Prospecting"
+        and ad_sets["Prospecting - Broad"][1] == "USD"
+    )
+    for view in ("campaign_list", "ad_set_list"):
+        columns = agent_client.query(
+            "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
+            parameters={"t": f"{DATASET}_{view}"},
+        ).result_rows
+        assert columns and all(comment for _, comment in columns), view
 
 
 def test_raw_stays_invisible_to_the_agent(loaded: dlt.Pipeline, agent_client: Client) -> None:

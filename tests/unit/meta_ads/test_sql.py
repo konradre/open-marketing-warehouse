@@ -34,3 +34,17 @@ def test_marts_views_are_commented_definer_views() -> None:
         ]
         assert columns[7 : 7 + len(extra)] == list(extra)
         assert ";" not in statement
+
+
+def test_entity_views_list_campaigns_and_ad_sets_with_budgets() -> None:
+    stmts = statements((SQL_DIR / "20_meta_ads_marts_entities.sql").read_text())
+    assert len(stmts) == 2
+    for statement, view, table in zip(
+        stmts, ("campaign_list", "ad_set_list"), ("campaigns", "ad_sets"), strict=True
+    ):
+        assert f"CREATE OR REPLACE VIEW marts.meta_ads_{view}" in statement
+        assert f"FROM raw.meta_ads___{table}" in statement
+        assert "DEFINER = CURRENT_USER SQL SECURITY DEFINER AS" in statement
+        columns = re.findall(r"^\s+(\w+) [\w(), ]+ COMMENT '", statement, re.MULTILINE)
+        assert {"currency", "daily_budget", "lifetime_budget", "status", "effective_status"} <= set(columns)
+        assert "toInt64OrZero" in statement and ";" not in statement

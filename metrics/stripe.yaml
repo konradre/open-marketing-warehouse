@@ -15,6 +15,16 @@ reports:
     campaign_key: campaign_key
     traps:
       - Refunds and voids are not netted; unattributed revenue (campaign_key empty) is real revenue.
+  - name: balance
+    view: marts.stripe_balance
+    description: One row per Stripe balance transaction, the basis for net revenue after refunds and fees.
+    dimensions:
+      currency: ISO 4217 currency of the transaction, upper case
+      type: Stripe transaction type (charge, payment, refund, payment_refund, payout, ...)
+      reporting_category: Stripe reporting category (charge, refund, dispute, payout, fee, ...)
+    traps:
+      - Balance transactions carry no attribution metadata, so net revenue has no campaign key.
+      - Refunds are dated when refunded, not when the original charge was paid.
 metrics:
   - name: revenue
     report: invoices
@@ -42,3 +52,21 @@ metrics:
     unit: count
     grains: [currency, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
     description: First subscription invoices paid, a proxy for new paying customers.
+  - name: net_revenue
+    report: balance
+    expr: sumIf(net, reporting_category IN ('charge', 'refund', 'dispute', 'dispute_reversal'))
+    unit: currency
+    grains: [currency]
+    description: Charges minus refunds, disputes and Stripe fees, in the transaction currency, by transaction day.
+  - name: refunds
+    report: balance
+    expr: -sumIf(gross, reporting_category = 'refund')
+    unit: currency
+    grains: [currency]
+    description: Amount refunded to customers (a positive number), by refund day.
+  - name: stripe_fees
+    report: balance
+    expr: sumIf(fee, reporting_category IN ('charge', 'refund', 'dispute', 'dispute_reversal'))
+    unit: currency
+    grains: [currency]
+    description: Stripe processing fees on charges and refunds, net of fees returned on refunds.

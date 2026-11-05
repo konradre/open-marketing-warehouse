@@ -21,11 +21,13 @@ from omw.sources.meta_ads.helpers import DEFAULT_POLLING, JobPolling, export, pa
 from omw.sources.meta_ads.settings import (
     ACTION_ATTRIBUTION_WINDOWS,
     ENTITY_RESOURCES,
+    ENTITY_TEXT_DEFAULTS,
     INSIGHT_FIELDS,
     INSIGHTS_MERGE_KEY,
     LEVEL_KEYS,
     LEVEL_REPORT,
     InsightsLevel,
+    entity_columns,
     insights_columns,
     insights_sort_key,
 )
@@ -61,6 +63,8 @@ def _entity_resource(
             for page in page_entities(getattr(account, method_name), fields, states, page_size):
                 for row in page:
                     row.setdefault("account_id", account_id)
+                    for field in ENTITY_TEXT_DEFAULTS[name]:
+                        row[field] = str(row.get(field) or "")
                 yield page
 
     resource = dlt.resource(
@@ -68,7 +72,7 @@ def _entity_resource(
         name=name,
         write_disposition="merge",
         primary_key="id",
-        columns={"id": column("text"), "account_id": column("text")},
+        columns=entity_columns(name),
     )
     # ClickHouse needs the primary key (id, from the merge) to lead the sorting key.
     return clickhouse_adapter(resource, sort=["id"])

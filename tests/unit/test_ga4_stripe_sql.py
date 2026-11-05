@@ -22,8 +22,14 @@ def test_ga4_views_one_per_grain_with_is_other_on_breakdowns() -> None:
 
 
 def test_stripe_views_resolve_attribution_invoice_then_subscription_then_customer() -> None:
-    assert _views("50_stripe_marts.sql") == ["stripe_revenue", "stripe_revenue_daily", "stripe_subscriptions"]
+    assert _views("50_stripe_marts.sql") == [
+        "stripe_revenue",
+        "stripe_revenue_daily",
+        "stripe_subscriptions",
+        "stripe_balance",
+    ]
     text = (SQL_DIR / "50_stripe_marts.sql").read_text()
+    assert "FROM raw.stripe___balance_transactions" in text and "'balance' AS report" in text
     assert (
         "multiIf(i.campaign_key != '', i.campaign_key, s.campaign_key != '', s.campaign_key, c.campaign_key)"
         in text

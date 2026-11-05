@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -36,6 +36,9 @@ OPS_SQL = SQL_DIR / "20_meta_ads_ops.sql"
 
 def marts_sql(level: InsightsLevel) -> Path:
     return SQL_DIR / f"20_meta_ads_marts_{LEVEL_REPORT[level]}.sql"
+
+
+ENTITIES_SQL = SQL_DIR / "20_meta_ads_marts_entities.sql"
 
 
 def build_pipeline(pipelines_dir: str | None = None, destination: Any = "clickhouse") -> dlt.Pipeline:
@@ -153,6 +156,8 @@ def run(
         for level in levels:
             if result.counts.get(f"insights_{LEVEL_REPORT[level]}", 0) or _table_exists(pipeline, level):
                 apply_marts(pipeline, marts_sql(level))
+        if _entities_loaded(pipeline, result.counts):
+            apply_marts(pipeline, ENTITIES_SQL)
         if result.counts.get("campaigns", 0):
             sync_after_load(pipeline, SOURCE_NAME)
     if record_ops:
@@ -161,10 +166,20 @@ def run(
 
 
 def _table_exists(pipeline: dlt.Pipeline, level: InsightsLevel) -> bool:
+    return _raw_table_exists(pipeline, f"insights_{LEVEL_REPORT[level]}")
+
+
+def _entities_loaded(pipeline: dlt.Pipeline, counts: Mapping[str, int]) -> bool:
+    """The entity views need campaigns, ad sets and campaign insights (for the currency) to exist."""
+    tables = ("campaigns", "ad_sets", "insights_campaigns")
+    return all(counts.get(table, 0) or _raw_table_exists(pipeline, table) for table in tables)
+
+
+def _raw_table_exists(pipeline: dlt.Pipeline, table: str) -> bool:
     with pipeline.sql_client() as client:
-        table = f"{SOURCE_NAME}___insights_{LEVEL_REPORT[level]}"
         rows = client.execute_sql(
-            "SELECT count() FROM system.tables WHERE database = currentDatabase() AND name = %s", table
+            "SELECT count() FROM system.tables WHERE database = currentDatabase() AND name = %s",
+            f"{SOURCE_NAME}___{table}",
         )
     return bool(rows and rows[0][0])
 

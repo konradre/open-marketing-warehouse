@@ -2,7 +2,7 @@
 ENV_FILE := $(wildcard .env)
 COMPOSE  := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE)) -f deploy/docker-compose.yml
 
-.PHONY: up down logs bootstrap chat observability sync lint format typecheck test unit integration gate clean
+.PHONY: up down logs bootstrap chat observability sync lint format typecheck test unit integration gate clean check campaign-keys
 
 up: ## start ClickHouse and mcp-clickhouse, wait until healthy
 	$(COMPOSE) up -d --wait clickhouse mcp-clickhouse
@@ -51,6 +51,12 @@ test: ## unit + integration (integration skips when ClickHouse is not reachable)
 
 gate: ## the full gate from CLAUDE.md
 	uv run ruff check . && uv run ruff format --check . && uv run mypy omw && uv run pytest
+
+check: ## run the post-sync checks against the running warehouse (exit 1 on any failure)
+	uv run omw check
+
+campaign-keys: ## derive campaign keys from the loaded ad platforms
+	uv run omw campaign-keys sync
 
 clean: ## stop everything and delete volumes
 	$(COMPOSE) --profile chat --profile observability down -v
