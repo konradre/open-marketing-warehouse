@@ -78,3 +78,29 @@ SELECT s.source AS source, s.id AS subscription_id, s.customer_id AS customer_id
        if(s.utm_campaign != '', s.utm_campaign, c.utm_campaign) AS utm_campaign
 FROM raw.stripe___subscriptions AS s
 LEFT JOIN raw.stripe___customers AS c ON c.id = s.customer_id;
+
+CREATE OR REPLACE VIEW marts.stripe_balance (
+    source LowCardinality(String) COMMENT 'Always stripe',
+    report LowCardinality(String) COMMENT 'Report grain, always balance: one row per balance transaction (charges, refunds, disputes, payouts, fees). Filter on reporting_category before summing',
+    date Date COMMENT 'Day the transaction was created (UTC). Refunds are dated when refunded, not when the original charge was paid',
+    transaction_id String COMMENT 'Stripe balance transaction id',
+    type LowCardinality(String) COMMENT 'Stripe transaction type: charge, payment, refund, payment_refund, payout, adjustment, stripe_fee, ...',
+    reporting_category LowCardinality(String) COMMENT 'Stripe reporting category: charge, refund, dispute, dispute_reversal, payout, fee, adjustment, ...',
+    status LowCardinality(String) COMMENT 'available or pending',
+    currency LowCardinality(String) COMMENT 'ISO 4217 currency of the transaction, upper case',
+    gross Decimal(18, 2) COMMENT 'Gross amount in the currency: positive for charges, negative for refunds and payouts',
+    fee Decimal(18, 2) COMMENT 'Stripe fees taken on the transaction, in the currency (negative on a refund when fees are returned)',
+    net Decimal(18, 2) COMMENT 'gross minus fee: what moved the Stripe balance',
+    source_id String COMMENT 'The charge, refund, payout or dispute the transaction belongs to',
+    available_on DateTime COMMENT 'When the funds become available for payout (UTC)'
+) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
+SELECT source, 'balance' AS report, toDate(created_at) AS date, id AS transaction_id, type, reporting_category, status,
+       upper(currency) AS currency,
+       if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
+          toDecimal64(amount, 2), toDecimal64(amount, 2) / 100) AS gross,
+       if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
+          toDecimal64(fee, 2), toDecimal64(fee, 2) / 100) AS fee,
+       if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
+          toDecimal64(net, 2), toDecimal64(net, 2) / 100) AS net,
+       source_id, available_on
+FROM raw.stripe___balance_transactions;

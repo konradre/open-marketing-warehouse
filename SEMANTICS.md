@@ -54,6 +54,9 @@ time from their parts; never sum a rate yourself.
 - **campaign_key** on revenue comes from the invoice, else the subscription, else the customer metadata
   (`campaign_key` or `utm_campaign`). Revenue without a key is real revenue: `attributed = false`, never
   dropped when comparing to spend.
+- **net_revenue**, **refunds** and **stripe_fees** come from the `balance` grain (balance transactions):
+  charges minus refunds, disputes and fees, dated by transaction day, per currency only. They carry no
+  campaign key, so they never join to spend.
 
 ## Sales pipeline (Twenty CRM)
 

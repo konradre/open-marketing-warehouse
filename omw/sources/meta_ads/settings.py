@@ -50,6 +50,44 @@ ENTITY_RESOURCES: dict[str, tuple[str, tuple[str, ...]]] = {
     "ads": ("get_ads", AD_FIELDS),
 }
 
+ENTITY_TEXT_DEFAULTS: dict[str, tuple[str, ...]] = {
+    # Fields Meta omits when unset. They get an empty string so the raw column always exists for the
+    # entity marts views (budgets and bids are strings in minor currency units).
+    "campaigns": ("objective", "buying_type", "daily_budget", "lifetime_budget"),
+    "ad_sets": (
+        "campaign_id",
+        "optimization_goal",
+        "billing_event",
+        "bid_strategy",
+        "bid_amount",
+        "daily_budget",
+        "lifetime_budget",
+    ),
+    "ads": ("adset_id", "campaign_id"),
+}
+ENTITY_OPTIONAL_TIMES: dict[str, tuple[str, ...]] = {
+    # Schedules Meta omits when open-ended: nullable timestamps, so the column exists without a value.
+    "campaigns": ("start_time", "stop_time"),
+    "ad_sets": ("start_time", "end_time"),
+    "ads": (),
+}
+
+
+def entity_columns(name: str) -> dict[str, TColumnSchema]:
+    hints: dict[str, TColumnSchema] = {
+        "id": column("text"),
+        "account_id": column("text"),
+        "name": column("text"),
+        "status": column("text"),
+        "effective_status": column("text"),
+    }
+    for field in ENTITY_TEXT_DEFAULTS[name]:
+        hints[field] = column("text")
+    for field in ENTITY_OPTIONAL_TIMES[name]:
+        hints[field] = {"data_type": "timestamp", "nullable": True}
+    return hints
+
+
 INSIGHT_FIELDS = (
     "account_id",
     "campaign_id",

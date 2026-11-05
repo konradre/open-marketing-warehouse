@@ -30,22 +30,50 @@ from tests.unit.checks.conftest import FakeWarehouse
 TODAY = date(2026, 10, 5)
 NOW = datetime(2026, 10, 5, 6, 0, 0)
 RULE = OvercountRule(
-    "ga4", "marts.ga4_core", "marts.ga4_channels", "channels", ("property_id", "date"), "sessions"
+    "ga4", "marts.ga4_core", "marts.ga4_channels", "channels", ("property_id", "date"), ("sessions",)
+)
+TWO_MEASURES = OvercountRule(
+    "ga4",
+    "marts.ga4_core",
+    "marts.ga4_channels",
+    "channels",
+    ("property_id", "date"),
+    ("sessions", "new_users"),
 )
 
 
-def test_overcount_sql_compares_breakdown_to_core_per_group() -> None:
+def test_overcount_sql_compares_breakdown_to_core_per_group_and_measure() -> None:
     sql = overcount_sql(RULE, date(2026, 9, 7))
     assert (
-        "WITH core AS (SELECT property_id, date, sum(sessions) AS core_total FROM marts.ga4_core "
+        "WITH core AS (SELECT property_id, date, sum(sessions) AS core_sessions FROM marts.ga4_core "
         "WHERE date >= '2026-09-07'" in sql
     )
     assert (
-        "breakdown AS (SELECT property_id, date, sum(sessions) AS breakdown_total FROM marts.ga4_channels"
+        "breakdown AS (SELECT property_id, date, sum(sessions) AS breakdown_sessions FROM marts.ga4_channels"
         in sql
     )
-    assert "countIf(breakdown_total > core_total * 1.01) AS violations" in sql
+    assert "countIf(breakdown_sessions > core_sessions * 1.01) AS violations_sessions" in sql
     assert sql.endswith("FROM breakdown LEFT JOIN core USING (property_id, date)")
+    two = overcount_sql(TWO_MEASURES, date(2026, 9, 7))
+    assert "sum(sessions) AS core_sessions, sum(new_users) AS core_new_users" in two
+    assert "max(breakdown_new_users / nullIf(core_new_users, 0)) AS ratio_new_users" in two
+
+
+def test_overcount_reports_every_violating_measure_in_one_row(warehouse: FakeWarehouse) -> None:
+    warehouse.when("marts.ga4_channels", [[30, 0, 1.0, 2, 1.07]])
+    (result,) = overcount_checks(warehouse, TODAY, (TWO_MEASURES,))
+    assert result.status is Status.FAIL and result.observed == 1.07
+    assert result.detail == "2 of 30 groups exceed core by more than 1% on new_users"
+    warehouse.answers.clear()
+    warehouse.when("marts.ga4_channels", [[30, 1, 1.02, 2, 1.07]])
+    (result,) = overcount_checks(warehouse, TODAY, (TWO_MEASURES,))
+    assert result.detail.startswith("1 of 30 groups exceed core by more than 1% on sessions; 2 of 30")
+    warehouse.answers.clear()
+    warehouse.when("marts.ga4_channels", [[30, 0, 1.0, 0, 0.9]])
+    (result,) = overcount_checks(warehouse, TODAY, (TWO_MEASURES,))
+    assert (
+        result.status is Status.PASS and result.detail == "30 groups within 1% of core on sessions, new_users"
+    )
 
 
 def test_overcount_verdicts(warehouse: FakeWarehouse) -> None:
@@ -70,7 +98,9 @@ def test_overcount_skips_sources_not_loaded_yet(warehouse: FakeWarehouse) -> Non
 def test_every_overcount_rule_names_views_from_the_marts() -> None:
     for rule in OVERCOUNT_RULES:
         assert rule.core.startswith("marts.") and rule.breakdown.startswith("marts.") and "date" in rule.keys
+        assert len(rule.measures) == 2, rule.report
     assert {r.source for r in OVERCOUNT_RULES} == {"search_console", "ga4", "google_ads", "meta_ads"}
+    assert len({(r.source, r.report) for r in OVERCOUNT_RULES}) == len(OVERCOUNT_RULES)
 
 
 def test_freshness_verdicts(warehouse: FakeWarehouse) -> None:
@@ -135,7 +165,7 @@ def test_rowcount_sql_and_verdicts(warehouse: FakeWarehouse) -> None:
 def test_runner_writes_results_and_reports_failures(warehouse: FakeWarehouse) -> None:
     warehouse.objects = {"raw.ga4___sync_windows", "marts.ga4_core", "marts.ga4_channels"}
     warehouse.when("raw.ga4___sync_windows", [[datetime(2026, 10, 5, 3, 0), 1]])
-    warehouse.when("marts.ga4_channels", [[3, 1, 1.5]])
+    warehouse.when("marts.ga4_channels", [[3, 1, 1.5, 0, 1.0]])
     warehouse.when("marts.ga4_core", [[7, 7]])
     run = run_checks(warehouse, NOW, {"ga4": 30.0})
     assert [(r.check, r.status) for r in run.results] == [

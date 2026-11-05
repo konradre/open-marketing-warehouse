@@ -78,7 +78,8 @@ the data). The daily sync replaces the whole `(property, search type, day)` slic
 
 `omw.sources.meta_ads` pulls campaigns, ad sets and ads (merged on id) and daily insights at campaign level
 (and at ad level for live ad sets, with `--level ad`), exposed as `marts.meta_ads_campaigns` and
-`marts.meta_ads_ads`. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
+`marts.meta_ads_ads`; `marts.meta_ads_campaign_list` and `marts.meta_ads_ad_set_list` list the entities with
+their statuses, schedules and budgets in the account currency. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
 slows down above 75% utilisation, and ends the run cleanly near 100% or on a rate-limit error, writing the
 reason to `ops.pacing_events` instead of retrying into the limit.
 
@@ -144,7 +145,9 @@ created in the last 90 days and merges them (they change until paid or voided), 
 transactions incrementally (immutable). Attribution metadata (`campaign_key`, `utm_source`, `utm_medium`,
 `utm_campaign`) is lifted from each object's `metadata`. `marts.stripe_revenue` is one row per paid invoice
 with the campaign key resolved invoice → subscription → customer; `marts.stripe_revenue_daily` sums it by
-day, currency and campaign key; `marts.stripe_subscriptions` lists subscriptions with their attribution.
+day, currency and campaign key; `marts.stripe_subscriptions` lists subscriptions with their attribution;
+`marts.stripe_balance` is one row per balance transaction (charges, refunds, disputes, payouts, fees) for net
+revenue after refunds and fees.
 
 Access: create a restricted API key (Developers > API keys) with read access to customers, subscriptions,
 invoices and balance transactions, and put it in `.dlt/secrets.toml` under `[sources.stripe]`.

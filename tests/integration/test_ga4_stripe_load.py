@@ -137,7 +137,20 @@ def test_stripe_revenue_resolves_attribution_and_converts_amounts(
         "ORDER BY subscription_id"
     ).result_rows
     assert subs[0][1] == "meta:23850000000000001" and Decimal(str(subs[1][2])) == Decimal("99")
-    for view in ("stripe_revenue", "stripe_revenue_daily", "stripe_subscriptions"):
+    balance = agent_client.query(
+        "SELECT date, currency, reporting_category, gross, fee, net FROM marts.stripe_balance ORDER BY date"
+    ).result_rows
+    assert [(r[0], r[1], r[2]) for r in balance] == [
+        (date(2026, 10, 1), "EUR", "charge"),
+        (date(2026, 10, 2), "EUR", "charge"),
+        (date(2026, 10, 3), "EUR", "charge"),
+    ]
+    assert (Decimal(str(balance[2][3])), Decimal(str(balance[2][4])), Decimal(str(balance[2][5]))) == (
+        Decimal("250"),
+        Decimal("7.55"),
+        Decimal("242.45"),
+    )
+    for view in ("stripe_revenue", "stripe_revenue_daily", "stripe_subscriptions", "stripe_balance"):
         columns = agent_client.query(
             "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = {t:String}",
             parameters={"t": view},
