@@ -47,7 +47,7 @@ def run_then_log(
     def is_sync(_row: Any) -> bool:
         return (require_rows is None or seen > 0) and (synced is None or synced())
 
-    if require_rows is not None:
+    if require_rows is not None and require_rows in data.resources:  # not selected: no rows, no sync
         data.resources[require_rows].add_map(count)
     log.resources[SYNC_LOG].add_filter(is_sync)
     pipeline.run([data, log])
