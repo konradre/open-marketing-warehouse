@@ -17,7 +17,7 @@ def test_single_report_groups_and_filters(catalog: Catalog) -> None:
         MetricRequest(
             metrics=["meta_spend", "meta_cpc"],
             dimensions=["date", "campaign_name"],
-            filters={"account_id": "100000000000001"},
+            filters={"account_id": "100000000000001", "currency": "USD"},
             time_range=OCTOBER,
         ),
         TODAY,
@@ -29,6 +29,7 @@ def test_single_report_groups_and_filters(catalog: Catalog) -> None:
     )
     assert "FROM marts.meta_ads_campaigns WHERE report = 'campaigns'" in sql
     assert "(date BETWEEN '2026-10-01' AND '2026-10-03')" in sql and "account_id = '100000000000001'" in sql
+    assert "currency = 'USD'" in sql
     assert sql.endswith("GROUP BY date, campaign_name ORDER BY date, campaign_name LIMIT 1000")
     assert plan.columns == ["date", "campaign_name", "meta_spend", "meta_cpc"]
     assert assert_single_select(sql)
@@ -39,7 +40,7 @@ def test_list_filters_and_escaping(catalog: Catalog) -> None:
         catalog,
         MetricRequest(
             metrics=["revenue"],
-            filters={"utm_source": ["google", "it's"], "attributed": True},
+            filters={"utm_source": ["google", "it's"], "attributed": True, "currency": "USD"},
             time_range=OCTOBER,
         ),
         TODAY,
@@ -123,7 +124,12 @@ def test_cross_source_measure_is_one_cte_per_source_joined_on_the_common_grain(c
 def test_two_sources_without_a_derived_measure_still_join_on_shared_dimensions(catalog: Catalog) -> None:
     plan = compile_request(
         catalog,
-        MetricRequest(metrics=["meta_spend", "google_spend"], dimensions=["date"], time_range=OCTOBER),
+        MetricRequest(
+            metrics=["meta_spend", "google_spend"],
+            dimensions=["date"],
+            filters={"currency": "USD"},
+            time_range=OCTOBER,
+        ),
         TODAY,
     )
     assert "FULL OUTER JOIN r_google_ads_campaigns USING (date)" in plan.sql
@@ -133,10 +139,14 @@ def test_two_sources_without_a_derived_measure_still_join_on_shared_dimensions(c
 def test_derived_on_one_source_wraps_the_cte(catalog: Catalog) -> None:
     plan = compile_request(
         catalog,
-        MetricRequest(metrics=["meta_spend", "meta_clicks"], dimensions=["date"], time_range=OCTOBER),
+        MetricRequest(
+            metrics=["meta_spend", "meta_clicks"],
+            dimensions=["date", "currency"],
+            time_range=OCTOBER,
+        ),
         TODAY,
     )
-    assert plan.sql.startswith("SELECT date, sum(spend)")
+    assert plan.sql.startswith("SELECT date, currency, sum(spend)")
 
 
 @pytest.mark.parametrize(

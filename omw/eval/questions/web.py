@@ -116,7 +116,7 @@ SEARCH: tuple[Question, ...] = (
             "SELECT device, sum(clicks) FROM marts.search_console_devices "
             f"WHERE search_type = 'web' AND {SEP.sql()} GROUP BY device ORDER BY 1"
         ),
-        tags=("not_in_catalog",),
+        metrics=(M(("search_device_clicks",), SEP, ("device",), {"search_type": "web"}, label="device"),),
     ),
     S(
         id="top_search_country_aug",
@@ -131,7 +131,7 @@ SEARCH: tuple[Question, ...] = (
             "SELECT country FROM marts.search_console_countries "
             f"WHERE search_type = 'web' AND {AUG.sql()} GROUP BY country ORDER BY sum(clicks) DESC LIMIT 1"
         ),
-        tags=("not_in_catalog",),
+        metrics=(M(("search_country_clicks",), AUG, ("country",), {"search_type": "web"}, label="country"),),
     ),
     S(
         id="top_page_for_query_sep",
@@ -154,7 +154,15 @@ SEARCH: tuple[Question, ...] = (
             f"WHERE search_type = 'web' AND query = 'buy widgets online' AND {SEP.sql()} "
             "GROUP BY page ORDER BY sum(clicks) DESC LIMIT 1"
         ),
-        tags=("not_in_catalog",),
+        metrics=(
+            M(
+                ("search_query_page_clicks",),
+                SEP,
+                ("page",),
+                {"search_type": "web", "query": "buy widgets online"},
+                label="page",
+            ),
+        ),
     ),
 )
 
@@ -265,7 +273,7 @@ GA4: tuple[Question, ...] = (
             f"SELECT landing_page, sum(sessions) AS sessions FROM marts.ga4_landing_pages WHERE {SEP.sql()} "
             "GROUP BY landing_page ORDER BY sessions DESC LIMIT 3"
         ),
-        tags=("not_in_catalog",),
+        metrics=(M(("landing_page_sessions",), SEP, ("landing_page",), label="landing_page"),),
     ),
 )
 

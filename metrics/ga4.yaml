@@ -28,6 +28,16 @@ reports:
     restatement_days: 3
     traps:
       - GA4 folds high-cardinality values into an (other) row; it is kept and flagged with is_other.
+  - name: landing_pages
+    view: marts.ga4_landing_pages
+    description: GA4 per landing page (the first page of the session), including the (other) row.
+    dimensions:
+      property_id: Numeric GA4 property id
+      landing_page: Path of the first page of the session, without query string, or (other) / (not set)
+      is_other: True for the (other) overflow row
+    restatement_days: 3
+    traps:
+      - GA4 folds high-cardinality values into an (other) row; it is kept and flagged with is_other.
 metrics:
   - name: sessions
     report: core
@@ -67,3 +77,15 @@ metrics:
     unit: count
     grains: [property_id, campaign, source_name, medium, is_other]
     description: Sessions per session campaign, source and medium.
+  - name: landing_page_sessions
+    report: landing_pages
+    expr: sum(sessions)
+    unit: count
+    grains: [property_id, landing_page, is_other]
+    description: Sessions per landing page (the first page of the session).
+  - name: landing_page_key_events
+    report: landing_pages
+    expr: sum(key_events)
+    unit: events
+    grains: [property_id, landing_page, is_other]
+    description: Key events in the sessions that started on each landing page.

@@ -334,7 +334,15 @@ QUESTIONS: tuple[Question, ...] = (
             "SELECT ad_name, sum(spend) FROM marts.meta_ads_ads "
             f"WHERE campaign_name = 'Gadgets Launch' AND {SEP.sql()} GROUP BY ad_name ORDER BY 1"
         ),
-        tags=("not_in_catalog",),
+        metrics=(
+            M(
+                ("meta_ad_spend",),
+                SEP,
+                ("ad_name",),
+                {"campaign_name": "Gadgets Launch", "currency": "USD"},
+                label="ad_name",
+            ),
+        ),
     ),
     Q(
         id="meta_daily_budgets",
@@ -344,6 +352,8 @@ QUESTIONS: tuple[Question, ...] = (
         label_name="campaign name",
         truth=lambda w: by(w.rows("meta_ads_campaign_list"), "campaign_name", "daily_budget"),
         sql="SELECT campaign_name, daily_budget FROM marts.meta_ads_campaign_list ORDER BY 1",
-        tags=("not_in_catalog",),
+        metrics=(
+            M(("meta_daily_budget",), None, ("campaign_name",), {"currency": "USD"}, label="campaign_name"),
+        ),
     ),
 )

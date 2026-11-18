@@ -56,6 +56,7 @@ reports:
   - name: leads
     view: marts.meta_ads_leads
     description: Meta lead-ads submissions, one row per lead, dated by submission day.
+    row_level: true
     dimensions:
       account_id: Meta ad account id (without act_)
       currency: ISO 4217 currency of the ad account
@@ -71,6 +72,59 @@ reports:
     campaign_key: "concat('meta_ads:', campaign_id)"
     traps:
       - Only loaded with --leads (needs leads_retrieval); organic leads cost nothing, filter is_organic for paid leads.
+  - name: ads
+    view: marts.meta_ads_ads
+    description: Meta Ads ad-level insights, one row per account, ad and day, for ad sets active at pull time.
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account; spend is in it
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name at pull time
+      adset_id: Meta ad set id
+      adset_name: Ad set name at pull time
+      ad_id: Meta ad id
+      ad_name: Ad name at pull time
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    restatement_days: 28
+    traps:
+      - Only ads of ad sets that were active at pull time are pulled, so the ads grain can undercount campaigns; never add the two.
+  - name: campaign_list
+    view: marts.meta_ads_campaign_list
+    description: Meta campaigns as last synced, one row per campaign, with status, objective and budgets.
+    row_level: true
+    snapshot: true
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account, empty until insights were pulled
+      campaign_id: Meta campaign id
+      campaign_name: Campaign name at the last pull
+      status: Configured status (ACTIVE, PAUSED, DELETED or ARCHIVED)
+      effective_status: Status after account and schedule rules (ACTIVE, PAUSED, CAMPAIGN_PAUSED, ...)
+      objective: Campaign objective, for example OUTCOME_SALES or OUTCOME_LEADS
+      buying_type: AUCTION or RESERVED
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    traps:
+      - A campaign budget is 0 when the budget is set on its ad sets; see meta_ad_set_daily_budget.
+  - name: ad_set_list
+    view: marts.meta_ads_ad_set_list
+    description: Meta ad sets as last synced, one row per ad set, with status, bidding and budgets.
+    row_level: true
+    snapshot: true
+    dimensions:
+      account_id: Meta ad account id (without act_)
+      currency: ISO 4217 currency of the ad account, empty until insights were pulled
+      campaign_id: Meta campaign the ad set belongs to
+      campaign_name: Campaign name at the last pull
+      adset_id: Meta ad set id
+      adset_name: Ad set name at the last pull
+      status: Configured status (ACTIVE, PAUSED, DELETED or ARCHIVED)
+      effective_status: Status after campaign and schedule rules
+      optimization_goal: What delivery optimises for, for example OFFSITE_CONVERSIONS or LINK_CLICKS
+      billing_event: What is charged (IMPRESSIONS, LINK_CLICKS, ...)
+      bid_strategy: LOWEST_COST_WITHOUT_CAP, LOWEST_COST_WITH_BID_CAP, COST_CAP, ...
+    campaign_key: "concat('meta_ads:', campaign_id)"
+    traps:
+      - An ad set budget is 0 when the campaign budget applies; see meta_daily_budget.
 metrics:
   - name: meta_spend
     report: campaigns
@@ -161,3 +215,49 @@ metrics:
     grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, form_id, is_organic, platform, campaign_key]
     aliases: [leads]
     description: Lead-ads submissions on Meta, by submission day.
+  - name: meta_ad_spend
+    report: ads
+    expr: sum(spend)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, campaign_key]
+    description: Meta spend per ad, in the account currency, for ad sets active at pull time.
+  - name: meta_ad_impressions
+    report: ads
+    expr: sum(impressions)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, campaign_key]
+    description: Meta impressions per ad.
+  - name: meta_ad_clicks
+    report: ads
+    expr: sum(clicks)
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, ad_id, ad_name, campaign_key]
+    description: Meta clicks per ad (all clicks, not only link clicks).
+  - name: meta_campaigns
+    report: campaign_list
+    expr: count()
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, status, effective_status, objective, buying_type, campaign_key]
+    aliases: [campaigns]
+    description: Meta campaigns as last synced; filter status or effective_status for the live ones.
+  - name: meta_daily_budget
+    report: campaign_list
+    expr: sum(daily_budget)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, status, effective_status, objective, buying_type, campaign_key]
+    aliases: [daily_budget, budget]
+    description: Daily budget set on Meta campaigns, in the account currency; 0 where the ad sets hold the budget.
+  - name: meta_ad_sets
+    report: ad_set_list
+    expr: count()
+    unit: count
+    grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, status, effective_status, optimization_goal, billing_event, bid_strategy, campaign_key]
+    aliases: [ad_sets]
+    description: Meta ad sets as last synced; filter status or effective_status for the live ones.
+  - name: meta_ad_set_daily_budget
+    report: ad_set_list
+    expr: sum(daily_budget)
+    unit: currency
+    grains: [account_id, currency, campaign_id, campaign_name, adset_id, adset_name, status, effective_status, optimization_goal, billing_event, bid_strategy, campaign_key]
+    aliases: [daily_budget, budget]
+    description: Daily budget set on Meta ad sets, in the account currency; 0 where the campaign holds the budget.

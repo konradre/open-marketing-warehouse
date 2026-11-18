@@ -37,7 +37,7 @@ def list_metrics_payload(cat: Catalog) -> dict[str, Any]:
             "report": m.report,
             "unit": m.unit,
             "aggregation": m.aggregation,
-            "grains": ["date", *m.grains],
+            "grains": [*([] if cat.report_of(m).snapshot else ["date"]), *m.grains],
             "aliases": m.aliases,
             "description": m.description,
         }
@@ -65,6 +65,7 @@ def list_dimensions_payload(cat: Catalog) -> dict[str, Any]:
                 "view": report.view,
                 "description": report.description,
                 "dimensions": dims,
+                "snapshot": report.snapshot,
                 "restatement_days": report.restatement_days,
                 "traps": report.traps,
             }
@@ -79,7 +80,7 @@ def query_metrics_payload(
     cat: Catalog,
     execute: Executor,
     metrics: list[str],
-    time_range: dict[str, str] | str,
+    time_range: dict[str, str] | str | None = None,
     dimensions: list[str] | None = None,
     filters: dict[str, Any] | None = None,
     compare: Compare | None = None,
@@ -106,8 +107,9 @@ def build_server(execute: Executor | None = None) -> MCPServer:
         instructions=(
             "Metrics over the marketing warehouse. Call list_metrics and list_dimensions first. "
             "query_metrics answers with a mood: serve (clean), disclose (read the caveats), clarify "
-            "(pick one of the candidates), refuse (no valid path; the reason says why). Rates and "
-            "cross-source measures are computed at query time; never sum them yourself."
+            "(pick one of the candidates), refuse (no valid path; the reason says why). Rates, distinct "
+            "counts and cross-source measures are computed at query time; never sum them yourself. An "
+            "amount of money needs a currency: filter to one or add the currency dimension."
         ),
     )
     executor = execute
@@ -118,26 +120,39 @@ def build_server(execute: Executor | None = None) -> MCPServer:
             executor = clickhouse_executor(agent_client())
         return executor(sql)
 
-    @server.tool(description="Every metric and derived measure, with units, grains and aliases.")
+    @server.tool(
+        description=(
+            "Every metric and derived measure, with units, grains, aliases and how each aggregates: sum, "
+            "rate, distinct (recounted at any grain) or native (only at its own grain)."
+        )
+    )
     def list_metrics() -> dict[str, Any]:
         return list_metrics_payload(catalog())
 
-    @server.tool(description="Every report grain with its dimensions, restatement window and known traps.")
+    @server.tool(
+        description=(
+            "Every report grain with its dimensions, restatement window and known traps. A snapshot report "
+            "is a list as last synced (campaigns and budgets, subscriptions): no date, no time_range."
+        )
+    )
     def list_dimensions() -> dict[str, Any]:
         return list_dimensions_payload(catalog())
 
     @server.tool(
         description=(
             "Query metrics at a grain. time_range is {start, end} as ISO dates or one of "
-            f"{', '.join(RELATIVE_RANGES)} (resolved against today; last_N_days end yesterday); compare is "
-            "one of previous_period, week, month, year and adds a 'period' column. Filters are dimension -> "
-            "value or list of values. The answer carries mood, reason, caveats, candidates, sql, columns and "
-            "rows."
+            f"{', '.join(RELATIVE_RANGES)} (resolved against today; last_N_days end yesterday); every dated "
+            "metric needs it, a snapshot metric has none. compare adds a 'period' column (current / "
+            "previous): previous_period is the same number of days just before, week the same weekdays 7 "
+            "days earlier, month and year the calendar period before (a whole month against the whole "
+            "month before). Filters are dimension -> value or list of values. The answer carries mood, "
+            "reason, caveats, candidates, comparison (the two windows compared, as dates), sql, columns "
+            "and rows."
         )
     )
     def query_metrics(
         metrics: list[str],
-        time_range: dict[str, str] | str,
+        time_range: dict[str, str] | str | None = None,
         dimensions: list[str] | None = None,
         filters: dict[str, Any] | None = None,
         compare: Compare | None = None,

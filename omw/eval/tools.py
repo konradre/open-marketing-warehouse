@@ -254,9 +254,11 @@ class MetricsToolbox:
                 "query_metrics",
                 "Query metrics at a grain. time_range is {start, end} as ISO dates or a named range "
                 "(today, yesterday, last_7_days, last_30_days, last_90_days, month_to_date, last_month, "
-                "year_to_date); compare is previous_period, week, month or year and adds a 'period' column. "
-                "Filters are dimension -> value or list of values. The answer carries mood (serve, disclose, "
-                "clarify, refuse), reason, caveats, candidates, sql, columns and rows.",
+                "year_to_date); every dated metric needs it, a snapshot metric has none. compare adds a "
+                "'period' column: previous_period is the same number of days just before, week the same "
+                "weekdays 7 days earlier, month and year the calendar period before. Filters are dimension "
+                "-> value or list of values. The answer carries mood (serve, disclose, clarify, refuse), "
+                "reason, caveats, candidates, comparison (the windows compared), sql, columns and rows.",
                 {
                     "type": "object",
                     "properties": {
@@ -276,7 +278,7 @@ class MetricsToolbox:
                         "compare": {"type": "string", "enum": ["previous_period", "week", "month", "year"]},
                         "limit": {"type": "integer"},
                     },
-                    "required": ["metrics", "time_range"],
+                    "required": ["metrics"],
                 },
             ),
         ]
@@ -298,13 +300,13 @@ class MetricsToolbox:
             return list_dimensions_payload(self.catalog)
         if name != "query_metrics":
             raise ToolError(f"unknown tool {name!r}")
-        if "metrics" not in arguments or "time_range" not in arguments:
-            raise ToolError("query_metrics needs metrics and time_range")
+        if "metrics" not in arguments:
+            raise ToolError("query_metrics needs metrics")
         answer = query_metrics_payload(
             self.catalog,
             self.execute,
             arguments["metrics"],
-            arguments["time_range"],
+            arguments.get("time_range"),
             arguments.get("dimensions"),
             arguments.get("filters"),
             arguments.get("compare"),

@@ -243,6 +243,23 @@ candidates) or `refuse` (with the reason). The latest post-sync verdicts (`ops.c
 `omw check`) become caveats: a stale source, or a failed over-count or row-count check on a report the
 answer used, is disclosed next to the numbers.
 
+What the layer will and will not answer is declared in the YAML and checked on every test run:
+
+- **How a metric aggregates.** `aggregation` is `sum`, `rate` (recomputed at the requested grain),
+  `distinct` (a distinct count over a report declared `row_level`, recounted at any grain) or `native` (a
+  count the source already deduplicated per row, such as Meta reach or GA4 daily users: served only at its
+  own grain). `omw/metrics/ddl.py` checks the declarations against the views in `sql/`: every dimension
+  and metric column exists, a `row_level` view does not group, and no `sum` reads a column the view's own
+  comment calls not additive.
+- **Money needs a currency.** A measure in a currency (spend, revenue, budgets, ROAS, CAC) asked without
+  the `currency` dimension or a filter on one currency answers `clarify`; it is never added up across
+  currencies.
+- **Snapshots.** Campaign and budget lists and the subscription list are declared `snapshot`: the state at
+  the last sync, no `date`, so `time_range` is optional and `compare` is refused.
+- **Comparisons.** `compare` is `previous_period` (as many days just before), `week` (7 days earlier),
+  `month` or `year` (the calendar period before: September against 1 to 31 August). The answer states both
+  windows in its `comparison` field.
+
 ```bash
 uv run python -m omw.metrics.setup     # once: creates marts.campaign_keys (the cross-platform campaign key mapping)
 uv run python -m omw.metrics.server    # the MCP server on stdio; OMW_CLICKHOUSE_HOST / OMW_AGENT_PASSWORD from the environment

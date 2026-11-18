@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from omw.metrics.request import Comparison
+
 
 class Mood(StrEnum):
     SERVE = "serve"
@@ -22,7 +24,11 @@ class Answer(BaseModel):
     caveats: list[str] = Field(default_factory=list)
     """Conditions that travel with the numbers (disclose)."""
     candidates: list[dict[str, str]] = Field(default_factory=list)
-    """For clarify: the metrics a name may mean, with descriptions."""
+    """For clarify: what to pick from, each with a description. The metrics a name may mean, or the ways
+    to choose a currency (``filters.currency``, ``dimensions.currency``)."""
+    comparison: Comparison | None = None
+    """For a ``compare`` request: the two windows compared, as dates and day counts. The ``current`` rows
+    cover ``comparison.current``, the ``previous`` rows ``comparison.previous``."""
     sql: str = ""
     columns: list[str] = Field(default_factory=list)
     rows: list[list[Any]] = Field(default_factory=list)

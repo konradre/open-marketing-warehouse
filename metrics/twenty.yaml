@@ -3,6 +3,7 @@ reports:
   - name: opportunities
     view: marts.twenty_pipeline
     description: Twenty CRM sales pipeline, one row per opportunity, dated by the day it was created.
+    row_level: true
     dimensions:
       stage: Pipeline stage as configured in Twenty (NEW, SCREENING, MEETING, PROPOSAL, CUSTOMER by default)
       currency: ISO 4217 currency of the amount, empty when unset
@@ -19,6 +20,7 @@ reports:
   - name: activity
     view: marts.twenty_activity
     description: Twenty CRM notes and tasks, one row per activity and attached record, dated by creation day.
+    row_level: true
     dimensions:
       kind: note or task
       status: Task status (TODO, IN_PROGRESS, DONE as configured), empty for notes
@@ -64,15 +66,15 @@ metrics:
     report: activity
     expr: uniqExact(activity_id)
     unit: count
-    aggregation: native
+    aggregation: distinct
     grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
     aliases: [activities]
-    description: Distinct notes and tasks created, by creation day. Not additive across the attached records.
+    description: Distinct notes and tasks created, by creation day, recounted at the requested grain. Rows do not add up.
   - name: crm_notes
     report: activity
     expr: uniqExactIf(activity_id, kind = 'note')
     unit: count
-    aggregation: native
+    aggregation: distinct
     grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
     aliases: [notes]
     description: Distinct notes created, by creation day.
@@ -80,7 +82,7 @@ metrics:
     report: activity
     expr: uniqExactIf(activity_id, kind = 'task')
     unit: count
-    aggregation: native
+    aggregation: distinct
     grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
     aliases: [tasks]
     description: Distinct tasks created, by creation day; filter status for open ones.

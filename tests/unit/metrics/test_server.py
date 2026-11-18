@@ -90,3 +90,28 @@ def test_server_registers_the_three_tools_and_runs_query_metrics() -> None:
     )
     payload = result.structured_content or json.loads(result.content[0].text)  # type: ignore[union-attr]
     assert isinstance(payload, dict) and payload["mood"] == "serve"
+
+
+def test_a_snapshot_metric_needs_no_time_range_through_the_server() -> None:
+    def execute(sql: str) -> tuple[list[str], list[list[Any]]]:
+        if "ops.check_verdicts" in sql:
+            return ["source", "check", "report", "status", "detail"], []
+        assert sql == (
+            "SELECT count() AS subscriptions FROM marts.stripe_subscriptions WHERE status = 'active' "
+            "ORDER BY 1 LIMIT 1000"
+        )
+        return ["subscriptions"], [[12]]
+
+    server = build_server(execute=execute)
+    query = next(tool for tool in asyncio.run(server.list_tools()) if tool.name == "query_metrics")
+    assert query.input_schema["required"] == ["metrics"]  # time_range is optional: snapshots have none
+    assert "comparison" in (query.description or "") and "calendar period before" in (query.description or "")
+    result = asyncio.run(
+        server.call_tool("query_metrics", {"metrics": ["subscriptions"], "filters": {"status": "active"}})
+    )
+    payload = result.structured_content or json.loads(result.content[0].text)  # type: ignore[union-attr]
+    assert isinstance(payload, dict) and payload["mood"] == "disclose" and payload["rows"] == [[12]]
+    assert payload["comparison"] is None and "state at the last sync" in payload["caveats"][0]
+    dated = asyncio.run(server.call_tool("query_metrics", {"metrics": ["sessions"]}))
+    refused = dated.structured_content or json.loads(dated.content[0].text)  # type: ignore[union-attr]
+    assert refused["mood"] == "refuse" and "time_range is required" in refused["reason"]

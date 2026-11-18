@@ -113,16 +113,17 @@ def test_disclose_inside_metas_restatement_window(catalog: Catalog) -> None:
     assert not any("mixes currencies" in c for c in answer.caveats)
 
 
-def test_disclose_outside_the_window_only_for_the_currency_and_traps(catalog: Catalog) -> None:
+def test_outside_the_window_only_the_reports_traps_are_disclosed(catalog: Catalog) -> None:
     answer = answer_request(
         catalog,
-        MetricRequest(metrics=["meta_spend"], dimensions=["date"], time_range=OLD),
+        MetricRequest(metrics=["meta_spend"], dimensions=["date", "currency"], time_range=OLD),
         _executor(),
         TODAY,
     )
     assert answer.mood is Mood.DISCLOSE
-    assert not any("restatement window" in c for c in answer.caveats)
-    assert any("mixes currencies" in c for c in answer.caveats)
+    assert answer.caveats == [
+        "meta_ads.campaigns: Meta restates conversions and spend for up to 28 days; recent days change."
+    ]
 
 
 def test_disclose_anonymised_queries_and_ga4_other(catalog: Catalog) -> None:
@@ -229,5 +230,15 @@ def test_answers_serialise_with_structured_fields(catalog: Catalog) -> None:
         TODAY,
     )
     payload = answer.to_dict()
-    assert set(payload) == {"mood", "reason", "caveats", "candidates", "sql", "columns", "rows", "truncated"}
-    assert payload["mood"] == "clarify"
+    assert set(payload) == {
+        "mood",
+        "reason",
+        "caveats",
+        "candidates",
+        "comparison",
+        "sql",
+        "columns",
+        "rows",
+        "truncated",
+    }
+    assert payload["mood"] == "clarify" and payload["comparison"] is None

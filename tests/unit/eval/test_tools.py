@@ -176,10 +176,17 @@ def test_the_metric_arm_is_given_semantics_and_the_servers_three_tools() -> None
     asked = box.call("query_metrics", {"metrics": ["clicks"], "time_range": "last_month"})
     assert asked["mood"] == "clarify" and len(asked["candidates"]) >= 4
     with pytest.raises(ToolError, match="needs metrics"):
-        box.call("query_metrics", {"metrics": ["sessions"]})
+        box.call("query_metrics", {"time_range": "last_month"})
+    undated = box.call("query_metrics", {"metrics": ["sessions"]})  # a dated measure needs its dates
+    assert undated["mood"] == "refuse" and "time_range is required" in undated["reason"]
+    listed = box.call("query_metrics", {"metrics": ["subscriptions"], "filters": {"status": "active"}})
+    assert listed["mood"] == "disclose" and listed["rows"] == [["12"]]  # a snapshot has none
+    assert "required" in box.specs()[2].input_schema and box.specs()[2].input_schema["required"] == [
+        "metrics"
+    ]
     with pytest.raises(ToolError, match="unknown tool"):
         box.call("run_query", {"query": "SELECT 1"})
-    assert len(box.calls) == 7 and box.calls[-1].error
+    assert len(box.calls) == 9 and box.calls[-1].error
 
 
 def test_a_quota_failure_inside_the_metric_layer_is_plumbing_not_a_refusal() -> None:

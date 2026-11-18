@@ -56,6 +56,23 @@ reports:
     restatement_days: 30
     traps:
       - Only PERFORMANCE_MAX campaigns have asset groups; the grain sums to those campaigns only.
+  - name: campaign_list
+    view: marts.google_ads_campaign_list
+    description: Google Ads campaigns as last synced, one row per campaign, with status, channel and daily budget.
+    row_level: true
+    snapshot: true
+    dimensions:
+      customer_id: Google Ads customer (account) id, digits only
+      currency: ISO 4217 currency of the customer account
+      campaign_id: Google Ads campaign id
+      campaign_name: Campaign name at the last pull
+      campaign_status: ENABLED or PAUSED at the last pull; removed campaigns are not pulled
+      serving_status: SERVING, ENDED, PENDING, SUSPENDED or NONE
+      channel_type: Advertising channel (SEARCH, DISPLAY, SHOPPING, VIDEO, PERFORMANCE_MAX, ...)
+      bidding_strategy_type: Bidding strategy, for example MAXIMIZE_CONVERSIONS or TARGET_ROAS
+    campaign_key: "concat('google_ads:', campaign_id)"
+    traps:
+      - A shared budget shows on every campaign that uses it, so daily budgets added across campaigns can overcount.
 metrics:
   - name: google_spend
     report: campaigns
@@ -135,3 +152,17 @@ metrics:
     unit: events
     grains: [customer_id, currency, campaign_id, campaign_name, asset_group_id, asset_group_name, asset_group_status, campaign_key]
     description: Conversions per Performance Max asset group, fractional with modelled attribution.
+  - name: google_campaigns
+    report: campaign_list
+    expr: count()
+    unit: count
+    grains: [customer_id, currency, campaign_id, campaign_name, campaign_status, serving_status, channel_type, bidding_strategy_type, campaign_key]
+    aliases: [campaigns]
+    description: Google Ads campaigns as last synced (enabled and paused); filter campaign_status for the live ones.
+  - name: google_daily_budget
+    report: campaign_list
+    expr: sum(daily_budget)
+    unit: currency
+    grains: [customer_id, currency, campaign_id, campaign_name, campaign_status, serving_status, channel_type, bidding_strategy_type, campaign_key]
+    aliases: [daily_budget, budget]
+    description: Daily budget of Google Ads campaigns, in the account currency.

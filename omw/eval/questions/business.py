@@ -169,7 +169,7 @@ REVENUE_QUESTIONS: tuple[Question, ...] = (
         sql=f"SELECT uniqExact(customer_id) FROM {REVENUE} WHERE {SEP.sql()}",
         naive_sql=(f"SELECT sum(customers) FROM marts.stripe_revenue_daily WHERE {SEP.sql()}"),
         metrics=(M(("paying_customers",), SEP),),
-        tags=("pitfall", "grain_refused"),
+        tags=("pitfall",),
     ),
     R(
         id="active_subscriptions",
@@ -178,7 +178,7 @@ REVENUE_QUESTIONS: tuple[Question, ...] = (
         unit="count",
         truth=lambda w: float(len(w.rows("stripe_subscriptions", status="active"))),
         sql="SELECT count() FROM marts.stripe_subscriptions WHERE status = 'active'",
-        tags=("not_in_catalog",),
+        metrics=(M(("subscriptions",), None, filters={"status": "active"}),),
     ),
 )
 
@@ -308,7 +308,7 @@ PIPELINE_QUESTIONS: tuple[Question, ...] = (
         sql=f"SELECT uniqExactIf(activity_id, kind = 'task') FROM marts.twenty_activity WHERE {SEP.sql()}",
         naive_sql=f"SELECT countIf(kind = 'task') FROM marts.twenty_activity WHERE {SEP.sql()}",
         metrics=(M(("crm_tasks",), SEP),),
-        tags=("pitfall", "grain_refused"),
+        tags=("pitfall",),
     ),
 )
 
