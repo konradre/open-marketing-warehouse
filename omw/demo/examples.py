@@ -29,6 +29,8 @@ class Example:
     time_range: dict[str, str] | str | None = None
     dimensions: list[str] = field(default_factory=list)
     filters: dict[str, Any] = field(default_factory=dict)
+    caveat: str = ""
+    """Text one of the answer's caveats must contain, when the example is about a particular caveat."""
 
     @property
     def call(self) -> str:
@@ -88,6 +90,31 @@ def examples(today: date) -> list[Example]:
             "last_7_days",
         ),
     ]
+
+
+FAULT_EXAMPLES: dict[str, Example] = {
+    "overcount": Example(
+        "How many sessions did each channel bring over the last 7 days?",
+        "the over-count check failed on this report after the sync, and the answer says so",
+        Mood.DISCLOSE,
+        ["channel_sessions"],
+        "last_7_days",
+        ["channel_group"],
+        caveat="ga4.channels overcount check fail",
+    ),
+}
+"""fault -> the question whose answer must carry the failed check as a caveat."""
+
+
+def problem(example: Example, answer: dict[str, Any]) -> str:
+    """Why an answer is not the one the example is there to show; empty when it is."""
+    if answer["mood"] != example.expect:
+        return (
+            f"{example.metrics}: expected {example.expect}, got {answer['mood']} ({answer.get('reason', '')})"
+        )
+    if example.caveat and not any(example.caveat in caveat for caveat in answer.get("caveats", [])):
+        return f"{example.metrics}: no caveat mentions {example.caveat!r}"
+    return ""
 
 
 def ask(example: Example, catalog: Catalog, execute: Executor, today: date) -> dict[str, Any]:

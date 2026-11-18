@@ -11,11 +11,11 @@ from typing import Any
 import pytest
 
 from omw.cli import main
-from omw.demo.examples import Example, ask, examples, render, table
-from omw.demo.fixtures import Manifest
+from omw.demo.examples import FAULT_EXAMPLES, Example, ask, examples, problem, render, table
+from omw.demo.fixtures import EXPECTED_FAILURES, FAULTS, Manifest, generate
 from omw.demo.restatement import Change, Observation, as_rows, compare
 from omw.metrics import Mood, load_catalog
-from tests.unit.demo.conftest import TODAY
+from tests.unit.demo.conftest import TODAY, payload
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -137,3 +137,67 @@ def test_no_module_of_the_package_is_git_ignored() -> None:
     if found.returncode == 128:
         pytest.skip("not a git checkout")
     assert found.stdout.split() == []
+
+
+def test_a_planted_fault_doubles_one_grain_on_three_days_and_nothing_else(
+    tmp_path: Path, demo_dir: Path
+) -> None:
+    manifest = generate(tmp_path, TODAY, 90, fault="overcount")
+    assert manifest.fault == "overcount" and Manifest.read(demo_dir).fault is None
+    assert manifest.expected_failures == {("ga4", "overcount", "channels")}
+    assert Manifest.read(demo_dir).expected_failures == set()
+    assert set(FAULTS) == set(EXPECTED_FAILURES) == set(FAULT_EXAMPLES)
+
+    def sessions(directory: Path, grain: str) -> dict[str, int]:
+        found: dict[str, int] = {}
+        for row in payload(directory, "restated", "ga4", grain)["rows"]:
+            day = row["dimensionValues"][0]["value"]
+            found[day] = found.get(day, 0) + int(row["metricValues"][0]["value"])
+        return found
+
+    core, clean, broken = (
+        sessions(tmp_path, "core"),
+        sessions(demo_dir, "channels"),
+        sessions(tmp_path, "channels"),
+    )
+    doubled = sorted(day for day in core if broken[day] != core[day])
+    assert doubled == ["20261112", "20261113", "20261114"]
+    assert all(broken[day] == 2 * core[day] for day in doubled)
+    assert core == sessions(demo_dir, "core") == clean
+    for name in ("ga4/campaigns", "stripe/invoices", "meta_ads/insights_campaigns"):
+        assert (tmp_path / "initial" / f"{name}.json").read_bytes() == (
+            demo_dir / "initial" / f"{name}.json"
+        ).read_bytes()
+    with pytest.raises(ValueError, match="unknown fault"):
+        generate(tmp_path / "bad", TODAY, 90, fault="nope")
+
+
+def test_the_fault_example_needs_the_failed_check_among_its_caveats() -> None:
+    example = FAULT_EXAMPLES["overcount"]
+    catalog = load_catalog()
+
+    def failing(sql: str) -> tuple[list[str], list[list[Any]]]:
+        if "ops.check_verdicts" in sql:
+            row = [
+                "ga4",
+                "overcount",
+                "channels",
+                "fail",
+                "3 of 28 groups exceed core by more than 1% on sessions",
+            ]
+            return ["source", "check", "report", "status", "detail"], [row]
+        return ["channel_group", "channel_sessions"], [["Direct", 10]]
+
+    assert problem(example, ask(example, catalog, failing, TODAY)) == ""
+    passing = ask(example, catalog, _execute, TODAY)  # the same question on a warehouse whose checks pass
+    assert passing["mood"] == Mood.DISCLOSE and "no caveat mentions" in problem(example, passing)
+
+
+def test_the_fault_option_is_limited_to_the_known_faults(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        main(["demo", "generate", "--out", str(tmp_path), "--fault", "nope"])
+    assert (
+        main(["demo", "generate", "--out", str(tmp_path), "--today", "2026-11-18", "--fault", "overcount"])
+        == 0
+    )
+    assert Manifest.read(tmp_path).fault == "overcount"
