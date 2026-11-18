@@ -53,6 +53,7 @@ class FakeAccount:
 
     ``stop_on`` makes the pacer stop (as the session would) when that day is requested, so a resource
     sees ``PacerStop`` in the middle of its window. ``restated`` replaces the rows of one day.
+    ``stop_on_currency`` stops on the first call of all, the currency lookup, before any resource runs.
     """
 
     def __init__(
@@ -62,7 +63,9 @@ class FakeAccount:
         pacer: MetaPacer | None = None,
         stop_on: date | None = None,
         restated: dict[str, list[dict[str, Any]]] | None = None,
+        stop_on_currency: bool = False,
     ) -> None:
+        self.stop_on_currency = stop_on_currency
         self.account_id = account_id
         self.currency = currency
         self.pacer = pacer
@@ -75,6 +78,8 @@ class FakeAccount:
 
     def api_get(self, fields: Sequence[str]) -> dict[str, Any]:
         self.currency_lookups += 1
+        if self.stop_on_currency and self.pacer is not None:
+            self.pacer.apply(Decision(0.0, "none", 0.0, StopReason.ACCESS_BLOCKED, "simulated block"))
         return {"id": f"act_{self.account_id}", "currency": self.currency}
 
     def _entities(self, name: str, fields: Sequence[str], params: dict[str, Any]) -> Iterator[dict[str, Any]]:

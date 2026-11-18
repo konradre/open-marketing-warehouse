@@ -23,6 +23,7 @@ import dlt
 from dlt.pipeline.exceptions import PipelineStepFailed
 
 from omw.pipelines.marts import SQL_DIR, apply_marts
+from omw.pipelines.sync_log import run_then_log
 from omw.sources.search_console import SOURCE_NAME, Window, backfill_chunks, backfill_progress, search_console
 from omw.sources.search_console.client import SearchConsoleClient
 
@@ -34,7 +35,8 @@ MARTS_SQL = SQL_DIR / "10_search_console_marts.sql"
 
 class EmptyWindowError(RuntimeError):
     """The daily window loaded no ``core`` rows: a dead token, a wrong property or an empty API answer.
-    Treated as a failed sync, never as a quiet success."""
+    Treated as a failed sync, never as a quiet success: it writes no row to the sync log, so the freshness
+    check keeps counting from the last run that did load."""
 
 
 def build_pipeline(pipelines_dir: str | None = None, destination: Any = "clickhouse") -> dlt.Pipeline:
@@ -64,7 +66,11 @@ def run_daily(
     if pipeline.has_pending_data:
         log.warning("loading a pending package from an earlier run first")
         pipeline.load()
-    pipeline.run(search_console(mode="daily", today=today, **source_kwargs))
+    run_then_log(
+        pipeline,
+        search_console(mode="daily", today=today, **source_kwargs),
+        require_rows="core" if fail_on_empty else None,
+    )
     counts = row_counts(pipeline)
     if fail_on_empty and counts.get("core", 0) == 0:
         raise EmptyWindowError("daily window returned no core rows; check the token and the property access")

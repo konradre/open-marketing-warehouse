@@ -11,7 +11,7 @@ import dlt
 import pytest
 import responses
 
-from omw.pipelines.ga4 import EmptyWindowError, run_daily
+from omw.pipelines.ga4 import EmptyWindowError, row_counts, run_daily
 from omw.sources.ga4 import GRAINS, METRICS, OTHER, GA4AccessError, GA4Client, ga4, shape_row
 from omw.sources.ga4.client import default_session
 from omw.sources.ga4.grains import column_hints
@@ -139,11 +139,8 @@ def test_daily_run_loads_the_window_and_fails_when_empty(tmp_path: Path, fake_cl
     assert fake_client.calls[0]["start"] == date(2026, 9, 28) and fake_client.calls[0]["end"] == date(
         2026, 10, 4
     )
+    empty = _pipeline(tmp_path / "x")
     with pytest.raises(EmptyWindowError):
-        run_daily(
-            _pipeline(tmp_path / "x"),
-            today=date(2027, 1, 1),
-            property_ids=[PROPERTY],
-            client=fake_client,
-            marts_sql=None,
-        )
+        run_daily(empty, today=date(2027, 1, 1), property_ids=[PROPERTY], client=fake_client, marts_sql=None)
+    # A failed sync leaves no row in the log the freshness check reads as "last successful sync".
+    assert row_counts(empty).get("sync_windows", 0) == 0

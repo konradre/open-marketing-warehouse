@@ -9,7 +9,13 @@ from typing import Any
 import dlt
 import pytest
 
-from omw.pipelines.search_console import EmptyWindowError, run_backfill, run_daily, source_state
+from omw.pipelines.search_console import (
+    EmptyWindowError,
+    row_counts,
+    run_backfill,
+    run_daily,
+    source_state,
+)
 from omw.sources.search_console import GRAINS, Window, backfill_progress, search_console
 from omw.sources.search_console.windows import backfill_chunks
 from tests.unit.search_console.conftest import SITE, FakeSearchConsoleClient
@@ -76,6 +82,8 @@ def test_daily_run_fails_on_an_empty_window(tmp_path: Path, fake_client: FakeSea
     pipeline = _pipeline(tmp_path)
     with pytest.raises(EmptyWindowError):
         run_daily(pipeline, today=TODAY, site_urls=[SITE], client=fake_client, marts_sql=None)
+    # A failed sync leaves no row in the log the freshness check reads as "last successful sync".
+    assert row_counts(pipeline).get("sync_windows", 0) == 0
 
 
 def test_daily_run_loads_the_rolling_window(tmp_path: Path, fake_client: FakeSearchConsoleClient) -> None:
