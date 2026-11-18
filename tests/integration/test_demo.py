@@ -169,6 +169,20 @@ def test_the_agent_reads_the_demo_through_marts_only(loaded: Loaded, agent_clien
         agent_client.query("SELECT count() FROM raw.stripe___customers")
 
 
+def test_a_balance_transaction_loaded_as_pending_is_available_once_its_day_has_come(
+    loaded: Loaded, pipeline_client: Client, agent_client: Client
+) -> None:
+    """Stripe moves a balance transaction from pending to available after the pipeline has loaded it, and
+    the pipeline never fetches it again. The view goes by ``available_on`` instead."""
+    stale = "countIf(status = 'pending' AND available_on <= now())"
+    raw = pipeline_client.query(
+        f"SELECT {stale}, count() FROM raw.stripe___balance_transactions"
+    ).result_rows[0]
+    assert raw[0] > 0  # loaded while pending, due since
+    marts = agent_client.query(f"SELECT {stale}, count() FROM marts.stripe_balance").result_rows[0]
+    assert (marts[0], marts[1]) == (0, raw[1])
+
+
 def test_the_demo_only_replaces_what_it_loaded_itself(
     loaded: Loaded, pipeline_client: Client, admin_client: Client
 ) -> None:

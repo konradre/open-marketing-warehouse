@@ -2,8 +2,9 @@
 
 ``customers`` and ``subscriptions`` are listed in full and merged on ``id``; ``invoices`` created inside
 a rolling window are merged on ``id`` (status and amounts change until paid or voided);
-``balance_transactions`` are immutable and append incrementally on ``created``. Amounts stay in Stripe's
-minor units; the marts views turn them into currency amounts. Attribution metadata (``campaign_key``,
+``balance_transactions`` are immutable and append incrementally on ``created`` (their ``status`` is the one
+field that moves afterwards; ``marts.stripe_balance`` derives it from ``available_on``). Amounts stay in
+Stripe's minor units; the marts views turn them into currency amounts. Attribution metadata (``campaign_key``,
 ``utm_*``) is lifted from ``metadata`` on every object so revenue can be joined to a campaign key.
 
 Patterns re-authored from dlt's ``stripe_analytics`` verified source (Apache-2.0, see NOTICE).
