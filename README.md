@@ -230,7 +230,9 @@ uv run python -m omw.pipelines.ga4 daily --days 400   # first load
 
 `omw.sources.stripe` lists customers and subscriptions in full and merges them on id, re-fetches invoices
 created in the last 90 days and merges them (they change until paid or voided), and appends balance
-transactions incrementally (immutable). Attribution metadata (`campaign_key`, `utm_source`, `utm_medium`,
+transactions incrementally. Those are immutable but for one field: a transaction is loaded while `pending`
+and becomes `available` later, so `marts.stripe_balance` derives its status from `available_on`.
+Attribution metadata (`campaign_key`, `utm_source`, `utm_medium`,
 `utm_campaign`) is lifted from each object's `metadata`. `marts.stripe_revenue` is one row per paid invoice
 with the campaign key resolved invoice → subscription → customer; `marts.stripe_revenue_daily` sums it by
 day, currency and campaign key; `marts.stripe_subscriptions` lists subscriptions with their attribution;

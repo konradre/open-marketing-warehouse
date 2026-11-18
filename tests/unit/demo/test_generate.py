@@ -232,3 +232,15 @@ def test_identifiers_are_synthetic(demo_dir: Path) -> None:
         assert person["emails"]["primaryEmail"].endswith(".example")
     for lead in payload(demo_dir, "restated", "meta_ads", "leads")["data"]:
         assert lead["field_data"][0]["values"][0].endswith("@example.test")
+
+
+def test_recent_stripe_balance_transactions_are_pending_and_settle_a_day_later(demo_dir: Path) -> None:
+    def status(snapshot: str) -> dict[str, str]:
+        data = payload(demo_dir, snapshot, "stripe", "balance_transactions")["data"]
+        return {txn["id"]: txn["status"] for txn in data}
+
+    before, after = status("initial"), status("restated")
+    assert set(before.values()) == set(after.values()) == {"available", "pending"}
+    settled_since = [txn for txn in before if before[txn] == "pending" and after[txn] == "available"]
+    assert settled_since  # the pipeline loaded these as pending and never fetches them again
+    assert not [txn for txn in before if before[txn] == "available" and after[txn] == "pending"]

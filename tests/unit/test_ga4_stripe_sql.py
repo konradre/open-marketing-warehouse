@@ -35,3 +35,9 @@ def test_stripe_views_resolve_attribution_invoice_then_subscription_then_custome
         in text
     )
     assert "WHERE i.status = 'paid' AND i.amount_paid > 0" in text
+
+
+def test_a_balance_transaction_loaded_while_pending_becomes_available_in_the_view() -> None:
+    """The source appends a balance transaction once. Its status changes later; ``available_on`` does not."""
+    text = (SQL_DIR / "50_stripe_marts.sql").read_text()
+    assert "if(status = 'pending' AND available_on <= now(), 'available', status) AS status" in text

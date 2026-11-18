@@ -19,6 +19,8 @@ from omw.demo.world import instant
 from omw.eval.generate.rng import Rng
 
 CYCLE = timedelta(days=30)
+AVAILABLE_AFTER = timedelta(days=2)
+"""How long a charge stays ``pending`` in the Stripe balance."""
 GIVE_UP = timedelta(days=7)
 """Stripe marks an invoice uncollectible when the retries run out."""
 
@@ -110,30 +112,33 @@ def _transactions(signup: Signup, bill: Bill, now: datetime, ident: str) -> list
     found = []
     if bill.paid_at is not None and bill.paid_at < now:
         fee = round(amount * 0.029) + 30
-        found.append(_transaction(f"{ident}{bill.cycle:02d}0", "charge", bill.paid_at, signup, amount, fee))
+        charge = f"{ident}{bill.cycle:02d}0"
+        found.append(_transaction(charge, "charge", bill.paid_at, signup, amount, fee, now))
     if bill.refunded_at is not None and bill.refunded_at < now:
-        found.append(
-            _transaction(f"{ident}{bill.cycle:02d}1", "refund", bill.refunded_at, signup, -amount, 0)
-        )
+        refund = f"{ident}{bill.cycle:02d}1"
+        found.append(_transaction(refund, "refund", bill.refunded_at, signup, -amount, 0, now))
     return found
 
 
 def _transaction(
-    ident: str, kind: str, at: datetime, signup: Signup, amount: int, fee: int
+    ident: str, kind: str, at: datetime, signup: Signup, amount: int, fee: int, now: datetime
 ) -> dict[str, Any]:
+    """``pending`` until the funds are available two days later. The pipeline loads a transaction once, so
+    the warehouse keeps the status of that day; ``marts.stripe_balance`` derives the current one."""
+    available = at + AVAILABLE_AFTER
     return {
         "id": f"txn_DEMO{ident}",
         "object": "balance_transaction",
         "type": kind,
         "created": epoch(at),
-        "available_on": epoch(at + timedelta(days=2)),
+        "available_on": epoch(available),
         "currency": signup.currency.lower(),
         "amount": amount,
         "fee": fee,
         "net": amount - fee,
         "source": f"{'ch' if kind == 'charge' else 're'}_DEMO{ident}",
         "reporting_category": kind,
-        "status": "available",
+        "status": "available" if available < now else "pending",
     }
 
 

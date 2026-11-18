@@ -86,7 +86,7 @@ CREATE OR REPLACE VIEW marts.stripe_balance (
     transaction_id String COMMENT 'Stripe balance transaction id',
     type LowCardinality(String) COMMENT 'Stripe transaction type: charge, payment, refund, payment_refund, payout, adjustment, stripe_fee, ...',
     reporting_category LowCardinality(String) COMMENT 'Stripe reporting category: charge, refund, dispute, dispute_reversal, payout, fee, adjustment, ...',
-    status LowCardinality(String) COMMENT 'available or pending',
+    status LowCardinality(String) COMMENT 'available or pending, as of now: a transaction loaded while pending counts as available once available_on has passed',
     currency LowCardinality(String) COMMENT 'ISO 4217 currency of the transaction, upper case',
     gross Decimal(18, 2) COMMENT 'Gross amount in the currency: positive for charges, negative for refunds and payouts',
     fee Decimal(18, 2) COMMENT 'Stripe fees taken on the transaction, in the currency (negative on a refund when fees are returned)',
@@ -94,7 +94,10 @@ CREATE OR REPLACE VIEW marts.stripe_balance (
     source_id String COMMENT 'The charge, refund, payout or dispute the transaction belongs to',
     available_on DateTime COMMENT 'When the funds become available for payout (UTC)'
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
-SELECT source, 'balance' AS report, toDate(created_at) AS date, id AS transaction_id, type, reporting_category, status,
+SELECT source, 'balance' AS report, toDate(created_at) AS date, id AS transaction_id, type, reporting_category,
+       -- Balance transactions are loaded once, when created, and Stripe moves them from pending to available later.
+       -- available_on is known from the start, so the status is derived here instead of trusting the loaded one.
+       if(status = 'pending' AND available_on <= now(), 'available', status) AS status,
        upper(currency) AS currency,
        if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
           toDecimal64(amount, 2), toDecimal64(amount, 2) / 100) AS gross,
