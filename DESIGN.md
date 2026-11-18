@@ -187,6 +187,7 @@ omw/                    Python package (uv, Python 3.12)
   checks/               post-sync checks
   metrics/              metric-definition schema, compiler, MCP server
   eval/                 read-path evaluation: seed, questions, arms, planners, scoring
+  demo/                 synthetic fixtures for all seven sources, fixture mode (replay), `make demo`
 metrics/                metric definitions (YAML)
 sql/                    ClickHouse DDL: databases, marts views, users, profiles, quotas
 deploy/                 docker-compose.yml (+ profiles chat, observability), ClickHouse config
