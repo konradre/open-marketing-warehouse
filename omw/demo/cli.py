@@ -21,8 +21,8 @@ import dlt
 
 from omw.checks.runner import CheckRun, apply_ops_sql, run_checks
 from omw.demo import warehouse
-from omw.demo.examples import ask, examples, render, table
-from omw.demo.fixtures import Manifest, generate
+from omw.demo.examples import FAULT_EXAMPLES, ask, examples, problem, render, table
+from omw.demo.fixtures import FAULTS, Manifest, generate
 from omw.demo.keys import shared_keys
 from omw.demo.load import Run, load_snapshot
 from omw.demo.replay import Replay
@@ -50,14 +50,16 @@ def _run(out: Path, manifest: Manifest, snapshot: Snapshot, pipelines_dir: str, 
     return Run(manifest, snapshot, replay, warehouse.destination(), pipelines_dir, first)
 
 
-def write_fixtures(out: Path, today: date | None, days: int, seed: int) -> Manifest:
-    manifest = generate(out, today, days, seed)
+def write_fixtures(out: Path, today: date | None, days: int, seed: int, fault: str | None = None) -> Manifest:
+    manifest = generate(out, today, days, seed, fault)
     funnel = manifest.data["funnel"]
     say(
         f"{manifest.days} days up to {manifest.today} (seed {manifest.seed}) in {out}: "
         f"{funnel['paying_customers']} paying customers ({funnel['attributed_customers']} attributed to a "
         f"campaign), {sum(funnel['leads'].values())} leads, {funnel['opportunities']} opportunities"
     )
+    if manifest.fault:
+        say(f"  planted fault `{manifest.fault}`: {FAULTS[manifest.fault]}")
     return manifest
 
 
@@ -131,6 +133,8 @@ def answers(manifest: Manifest) -> list[tuple[Any, dict[str, Any]]]:
     catalog = load_catalog()
     execute = clickhouse_executor(client("agent"))
     asked = examples(manifest.today)
+    if manifest.fault:
+        asked.append(FAULT_EXAMPLES[manifest.fault])
     found = []
     for number, example in enumerate(asked, start=1):
         answer = ask(example, catalog, execute, manifest.today)
@@ -140,15 +144,25 @@ def answers(manifest: Manifest) -> list[tuple[Any, dict[str, Any]]]:
 
 
 def unexpected(found: list[tuple[Any, dict[str, Any]]]) -> list[str]:
+    return [text for example, answer in found if (text := problem(example, answer))]
+
+
+def unexpected_checks(manifest: Manifest, checks: CheckRun) -> list[str]:
+    """Check verdicts that differ from what the data should produce: everything passes, except the checks a
+    planted fault is there to trip."""
+    failed = {(r.source, r.check, r.report) for r in checks.failed}
+    expected = manifest.expected_failures
     return [
-        f"{example.metrics}: expected {example.expect}, got {answer['mood']} ({answer.get('reason', '')})"
-        for example, answer in found
-        if answer["mood"] != example.expect
+        *(f"{'/'.join(key)} failed" for key in sorted(failed - expected)),
+        *(
+            f"{'/'.join(key)} passed with the fault `{manifest.fault}` planted"
+            for key in sorted(expected - failed)
+        ),
     ]
 
 
 def cmd_generate(args: argparse.Namespace) -> int:
-    write_fixtures(args.out, args.today, args.days, args.seed)
+    write_fixtures(args.out, args.today, args.days, args.seed, args.fault)
     return 0
 
 
@@ -164,8 +178,8 @@ def cmd_load(args: argparse.Namespace) -> int:
 
 def cmd_ask(args: argparse.Namespace) -> int:
     problems = unexpected(answers(Manifest.read(args.out)))
-    for problem in problems:
-        log.error("unexpected answer: %s", problem)
+    for found in problems:
+        log.error("not what the demo data should produce: %s", found)
     return 1 if problems else 0
 
 
@@ -177,7 +191,7 @@ def cmd_drop(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     heading("1/6 Generate: a synthetic company as fixtures, in the shape each platform API answers")
-    manifest = write_fixtures(args.out, args.today, args.days, args.seed)
+    manifest = write_fixtures(args.out, args.today, args.days, args.seed, args.fault)
     with tempfile.TemporaryDirectory(prefix="omw-demo-") as pipelines_dir:
         yesterday = manifest.calendar.as_of("initial")
         heading(f"2/6 First load: the real dlt pipelines in fixture mode, as of {yesterday}")
@@ -188,18 +202,20 @@ def cmd_run(args: argparse.Namespace) -> int:
     print_keys()
     heading("5/6 Post-sync checks")
     checks = check(manifest)
-    heading("6/6 Five questions through query_metrics, as the agent user")
-    problems = unexpected(answers(manifest))
+    wrong_checks = unexpected_checks(manifest, checks)
+    if manifest.fault and not wrong_checks:
+        say(f"  That failure is the planted fault `{manifest.fault}`, caught by the check made for it.")
+    count = "Six" if manifest.fault else "Five"
+    heading(f"6/6 {count} questions through query_metrics, as the agent user")
+    problems = [*unexpected(answers(manifest)), *wrong_checks]
     url, _ = mcp_endpoint()
     say(
         f"\nThe warehouse is loaded. Point an agent at {url} (SQL, as the `agent` user) or run "
         "`uv run python -m omw.metrics.server` (metrics). `uv run omw demo drop` removes the demo data."
     )
-    for problem in problems:
-        log.error("unexpected answer: %s", problem)
-    if not checks.ok:
-        log.error("post-sync checks failed: %s", checks.summary())
-    return 1 if problems or not checks.ok else 0
+    for found in problems:
+        log.error("not what the demo data should produce: %s", found)
+    return 1 if problems else 0
 
 
 HANDLERS = {"generate": cmd_generate, "load": cmd_load, "ask": cmd_ask, "drop": cmd_drop, "run": cmd_run}
@@ -241,6 +257,13 @@ def add_parser(commands: Any) -> None:
             type=date.fromisoformat,
             default=None,
             help="the day the demo pretends it is (ISO date)",
+        )
+        sub.add_argument(
+            "--fault",
+            choices=sorted(FAULTS),
+            default=None,
+            help="plant a defect in the fixtures to see a check fail and an answer disclose it: "
+            + "; ".join(f"{name} = {text}" for name, text in FAULTS.items()),
         )
 
     force = "replace source data the demo did not load (an evaluation seed, a real sync)"

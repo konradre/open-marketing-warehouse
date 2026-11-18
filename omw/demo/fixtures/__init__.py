@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +41,16 @@ from omw.eval.generate.rng import Rng
 SOURCES = ("search_console", "meta_ads", "google_ads", "ga4", "stripe", "linkedin_ads", "twenty")
 MANIFEST = "manifest.json"
 
+FAULTS: dict[str, str] = {
+    "overcount": "GA4's channel grain is counted twice on three recent days and exceeds the property total",
+}
+"""Deliberate defects a fixture directory can be generated with (``--fault``), to see the post-sync checks
+catch them and ``query_metrics`` disclose them."""
+EXPECTED_FAILURES: dict[str, set[tuple[str, str, str]]] = {"overcount": {("ga4", "overcount", "channels")}}
+"""fault -> the (source, check, report) verdicts that must fail on a warehouse loaded with it."""
+FAULT_DAYS = (4, 5, 6)
+"""Days before today a fault touches: settled, inside every check window and inside ``last_7_days``."""
+
 
 @dataclass(frozen=True)
 class Manifest:
@@ -54,6 +64,16 @@ class Manifest:
     @property
     def calendar(self) -> Calendar:
         return Calendar(self.today, self.days)
+
+    @property
+    def fault(self) -> str | None:
+        found = self.data.get("fault")
+        return str(found) if found else None
+
+    @property
+    def expected_failures(self) -> set[tuple[str, str, str]]:
+        """The check verdicts that must fail on this data: none, unless it was generated with a fault."""
+        return EXPECTED_FAILURES[self.fault] if self.fault else set()
 
     @classmethod
     def read(cls, directory: Path) -> Manifest:
@@ -76,6 +96,21 @@ def build_snapshot(rng: Rng, funnel: Funnel, snapshot: Snapshot) -> dict[str, Pa
         "linkedin_ads": linkedin.build(rng, funnel, as_of),
         "twenty": twenty.build(funnel, as_of),
     }
+
+
+def _twice(value: str) -> str:
+    return str(round(float(value) * 2, 2)) if "." in value else str(int(value) * 2)
+
+
+def apply_fault(fault: str, payloads: dict[str, Payloads], calendar: Calendar) -> None:
+    """Break one snapshot's payloads the way ``fault`` says, in place."""
+    if fault not in FAULTS:
+        raise ValueError(f"unknown fault {fault!r}; choose from {sorted(FAULTS)}")
+    days = {(calendar.today - timedelta(days=n)).strftime("%Y%m%d") for n in FAULT_DAYS}
+    for row in payloads["ga4"]["channels"]["rows"]:
+        if row["dimensionValues"][0]["value"] in days:
+            for metric in row["metricValues"]:
+                metric["value"] = _twice(metric["value"])
 
 
 def row_count(payload: Any) -> int:
@@ -111,14 +146,24 @@ def campaign_key_table() -> list[dict[str, Any]]:
     ]
 
 
-def generate(out: Path, today: date | None = None, days: int = DEFAULT_DAYS, seed: int = SEED) -> Manifest:
-    """Write both snapshots and the manifest under ``out``, replacing fixture files already there."""
+def generate(
+    out: Path,
+    today: date | None = None,
+    days: int = DEFAULT_DAYS,
+    seed: int = SEED,
+    fault: str | None = None,
+) -> Manifest:
+    """Write both snapshots and the manifest under ``out``, replacing fixture files already there.
+    ``fault`` (one of ``FAULTS``) plants a deliberate defect in both snapshots."""
     calendar = Calendar(today or date.today(), days)
     rng = Rng(seed)
     funnel = build_funnel(rng, calendar)
     counts: dict[str, dict[str, dict[str, int]]] = {}
     for snapshot in SNAPSHOTS:
-        for source, payloads in build_snapshot(rng, funnel, snapshot).items():
+        built = build_snapshot(rng, funnel, snapshot)
+        if fault:
+            apply_fault(fault, built, calendar)
+        for source, payloads in built.items():
             directory = out / snapshot / source
             directory.mkdir(parents=True, exist_ok=True)
             for name, payload in payloads.items():
@@ -129,6 +174,7 @@ def generate(out: Path, today: date | None = None, days: int = DEFAULT_DAYS, see
         "today": calendar.today.isoformat(),
         "days": days,
         "start": calendar.start.isoformat(),
+        "fault": fault,
         "snapshots": {name: {"as_of": calendar.as_of(name).isoformat()} for name in SNAPSHOTS},
         "accounts": {
             "search_console": {"site_urls": [SITE_URL]},

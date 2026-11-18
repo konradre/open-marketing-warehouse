@@ -15,9 +15,12 @@ import pytest
 from clickhouse_connect.driver.client import Client
 
 from omw.demo import warehouse
-from omw.demo.cli import answers, check, daily_sync, first_load, unexpected
+from omw.demo.cli import answers, check, daily_sync, first_load, unexpected, unexpected_checks
+from omw.demo.examples import FAULT_EXAMPLES
 from omw.demo.fixtures import SOURCES, Manifest, generate
 from omw.demo.keys import shared_keys
+from omw.demo.load import Run, load_snapshot
+from omw.demo.replay import Replay
 from omw.demo.restatement import Change
 from omw.demo.world import CAMPAIGN_KEYS, META_ACCOUNT
 from omw.metrics import Mood
@@ -207,3 +210,27 @@ def test_a_second_run_replaces_the_demo_data_without_force(loaded: Loaded, pipel
     assert warehouse.reset(pipeline_client) > 50
     assert warehouse.source_tables(pipeline_client) == []
     assert warehouse.recorded(pipeline_client) is None
+
+
+def test_a_planted_overcount_fails_its_check_and_is_disclosed_with_the_answer(
+    pipeline_client: Client, tmp_path: Path
+) -> None:
+    """Runs last: the module's warehouse is gone by now, and GA4 alone is enough to see the fault."""
+    manifest = generate(tmp_path / "fault", TODAY, DAYS, fault="overcount")
+    warehouse.reset(pipeline_client, force=True)
+    replay = Replay(tmp_path / "fault" / "initial", manifest.data["accounts"])
+    run = Run(manifest, "initial", replay, warehouse.destination(), str(tmp_path / "dlt"), first=True)
+    try:
+        load_snapshot(run, sources=("ga4",))
+        checks = check(manifest)
+        ga4 = {(r.check, r.report): r for r in checks.results if r.source == "ga4"}
+        assert ga4[("overcount", "channels")].failed
+        assert "3 of" in ga4[("overcount", "channels")].detail
+        assert not [key for key, result in ga4.items() if result.failed and key != ("overcount", "channels")]
+        assert not [text for text in unexpected_checks(manifest, checks) if text.startswith("ga4/")]
+        found = answers(manifest)
+        example, answer = found[-1]
+        assert example is FAULT_EXAMPLES["overcount"] and answer["rows"]
+        assert any("ga4.channels overcount check fail" in caveat for caveat in answer["caveats"])
+    finally:
+        warehouse.reset(pipeline_client, force=True)

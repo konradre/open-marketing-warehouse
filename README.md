@@ -81,6 +81,11 @@ uv run omw demo ask                                               # the five ans
 uv run omw demo run --verbose                                     # everything, with the pipelines' own log lines
 ```
 
+To see a check fail and the metric layer say so, plant a fault: `uv run omw demo run --fault overcount` counts
+GA4's channel grain twice on three recent days. The over-count check fails on exactly those days, and a sixth
+question about sessions by channel is answered with that failure as a caveat. The run still exits 0, because
+the failure is the one the fault is there to cause.
+
 The code is in `omw/demo/`: `world.py` and `funnel.py` (the company), `fixtures/` (the generator, one module
 per source), `replay/` (fixture mode) and `load.py` (the pipeline calls).
 
