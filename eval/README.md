@@ -165,7 +165,8 @@ source and every report grain, about 33 000 rows in 49 `raw` tables. The evaluat
 
 - **Deterministic.** Every number is a hash of the seed (`20260601`), an entity, a day and a field name
   (`omw/eval/generate/rng.py`), not a draw from a stream. The same seed gives the same warehouse on any
-  machine, and adding a campaign does not move the numbers of the others.
+  machine in any time zone (timestamps are loaded as UTC instants), and adding a campaign does not move
+  the numbers of the others.
 - **Only `raw` is written.** The seed creates the tables a dlt run leaves behind (column for column, from
   the fixture loads in `tests/integration`) and inserts rows. Everything the agent reads then comes from the
   repo's own code: the `marts` views in `sql/`, the campaign keys from `omw.metrics.campaign_keys`, the

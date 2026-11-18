@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+import time
+from datetime import UTC, date, datetime
 from typing import Any
 
 import pytest
@@ -68,7 +69,41 @@ def test_raw_tables_are_created_as_dlt_would_and_filled_with_typed_defaults(worl
     assert data[0][names.index("stop_time")] is None and data[0][names.index("lifetime_budget")] == ""
     data, names = warehouse.inserts["raw.`stripe___invoices`"]
     unpaid = next(row for row in data if row[names.index("status")] == "open")
-    assert unpaid[names.index("paid_at")] == datetime(1970, 1, 1) and unpaid[names.index("amount_paid")] == 0
+    assert unpaid[names.index("paid_at")] == datetime(1970, 1, 1, tzinfo=UTC)
+    assert unpaid[names.index("amount_paid")] == 0
+
+
+def test_the_same_seed_loads_the_same_instants_on_a_host_in_any_time_zone(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The world's datetimes are UTC wall-clock times. A naive datetime is read in the host's zone by the
+    driver, so on a host ahead of UTC every timestamp moved, days shifted, and the epoch default stopped
+    being the epoch (``deleted_at = 1970-01-01`` matched nothing and the CRM views came back empty)."""
+    loads = []
+    for zone in ("UTC", "Australia/Perth", "America/Los_Angeles"):
+        monkeypatch.setenv("TZ", zone)
+        time.tzset()
+        warehouse = RecordingWarehouse([], False)
+        seed.load_raw(warehouse, world)
+        seed.write_campaign_keys(warehouse, world)
+        instants = {
+            table: [[c.timestamp() if isinstance(c, datetime) else c for c in row] for row in data]
+            for table, (data, _) in warehouse.inserts.items()
+        }
+        naive = [
+            table
+            for table, (data, _) in warehouse.inserts.items()
+            if any(isinstance(c, datetime) and c.tzinfo is None for row in data for c in row)
+        ]
+        assert naive == [], zone
+        loads.append(instants)
+    monkeypatch.undo()
+    time.tzset()
+    assert loads[0] == loads[1] == loads[2]
+    opportunities = loads[1]["raw.`twenty___opportunities`"]
+    assert any(0.0 in row for row in opportunities)  # the epoch default is the epoch on every host
+    stamps = [c for row in loads[1]["marts.campaign_keys"] for c in row if isinstance(c, float)]
+    assert stamps and set(stamps) == {NOW.replace(tzinfo=UTC).timestamp()}
 
 
 @pytest.mark.parametrize(
