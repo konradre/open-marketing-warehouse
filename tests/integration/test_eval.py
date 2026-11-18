@@ -129,8 +129,9 @@ def test_the_metric_layer_matches_the_ground_truth_wherever_it_answers(runs: dic
     missed = {row.question.id: row for row in rows if row.score.outcome != "correct"}
     gaps = {row.question.id for row in rows if GAPS & set(row.question.tags)}
     # Only a declared gap may be missed, and only by declining. T15 closed the nine the first run declared
-    # (seven grains with no metric, two distinct counts refused above their grain), so today there is none.
-    assert set(missed) == gaps and len(gaps) <= 15
+    # (seven grains with no metric, two distinct counts refused above their grain); the one declared today
+    # is a measure the catalog does not have (subscription prices).
+    assert set(missed) == gaps == {"active_subscription_prices_usd"}
     assert {row.score.outcome for row in missed.values()} <= {"over_refusal"}  # never a wrong number
     summary = runs["reference"].summary("metrics")
     assert summary.wrong_numbers == 0 and summary.disclosed == summary.need_caveat == 5
@@ -188,12 +189,16 @@ def test_face_value_requests_are_wrong_far_more_often_through_raw_sql(runs: dict
     )  # caveats only travel with the layer
     # What the layer does with a face-value request is never worse than raw SQL on the same question.
     by_arm = {(row.question.id, row.arm): row.score.outcome for row in runs["literal"].rows}
+    gaps = {row.question.id for row in runs["literal"].rows if GAPS & set(row.question.tags)}
     worse = [qid for (qid, arm), outcome in by_arm.items() if arm == "metrics" and outcome != "correct"
-             and by_arm[(qid, "sql")] == "correct"]  # fmt: skip
+             and by_arm[(qid, "sql")] == "correct" and qid not in gaps]  # fmt: skip
     assert worse == []
     # What is left are requests the layer answers correctly as asked: the wrong step happens outside it.
     left = sorted(qid for (qid, arm), outcome in by_arm.items() if arm == "metrics" and outcome != "correct")
-    assert left == ["forecast_next_month", "sum_two_search_grains", "total_conversions_all_sources_sep"]
+    assert left == [*sorted(gaps), "forecast_next_month", "sum_two_search_grains"] + [
+        "total_conversions_all_sources_sep"
+    ]
+    assert all(by_arm[(qid, "metrics")] == "over_refusal" for qid in gaps)  # declined, never a wrong number
 
 
 def test_the_boundary_holds_for_the_face_value_sql(runs: dict[str, Run]) -> None:

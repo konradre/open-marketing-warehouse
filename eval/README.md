@@ -1,18 +1,19 @@
 # Evaluation of the agent read path
 
-The same 129 marketing questions are asked two ways, against the same seeded warehouse, and scored against
+The same 132 marketing questions are asked two ways, against the same seeded warehouse, and scored against
 ground truth computed outside both:
 
 - **Arm `sql`**: the agent gets the `marts` schema with its column comments, and raw SQL through
   mcp-clickhouse as the `agent` user.
 - **Arm `metrics`**: the agent gets `SEMANTICS.md` and the `query_metrics` tools.
 
-**What the offline run shows.** With the best plan, raw SQL and the metric layer each answer all 101
-answerable questions. Taken at face value, the same questions give a wrong number 30% of the time through
-raw SQL and 2% of the time through the metric layer, which also turns 25 of 28 trap questions into a refusal
-or a question back where raw SQL does so for 5. The first run of this eval found five gaps in the metric
-layer itself (it answered 92 of the 101 and gave 9 wrong numbers at face value); they are fixed, and listed
-with what changed under [What the eval found](#what-the-eval-found-in-the-metric-layer).
+**What the offline run shows.** With the best plan, raw SQL can answer all 104 answerable questions and the
+metric layer 103; it has no measure for the other one. Taken at face value, the same questions give a wrong
+number 30% of the time through raw SQL and 2% of the time through the metric layer, which also turns 25 of
+28 trap questions into a refusal or a question back where raw SQL does so for 5. The first run of this eval
+found five gaps in the metric layer itself (it answered 92 of its 101 answerable questions and gave 9 wrong
+numbers at face value); they are fixed, and listed with what changed under
+[What the eval found](#what-the-eval-found-in-the-metric-layer).
 
 **What it does not show.** No model was run for these numbers. The offline planners follow plans written by
 hand, so the results describe the two *tool surfaces*, not how well a model uses them. A real-model run is
@@ -27,12 +28,12 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 
 | Planner | Arm | Accuracy on answerable questions | Refuse/clarify correct on traps | Wrong-number rate (all questions) | Over-refusals | Caveats carried | Errors |
 |---|---|---|---|---|---|---|---|
-| `reference` (known-good plans: the harness check) | schema + raw SQL | 100.0% (101/101; 95% CI 96-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/129; 95% CI 0-3%) | 0/101 | 5/5 | 0 |
-| `reference` (known-good plans: the harness check) | SEMANTICS.md + query_metrics | 100.0% (101/101; 95% CI 96-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/129; 95% CI 0-3%) | 0/101 | 5/5 | 0 |
-| `literal` (face-value plans) | schema + raw SQL | 84.2% (85/101; 95% CI 76-90%) | 17.9% (5/28; 95% CI 8-36%) | 30.2% (39/129; 95% CI 23-39%) | 0/101 | 0/5 | 0 |
-| `literal` (face-value plans) | SEMANTICS.md + query_metrics | 100.0% (101/101; 95% CI 96-100%) | 89.3% (25/28; 95% CI 73-96%) | 2.3% (3/129; 95% CI 1-7%) | 0/101 | 5/5 | 0 |
-| `refuser` (declines everything: the null baseline) | schema + raw SQL | 0.0% (0/101; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/129; 95% CI 0-3%) | 101/101 | - | 0 |
-| `refuser` (declines everything: the null baseline) | SEMANTICS.md + query_metrics | 0.0% (0/101; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/129; 95% CI 0-3%) | 101/101 | - | 0 |
+| `reference` (known-good plans: the harness check) | schema + raw SQL | 100.0% (104/104; 95% CI 96-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/132; 95% CI 0-3%) | 0/104 | 5/5 | 0 |
+| `reference` (known-good plans: the harness check) | SEMANTICS.md + query_metrics | 99.0% (103/104; 95% CI 95-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/132; 95% CI 0-3%) | 1/104 | 5/5 | 0 |
+| `literal` (face-value plans) | schema + raw SQL | 84.6% (88/104; 95% CI 76-90%) | 17.9% (5/28; 95% CI 8-36%) | 29.5% (39/132; 95% CI 22-38%) | 0/104 | 0/5 | 0 |
+| `literal` (face-value plans) | SEMANTICS.md + query_metrics | 99.0% (103/104; 95% CI 95-100%) | 89.3% (25/28; 95% CI 73-96%) | 2.3% (3/132; 95% CI 1-6%) | 1/104 | 5/5 | 0 |
+| `refuser` (declines everything: the null baseline) | schema + raw SQL | 0.0% (0/104; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/132; 95% CI 0-3%) | 104/104 | - | 0 |
+| `refuser` (declines everything: the null baseline) | SEMANTICS.md + query_metrics | 0.0% (0/104; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/132; 95% CI 0-3%) | 104/104 | - | 0 |
 
 ### Face-value plans, by category
 
@@ -41,8 +42,8 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 | spend | 24 | 24/24 | 24/24 | 0 | 0 |
 | rates | 13 | 8/13 | 13/13 | 5 | 0 |
 | search | 10 | 9/10 | 10/10 | 1 | 0 |
-| ga4 | 9 | 8/9 | 9/9 | 1 | 0 |
-| revenue | 12 | 9/12 | 12/12 | 3 | 0 |
+| ga4 | 11 | 10/11 | 11/11 | 1 | 0 |
+| revenue | 13 | 10/13 | 12/13 | 3 | 0 |
 | pipeline | 10 | 9/10 | 10/10 | 1 | 0 |
 | cross source | 13 | 9/13 | 13/13 | 4 | 0 |
 | compare | 10 | 9/10 | 10/10 | 1 | 0 |
@@ -73,7 +74,9 @@ Beyond the coverage gaps in the next table.
 
 ### Questions the metric layer could not answer with the best plan
 
-None.
+| Question | Outcome | What happened |
+|---|---|---|
+| `active_subscription_prices_usd` | over refusal | refuse: no metric in the catalog expresses this |
 
 <!-- results:end -->
 
@@ -81,13 +84,14 @@ None.
 
 - **`reference`, both arms: the harness check.** Every reference query and every reference `query_metrics`
   request returns the independently computed ground truth, through the repo's real `marts` views. That is
-  three separate computations agreeing on 101 numbers. The 28/28 on traps is scripted (the reference planner
+  three separate computations agreeing on 104 numbers. The 28/28 on traps is scripted (the reference planner
   declines them by definition), so read it as "the scorer accepts the right behaviour", nothing more.
-- **`reference`, metric arm: coverage.** Every answerable question now has a plan the layer serves, and
-  every one returns the ground truth. In the first run 9 did not: 7 needed a grain with no metric and 2
-  were distinct counts refused above their own grain (see below). The set of questions did not change, so
-  full marks here mean "these 101 questions", not "every question": the catalog still has no measure for
-  Meta conversions (the `actions` JSON), GA4 page views and engaged sessions, or subscription amounts.
+- **`reference`, metric arm: coverage.** The one over-refusal is a question the layer has no way to
+  answer: the unit prices of the active subscriptions (no metric reads subscription prices). It is declared
+  as a gap (`not_in_catalog`), declined, and never answered with a wrong number. In the first run 9 questions
+  were in that state: 7 needed a grain with no metric and 2 were distinct counts refused above their own
+  grain (see below). One gap the eval cannot probe: the catalog has no measure for Meta conversions (the
+  `actions` JSON), and the seed leaves that column empty.
 - **`literal`, SQL arm: nothing stops a face-value query.** 19 answerable questions carry the tempting
   query (average the rate column, read the breakdown grain, join two fact tables row by row). 16 of those
   return a wrong number; 3 land within the tolerance on this data, because daily volumes inside one campaign
@@ -123,6 +127,10 @@ changed. The table above is the layer after the fixes.
 | Face-value requests answered right | 90/101 | 101/101 |
 | Traps handled at face value | 20/28 | 25/28 |
 | Wrong numbers at face value | 9/129 | 3/129 |
+
+Both columns count the 129 questions of the first run. Three were added afterwards, so the tables at the top
+count 132: two GA4 totals the catalog gained a metric for (`page_views`, `engaged_sessions`) and one
+question it still cannot answer, kept as a declared gap so that coverage stays a measured number.
 
 1. **A filter on `campaign_key` without the dimension failed.** `query_metrics(["ad_spend"], filters={
    "campaign_key": "widgets_prospecting"})` compiled SQL that filtered on a column the ad platform views do
@@ -209,8 +217,8 @@ no longer matches the seed.
 | spend | 24 | Spend, impressions, clicks and conversions on one platform, across every grain |
 | rates | 13 | CTR, CPC, CPM, conversion rate, position: recomputed, never averaged |
 | search | 10 | Search Console totals, top queries and pages, breakdowns |
-| ga4 | 9 | Sessions, users, key events, channels, campaigns, the `(other)` bucket |
-| revenue | 12 | Stripe revenue, new customers, attribution, net revenue, refunds, fees |
+| ga4 | 11 | Sessions, page views, users, key events, channels, campaigns, the `(other)` bucket |
+| revenue | 13 | Stripe revenue, new customers, attribution, net revenue, refunds, fees, subscriptions |
 | pipeline | 10 | Twenty opportunities, amounts, stages, win rate, CRM tasks |
 | cross source | 13 | Ad spend across platforms, ROAS, CAC, cost per opportunity, cost per lead |
 | compare | 10 | A period against the one before, month over month, percentage change |
@@ -307,7 +315,7 @@ runs each distinct query once. If repeated runs do hit the quota, the rows are r
 
 ## A real-model run
 
-Optional, and it costs money: 258 conversations (129 questions in two arms), a few model calls each. The
+Optional, and it costs money: 264 conversations (132 questions in two arms), a few model calls each. The
 SQL arm's schema is about 46 000 characters, sent as a cached system prompt.
 
 ```bash
@@ -334,7 +342,7 @@ Three things are deliberate:
 
 - **No fallback model.** A response served by another model, a refusal by the safety classifiers or a
   truncated reply is an `error` row. A score from the wrong model measures nothing.
-- **Repeats.** A model is not deterministic. `--reps 3` asks every question three times. One pass over 101
+- **Repeats.** A model is not deterministic. `--reps 3` asks every question three times. One pass over 104
   answerable questions has a 95% interval of roughly ±8 points, and 28 traps roughly ±17, so a smaller
   difference between two runs or two arms is noise.
 - **Another model.** `omw/eval/model_planner.py` is under 200 lines over one interface. A planner for

@@ -45,6 +45,19 @@ metrics:
     unit: count
     grains: [property_id]
     description: GA4 sessions.
+  - name: engaged_sessions
+    report: core
+    expr: sum(engaged_sessions)
+    unit: count
+    grains: [property_id]
+    description: GA4 engaged sessions (over 10 seconds, with a key event, or with 2+ page views).
+  - name: page_views
+    report: core
+    expr: sum(page_views)
+    unit: count
+    grains: [property_id]
+    aliases: [pageviews, views]
+    description: GA4 page and screen views.
   - name: users
     report: core
     expr: sum(total_users)

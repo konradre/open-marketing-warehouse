@@ -1,7 +1,7 @@
 {
  "seed": 20260601,
  "today": "2026-10-01",
- "count": 129,
+ "count": 132,
  "questions": [
   {
    "id": "meta_spend_sep",
@@ -1273,6 +1273,38 @@
    }
   },
   {
+   "id": "page_views_sep",
+   "category": "ga4",
+   "question": "How many page views did the website get in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 467832.0
+   }
+  },
+  {
+   "id": "engaged_sessions_aug",
+   "category": "ga4",
+   "question": "How many engaged sessions did the website get in August 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 96636.0
+   }
+  },
+  {
    "id": "top_landing_pages_sep",
    "category": "ga4",
    "question": "Which three landing pages started the most sessions in September 2026?",
@@ -1542,6 +1574,24 @@
    "why": "",
    "ground_truth": {
     "value": 130.0
+   }
+  },
+  {
+   "id": "active_subscription_prices_usd",
+   "category": "revenue",
+   "question": "What do the unit prices of our active US dollar subscriptions add up to?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 9005.0
    }
   },
   {

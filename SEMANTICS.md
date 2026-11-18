@@ -52,9 +52,9 @@ without the `currency` dimension or a filter on one currency answers **clarify**
 
 ## Site analytics (GA4)
 
-- **sessions**, **new_users**, **key_events** per property and day. `key_events` are the property's
-  configured key events (formerly conversions). **users** is distinct users per day and is **not
-  additive** across days.
+- **sessions**, **engaged_sessions**, **page_views**, **new_users**, **key_events** per property and day.
+  `key_events` are the property's configured key events (formerly conversions). **users** is distinct users
+  per day and is **not additive** across days.
 - **channel_sessions**, **campaign_sessions**, `landing_page_sessions` and `landing_page_key_events` (by landing
   page) are breakdown grains. GA4 folds high-cardinality values into an **(other)** row,
   kept and flagged `is_other`, so the breakdown still sums to `core`. `(not set)` means no campaign data.
