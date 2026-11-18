@@ -1,7 +1,7 @@
 {
  "seed": 20260601,
  "today": "2026-10-01",
- "count": 132,
+ "count": 134,
  "questions": [
   {
    "id": "meta_spend_sep",
@@ -1656,6 +1656,56 @@
    "why": "",
    "ground_truth": {
     "value": 484000.0
+   }
+  },
+  {
+   "id": "deals_won_sep",
+   "category": "pipeline",
+   "question": "How many deals moved into the won stage during September 2026, whenever they were created?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 12.0
+   }
+  },
+  {
+   "id": "stage_moves_by_stage_aug",
+   "category": "pipeline",
+   "question": "How many opportunities moved into each pipeline stage during August 2026?",
+   "answer_format": "Answer with one row per stage entered: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "CUSTOMER",
+      4.0
+     ],
+     [
+      "MEETING",
+      3.0
+     ],
+     [
+      "PROPOSAL",
+      8.0
+     ],
+     [
+      "SCREENING",
+      5.0
+     ]
+    ],
+    "ordered": false
    }
   },
   {

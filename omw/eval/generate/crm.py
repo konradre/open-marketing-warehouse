@@ -7,6 +7,7 @@ Notes and tasks are attached to one or two records, so the activity grain has mo
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -14,7 +15,7 @@ from omw.eval.generate.campaigns import CAMPAIGNS, LINKEDIN_ACCOUNT, META_ACCOUN
 from omw.eval.generate.linkedin import linkedin_creatives
 from omw.eval.generate.rng import Rng
 from omw.eval.generate.stripe import EPOCH, FIELDS, NONE, attribution, resolve
-from omw.eval.world import Row, World, days
+from omw.eval.world import END, Row, World, days
 
 ADJECTIVES = (
     "Amber",
@@ -127,10 +128,11 @@ def build_twenty(rng: Rng, world: World) -> None:
             }
             opportunities[row["id"]] = row
             number += 1
-            if row["deleted_at"] != EPOCH:
-                continue
             levels = [own, _fields(person), _fields(company)]
             resolved = resolve(*levels)
+            _timeline(rng, world, row, company, resolved[0], key)
+            if row["deleted_at"] != EPOCH:
+                continue
             world.add(
                 "twenty_pipeline",
                 [
@@ -155,6 +157,77 @@ def build_twenty(rng: Rng, world: World) -> None:
             )
     world.add_raw("twenty___opportunities", opportunities.values())
     _activity(rng, world, companies, people, opportunities)
+
+
+def _timeline(
+    rng: Rng, world: World, deal: Row, company: Row, campaign_key: str, key: tuple[object, ...]
+) -> None:
+    """Twenty's change feed for one opportunity: the creation, and the move out of NEW into the stage it
+    holds today, one to thirty days later (never after the last day of the calendar).
+
+    The feed keeps the events of an opportunity that was deleted afterwards, as Twenty does; a few events
+    are themselves soft-deleted and must not show.
+    """
+    created: datetime = deal["created_at"]
+    last = datetime(END.year, END.month, END.day, 18, 0)
+    moved = min(created + timedelta(days=rng.integer(1, 30, *key, "moved_after")), last)
+    events = [("opportunity.created", "created", created, "", "")]
+    if deal["stage"] != "NEW":
+        events.append(("opportunity.updated", "updated", moved, "NEW", deal["stage"]))
+    for index, (event, action, at, before, after) in enumerate(events):
+        member = rng.pick(MEMBERS, *key, "member", index)
+        deleted = rng.chance(0.03, *key, "event_deleted", index)
+        event_id = _uuid(7, int(str(deal["id"])[-12:]) * 10 + index)
+        diff = {"diff": {"stage": {"before": before, "after": after}}} if after else {}
+        world.add_raw(
+            "twenty___timeline_activities",
+            [
+                {
+                    "source": "twenty",
+                    "id": event_id,
+                    "happens_at": at,
+                    "event": event,
+                    "object_name": "opportunity",
+                    "action": action,
+                    "is_linked": False,
+                    "changed_fields": "stage" if after else "",
+                    "stage_before": before,
+                    "stage_after": after,
+                    "member_id": member,
+                    "opportunity_id": deal["id"],
+                    "properties": json.dumps(diff, sort_keys=True) if diff else "",
+                    **_stamps(at, deleted),
+                }
+            ],
+        )
+        if deleted:
+            continue
+        world.add(
+            "twenty_timeline",
+            [
+                {
+                    "source": "twenty",
+                    "report": "timeline",
+                    "date": at.date(),
+                    "event_id": event_id,
+                    "event": event,
+                    "object": "opportunity",
+                    "action": action,
+                    "is_linked": False,
+                    "changed_fields": "stage" if after else "",
+                    "stage_before": before,
+                    "stage_after": after,
+                    "became_won": after == "CUSTOMER",
+                    "member_id": member,
+                    "person_id": "",
+                    "company_id": company["id"],
+                    "company_name": company["name"],
+                    "opportunity_id": deal["id"],
+                    "opportunity_name": deal["name"],
+                    "campaign_key": campaign_key,
+                }
+            ],
+        )
 
 
 def _fields(record: Row | None) -> tuple[str, str, str, str]:

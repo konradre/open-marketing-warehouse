@@ -244,6 +244,15 @@ def test_the_timeline_dates_what_happened_to_each_record(loaded: dlt.Pipeline, a
     assert _by(by_object) == {"opportunity": 4.0, "note": 1.0, "person": 1.0, "company": 1.0}
     by_key, _ = _won(agent_client, metrics=["crm_events"], dimensions=["campaign_key"])
     assert _by(by_key)["meta:23850000000000001"] == 5.0  # the four on the Acme opportunity, one on Acme
+    # An event on an opportunity carries the key the pipeline gives that opportunity, so wins by campaign
+    # and won opportunities by campaign split the same way. Globex's key comes from its point of contact.
+    disagreeing = agent_client.query(
+        "SELECT t.opportunity_name, t.campaign_key, p.campaign_key FROM marts.twenty_timeline AS t "
+        "INNER JOIN marts.twenty_pipeline AS p ON p.opportunity_id = t.opportunity_id "
+        "WHERE t.campaign_key != p.campaign_key"
+    ).result_rows
+    assert disagreeing == []
+    assert _by(by_key)["search_console:example"] >= 1.0
 
 
 def test_wins_are_dated_by_the_day_the_stage_was_entered(loaded: dlt.Pipeline, agent_client: Client) -> None:

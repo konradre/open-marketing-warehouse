@@ -15,6 +15,7 @@ USD = {"currency": "USD"}
 REVENUE = "marts.stripe_revenue"
 BALANCE = "marts.stripe_balance"
 PIPELINE = "marts.twenty_pipeline"
+TIMELINE = "marts.twenty_timeline"
 NET = "('charge', 'refund', 'dispute', 'dispute_reversal')"
 
 REVENUE_QUESTIONS: tuple[Question, ...] = (
@@ -230,6 +231,30 @@ PIPELINE_QUESTIONS: tuple[Question, ...] = (
         truth=lambda w: total(w.rows("twenty_pipeline", date=Q3, currency="USD", stage="CUSTOMER"), "amount"),
         sql=f"SELECT sumIf(amount, stage = 'CUSTOMER') FROM {PIPELINE} WHERE currency = 'USD' AND {Q3.sql()}",
         metrics=(M(("won_amount",), Q3, filters=USD),),
+    ),
+    P(
+        id="deals_won_sep",
+        text="How many deals moved into the won stage during September 2026, whenever they were created?",
+        shape="scalar",
+        unit="count",
+        truth=lambda w: float(len(w.rows("twenty_timeline", date=SEP, became_won=True))),
+        sql=f"SELECT countIf(became_won) FROM {TIMELINE} WHERE {SEP.sql()}",
+        metrics=(M(("crm_wins",), SEP),),
+    ),
+    P(
+        id="stage_moves_by_stage_aug",
+        text="How many opportunities moved into each pipeline stage during August 2026?",
+        shape="table",
+        unit="count",
+        label_name="stage entered",
+        truth=lambda w: count_by(
+            [r for r in w.rows("twenty_timeline", date=AUG) if r["stage_after"]], "stage_after"
+        ),
+        sql=(
+            f"SELECT stage_after, count() FROM {TIMELINE} WHERE stage_after != '' AND {AUG.sql()} "
+            "GROUP BY stage_after ORDER BY 1"
+        ),
+        metrics=(M(("crm_stage_changes",), AUG, ("stage_after",), label="stage_after"),),
     ),
     P(
         id="pipeline_by_stage_usd_q3",
