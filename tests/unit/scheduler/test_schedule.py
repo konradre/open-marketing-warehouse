@@ -41,6 +41,23 @@ def test_weekdays_restrict_the_slots() -> None:
     assert twice.next(WEDNESDAY) == datetime(2026, 11, 19, 6, 5, tzinfo=UTC)
 
 
+def test_an_hourly_schedule_fires_at_its_minute_of_every_hour() -> None:
+    hourly = parse("*:50")
+    assert hourly == Schedule(None, 50) and hourly.hourly and hourly.daily and str(hourly) == "*:50"
+    assert hourly.latest(WEDNESDAY) == datetime(2026, 11, 18, 11, 50, tzinfo=UTC)
+    assert hourly.next(WEDNESDAY) == datetime(2026, 11, 18, 12, 50, tzinfo=UTC)
+    at_the_slot = datetime(2026, 11, 18, 12, 50, tzinfo=UTC)
+    assert hourly.latest(at_the_slot) == at_the_slot and hourly.next(at_the_slot).hour == 13
+    midnight = datetime(2026, 11, 19, 0, 10, tzinfo=UTC)
+    assert hourly.latest(midnight) == datetime(2026, 11, 18, 23, 50, tzinfo=UTC)  # across the day boundary
+    assert hourly.on_calendar() == "*-*-* *:50:00 UTC"
+    assert not Schedule(3, 15).hourly
+    with pytest.raises(ScheduleError, match="an hourly schedule runs every day"):
+        parse("sun *:50")
+    with pytest.raises(ScheduleError, match="is not a time of day"):
+        parse("*:75")
+
+
 def test_slots_are_utc_whatever_zone_the_clock_is_in() -> None:
     schedule = parse("03:15")
     assert schedule is not None
@@ -79,7 +96,8 @@ def test_the_default_plan_runs_every_source_on_its_cadence() -> None:
     assert plan["meta_ads_weekly"].job.argv == ("weekly",) and CADENCES["weekly"] == 28
     assert not plan["meta_ads_weekly"].schedule.daily and len(plan["meta_ads_weekly"].schedule.weekdays) == 1
     for name in ("search_console", "google_ads", "ga4", "stripe", "linkedin_ads", "twenty", "backup"):
-        assert plan[name].schedule.daily, name
+        assert plan[name].schedule.daily and not plan[name].schedule.hourly, name
+    assert plan["checks"].schedule.hourly and plan["checks"].job.source == ""
     assert all(
         planned.job.module.startswith("omw.pipelines.") for planned in plan.values() if planned.job.source
     )

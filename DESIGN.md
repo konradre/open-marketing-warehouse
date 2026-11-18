@@ -174,8 +174,8 @@ accident guard, not the boundary.
 - Row-count sanity against the previous window.
 - Expiry: a credential with a recorded end date warns ahead of it and fails after it.
 
-**Scheduling** (`docs/DEPLOY.md`): one job at a time, the checks of a source after every sync of it, each
-attempt in `ops.sync_runs`, a webhook or e-mail and a non-zero exit code on failure. The scheduler container
+**Scheduling** (`docs/DEPLOY.md`): one job at a time, the checks of a source after every sync of it and all
+checks once an hour, each attempt in `ops.sync_runs`, a webhook or e-mail and a non-zero exit code on failure. The scheduler container
 and systemd timers are two triggers for the same `omw sync <job>`.
 
 **Backups:** `BACKUP ... TO Disk` of `raw`, `marts` and `ops` nightly, with a manifest of row counts inside;

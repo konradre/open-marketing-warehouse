@@ -342,7 +342,8 @@ make backup && make backup-verify   # BACKUP ... TO Disk, then the restore drill
   day. `"off"` takes a source out of the schedule and out of the checks.
 - **A job that fails is retried** twice, half an hour apart (`[scheduler] retries`, `retry_minutes`); the
   hook fires when the last attempt has failed too.
-- **After every sync**, the checks of that source run. `omw sync <job>` exits 1 when the sync failed and 3
+- **After every sync**, the checks of that source run, and once an hour all of them do, so a source that
+  stopped syncing turns stale between its own slots. `omw sync <job>` exits 1 when the sync failed and 3
   when it loaded but a check failed, and sends a webhook and/or an e-mail (`[alerts]` in
   `.dlt/secrets.toml`) either way.
 - **systemd timers** instead of the container loop: `deploy/systemd/`, rendered from the same schedule by

@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: checks (*:50 UTC, every post-sync check of every scheduled source, so one that stopped syncing turns stale)
+
+[Timer]
+OnCalendar=*-*-* *:50:00 UTC
+Persistent=true
+Unit=omw-sync@checks.service
+
+[Install]
+WantedBy=timers.target

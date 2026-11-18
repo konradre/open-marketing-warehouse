@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS ops.check_results (
     detail String COMMENT 'Human-readable outcome'
 )
 ENGINE = MergeTree
-ORDER BY (source, check, report, checked_at);
+ORDER BY (source, check, report, checked_at)
+TTL checked_at + INTERVAL 400 DAY;
 
 -- The agent may read two ops objects (grants in sql/00_05_grants.sql): the latest freshness verdict per source,
 -- and the latest verdict of every check, which the metric server turns into caveats.
