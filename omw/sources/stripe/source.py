@@ -26,7 +26,10 @@ from omw.sources.stripe.objects import (
 SOURCE_NAME = "stripe"
 INVOICE_WINDOW_DAYS = 90
 """Invoices created in the last 90 days are re-fetched and merged: that is how long they realistically
-keep changing (open → paid, voided, uncollectible). Older ones are already settled."""
+keep changing (open → paid, voided, uncollectible). Older ones are already settled. The first run pulls
+every invoice once."""
+HISTORY_LOADED = "history_loaded"
+"""Resource state of ``invoices``: set once a pull of every invoice has completed."""
 BALANCE_TRANSACTIONS_START = int(datetime(2020, 1, 1, tzinfo=UTC).timestamp())
 """Epoch seconds the incremental cursor starts from on a first run."""
 
@@ -65,8 +68,13 @@ def stripe(
             yield shape_subscription(obj)
 
     def invoices() -> Iterator[dict[str, Any]]:
-        for obj in stripe_client.list("invoices", {"created[gte]": invoices_since}):
+        # The first pull takes every invoice. The window is how long an invoice keeps changing, not where
+        # history starts: with it alone, revenue before the first sync's window would never be loaded.
+        state = dlt.current.resource_state()
+        window = {"created[gte]": invoices_since} if state.get(HISTORY_LOADED) else {}
+        for obj in stripe_client.list("invoices", window):
             yield shape_invoice(obj)
+        state[HISTORY_LOADED] = True
 
     @dlt.resource(
         name="balance_transactions",
