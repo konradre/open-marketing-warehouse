@@ -152,6 +152,25 @@ def test_the_examples_document_alerts_expiry_dates_and_where_keys_go() -> None:
     assert ".dlt/keys/" in ignored and "backups/" in ignored
 
 
+def test_every_ops_log_table_has_a_retention() -> None:
+    """The ops tables are append-only logs on a small host: each one says how long it keeps its rows, and
+    the guide tells an existing stack how to add that."""
+    sql = REPO / "sql"
+    tables = {
+        "20_meta_ads_ops.sql": ("ops.pacing_events", "recorded_at"),
+        "70_ops_checks.sql": ("ops.check_results", "checked_at"),
+        "75_ops_scheduler.sql": ("ops.sync_runs", "started_at"),
+    }
+    guide = (REPO / "docs/DEPLOY.md").read_text()
+    for name, (table, column) in tables.items():
+        create = (sql / name).read_text().split(";")[0]
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in create, name
+        assert f"TTL {column} + INTERVAL 400 DAY" in create, table
+        assert f"`{table}`" in guide, table
+    for table, column in (("ops.check_results", "checked_at"), ("ops.pacing_events", "recorded_at")):
+        assert f"ALTER TABLE {table} MODIFY TTL {column} + INTERVAL 400 DAY" in guide
+
+
 def test_the_makefile_has_the_operator_targets() -> None:
     makefile = (REPO / "Makefile").read_text()
     for target in (

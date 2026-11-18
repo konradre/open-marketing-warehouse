@@ -12,4 +12,5 @@ CREATE TABLE IF NOT EXISTS ops.pacing_events (
     detail String COMMENT 'Human-readable reason, with the header or Graph API error that decided it'
 )
 ENGINE = MergeTree
-ORDER BY (source, account_id, recorded_at);
+ORDER BY (source, account_id, recorded_at)
+TTL recorded_at + INTERVAL 400 DAY;
