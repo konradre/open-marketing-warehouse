@@ -21,12 +21,14 @@ from omw.sources.linkedin_ads import (
     linkedin_ads,
     refresh_access_token,
 )
+from omw.sources.linkedin_ads.analytics import RESPONSE_CAP, AnalyticsCapError, fetch_analytics
 from omw.sources.linkedin_ads.auth import TOKEN_URL
 from omw.sources.linkedin_ads.leads import lead_responses_path
 from omw.sources.linkedin_ads.shapes import shape_analytics, shape_campaign, shape_campaign_group, urn_id
 from omw.sources.linkedin_ads.source import API_BASE, analytics_path
 from omw.sources.linkedin_ads.version import VersionExpiredError
 from omw.sources.windows import Window
+from tests.unit.linkedin_ads.capped import CappedAnalytics
 from tests.unit.linkedin_ads.conftest import ACCOUNT, VERSION, body, fast_session, fixture, register_api
 
 WINDOW = Window(date(2026, 10, 1), date(2026, 10, 3))
@@ -281,3 +283,93 @@ def test_lead_form_responses_are_optional_counted_and_keep_answers_in_raw(auth: 
     stmts = statements((SQL_DIR / "80_linkedin_ads_marts_leads.sql").read_text())
     assert len(stmts) == 1 and "l.answers" not in stmts[0]
     assert "FROM raw.linkedin_ads___lead_form_responses" in stmts[0]
+
+
+def _keys(pages: Any) -> list[tuple[int, str]]:
+    return sorted(
+        (item["dateRange"]["start"]["day"], item["pivotValues"][0]) for page in pages for item in page
+    )
+
+
+def test_analytics_path_can_narrow_to_campaigns() -> None:
+    path = analytics_path(ACCOUNT, WINDOW, pivot="CREATIVE", campaign_ids=["800001", "800002"])
+    assert f"&accounts=List(urn%3Ali%3AsponsoredAccount%3A{ACCOUNT})" in path
+    assert (
+        "&campaigns=List(urn%3Ali%3AsponsoredCampaign%3A800001,urn%3Ali%3AsponsoredCampaign%3A800002)" in path
+    )
+    assert "campaigns=" not in analytics_path(ACCOUNT, WINDOW)
+
+
+def test_a_response_under_the_cap_is_one_request() -> None:
+    account = CappedAnalytics({"800001": 2, "800002": 1}, date(2026, 10, 1), days=3, cap=RESPONSE_CAP)
+    pages = list(fetch_analytics(account, ACCOUNT, WINDOW, "CREATIVE"))
+    assert len(account.requests) == 1 and _keys(pages) == _keys([account.rows("CREATIVE")])
+    assert RESPONSE_CAP == 15_000  # LinkedIn's documented limit on one adAnalytics response
+
+
+def test_a_window_that_reaches_the_cap_is_split_until_every_response_is_whole() -> None:
+    """adAnalytics does not paginate: past the cap the response is cut off with nothing to say so. Seven
+    days of 9 creatives is 63 rows against a cap of 20; asked in one request, 43 rows would be lost."""
+    account = CappedAnalytics({"800001": 5, "800002": 4}, date(2026, 10, 1), days=7, cap=20)
+    window = Window(date(2026, 10, 1), date(2026, 10, 7))
+    pages = list(fetch_analytics(account, ACCOUNT, window, "CREATIVE", cap=20))
+    assert _keys(pages) == _keys([account.rows("CREATIVE")]) and len(_keys(pages)) == 63
+    assert len(_keys(pages)) == len(set(_keys(pages)))  # no day asked twice
+    assert all(len(page) < 20 for page in pages)  # nothing that might have been cut off was kept
+    assert account.served[0] == 20 and "campaigns=" not in "".join(account.requests)  # dates were enough
+    ranges = [path.split("dateRange=")[1].split("&")[0] for path in account.requests]
+    assert ranges[0] == "(start:(year:2026,month:10,day:1),end:(year:2026,month:10,day:7))"
+    assert ranges[1] == "(start:(year:2026,month:10,day:1),end:(year:2026,month:10,day:3))"
+
+
+def test_a_single_day_at_the_cap_is_split_by_campaign() -> None:
+    """One day cannot be split by date. The campaigns active that day come from the campaign pivot, and
+    the creative pivot is asked per batch of them, halving a batch that is still too large."""
+    account = CappedAnalytics(
+        {"800001": 6, "800002": 6, "800003": 6, "800004": 1}, date(2026, 10, 1), days=2, cap=10
+    )
+    window = Window(date(2026, 10, 1), date(2026, 10, 2))
+    pages = list(fetch_analytics(account, ACCOUNT, window, "CREATIVE", cap=10))
+    assert _keys(pages) == _keys([account.rows("CREATIVE")]) and len(_keys(pages)) == 38
+    assert len(_keys(pages)) == len(set(_keys(pages))) and all(len(page) < 10 for page in pages)
+    campaign_pivot = [path for path in account.requests if "pivot=CAMPAIGN" in path]
+    assert len(campaign_pivot) == 2  # one lookup of the active campaigns per day that needed it
+    narrowed = [path for path in account.requests if "pivot=CREATIVE" in path and "campaigns=" in path]
+    assert any(path.count("sponsoredCampaign") == 1 for path in narrowed)  # halved down to one campaign
+
+
+def test_a_request_that_cannot_be_made_smaller_fails_instead_of_loading_a_short_slice() -> None:
+    day = Window(date(2026, 10, 1), date(2026, 10, 1))
+    one_campaign = CappedAnalytics({"800001": 12}, date(2026, 10, 1), days=1, cap=10)
+    with pytest.raises(AnalyticsCapError, match="campaign 800001 on one day"):
+        list(fetch_analytics(one_campaign, ACCOUNT, day, "CREATIVE", cap=10))
+    many_campaigns = CappedAnalytics({str(800000 + n): 1 for n in range(12)}, date(2026, 10, 1), 1, cap=10)
+    with pytest.raises(AnalyticsCapError, match="cannot be split further"):
+        list(fetch_analytics(many_campaigns, ACCOUNT, day, "CAMPAIGN", cap=10))
+
+
+@responses.activate
+def test_the_resources_load_every_row_when_linkedin_cuts_responses_off(auth: LinkedInAuth) -> None:
+    """The same split through the real resources and HTTP client: the fixture account has 6 campaign rows
+    and 6 creative rows over three days, and LinkedIn is made to cut every response at 4."""
+    register_api(responses, cap=4)
+    source = linkedin_ads(
+        account_ids=[ACCOUNT], auth=auth, session=fast_session(auth), window=WINDOW, analytics_cap=4
+    )
+    for name, pivot_id, fixture_name in (
+        ("ad_analytics", "campaign_id", "ad_analytics"),
+        ("ad_analytics_creatives", "creative_id", "ad_analytics_creatives"),
+    ):
+        rows = list(source.resources[name])
+        want = sorted(
+            (e["dateRange"]["start"]["day"], e["pivotValues"][0].rsplit(":", 1)[-1], e["impressions"])
+            for e in fixture(fixture_name)["elements"]
+        )
+        assert sorted((r["date"].day, r[pivot_id], r["impressions"]) for r in rows) == want
+    analytics_calls = [str(c.request.url) for c in responses.calls if "adAnalytics" in str(c.request.url)]
+    assert len(analytics_calls) > 2  # more than one request per pivot: the window was split
+    # Without the split the same account loads short: this is what the cap costs when it is not handled.
+    responses.reset()
+    register_api(responses, cap=4)
+    unsplit = linkedin_ads(account_ids=[ACCOUNT], auth=auth, session=fast_session(auth), window=WINDOW)
+    assert len(list(unsplit.resources["ad_analytics_creatives"])) == 4

@@ -49,18 +49,21 @@ def _drop(admin_client: Client) -> None:
         admin_client.command(f"DROP {kind} IF EXISTS {database}.`{name}`")
 
 
-def _run(pipeline: dlt.Pipeline, analytics: str = "ad_analytics") -> dict[str, int]:
+def _run(pipeline: dlt.Pipeline, analytics: str = "ad_analytics", cap: int | None = None) -> dict[str, int]:
+    """``cap`` makes LinkedIn cut every adAnalytics response off at that many elements, and tells the
+    source that this is the limit."""
     # responses only intercepts api.linkedin.com; ClickHouse traffic passes through untouched.
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add_passthru("http://127.0.0.1")
         mock.add_passthru("http://localhost")
-        register_api(mock, analytics)
+        register_api(mock, analytics, cap)
         return run_daily(
             pipeline,
             today=TODAY,
             account_ids=[ACCOUNT],
             auth=LinkedInAuth(VERSION, token_provider=lambda: "t"),
             leads=True,
+            **({"analytics_cap": cap} if cap is not None else {}),
         )
 
 
@@ -164,6 +167,27 @@ def test_raw_conventions_and_invisibility(
     assert sort_key == "account_id, date, campaign_id"
     with pytest.raises(DatabaseError, match="Code: 497"):
         agent_client.query(f"SELECT count() FROM raw.{DATASET}___campaigns")
+
+
+def test_a_run_against_cut_off_responses_loads_every_row_once(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    """adAnalytics does not paginate and cuts a response off at its element limit. With the limit at 4 the
+    fixture window (6 rows per pivot) no longer fits one response; the run splits it and the marts hold
+    the same days, rows and totals as before, replaced and not doubled."""
+    totals = (
+        f"SELECT count(), uniqExact(date), sum(impressions), sum(clicks), sum(cost) FROM marts.{DATASET}_{{}}"
+    )
+    before = {
+        view: agent_client.query(totals.format(view)).result_rows[0] for view in ("campaigns", "creatives")
+    }
+    assert before["campaigns"][:2] == (6, 3) and before["creatives"][:2] == (6, 3)
+    counts = _run(loaded, cap=4)
+    assert counts["ad_analytics"] == 6 and counts["ad_analytics_creatives"] == 6
+    after = {
+        view: agent_client.query(totals.format(view)).result_rows[0] for view in ("campaigns", "creatives")
+    }
+    assert after == before
 
 
 def test_restated_day_is_replaced_and_entities_merge(
