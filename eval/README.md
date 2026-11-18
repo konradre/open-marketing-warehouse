@@ -1,15 +1,15 @@
 # Evaluation of the agent read path
 
-The same 132 marketing questions are asked two ways, against the same seeded warehouse, and scored against
+The same 134 marketing questions are asked two ways, against the same seeded warehouse, and scored against
 ground truth computed outside both:
 
 - **Arm `sql`**: the agent gets the `marts` schema with its column comments, and raw SQL through
   mcp-clickhouse as the `agent` user.
 - **Arm `metrics`**: the agent gets `SEMANTICS.md` and the `query_metrics` tools.
 
-**What the offline run shows.** With the best plan, raw SQL can answer all 104 answerable questions and the
-metric layer 103; it has no measure for the other one. Taken at face value, the same questions give a wrong
-number 30% of the time through raw SQL and 2% of the time through the metric layer, which also turns 25 of
+**What the offline run shows.** With the best plan, raw SQL can answer all 106 answerable questions and the
+metric layer 105; it has no measure for the other one. Taken at face value, the same questions give a wrong
+number 29% of the time through raw SQL and 2% of the time through the metric layer, which also turns 25 of
 28 trap questions into a refusal or a question back where raw SQL does so for 5. The first run of this eval
 found five gaps in the metric layer itself (it answered 92 of its 101 answerable questions and gave 9 wrong
 numbers at face value); they are fixed, and listed with what changed under
@@ -28,12 +28,12 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 
 | Planner | Arm | Accuracy on answerable questions | Refuse/clarify correct on traps | Wrong-number rate (all questions) | Over-refusals | Caveats carried | Errors |
 |---|---|---|---|---|---|---|---|
-| `reference` (known-good plans: the harness check) | schema + raw SQL | 100.0% (104/104; 95% CI 96-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/132; 95% CI 0-3%) | 0/104 | 5/5 | 0 |
-| `reference` (known-good plans: the harness check) | SEMANTICS.md + query_metrics | 99.0% (103/104; 95% CI 95-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/132; 95% CI 0-3%) | 1/104 | 5/5 | 0 |
-| `literal` (face-value plans) | schema + raw SQL | 84.6% (88/104; 95% CI 76-90%) | 17.9% (5/28; 95% CI 8-36%) | 29.5% (39/132; 95% CI 22-38%) | 0/104 | 0/5 | 0 |
-| `literal` (face-value plans) | SEMANTICS.md + query_metrics | 99.0% (103/104; 95% CI 95-100%) | 89.3% (25/28; 95% CI 73-96%) | 2.3% (3/132; 95% CI 1-6%) | 1/104 | 5/5 | 0 |
-| `refuser` (declines everything: the null baseline) | schema + raw SQL | 0.0% (0/104; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/132; 95% CI 0-3%) | 104/104 | - | 0 |
-| `refuser` (declines everything: the null baseline) | SEMANTICS.md + query_metrics | 0.0% (0/104; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/132; 95% CI 0-3%) | 104/104 | - | 0 |
+| `reference` (known-good plans: the harness check) | schema + raw SQL | 100.0% (106/106; 95% CI 97-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/134; 95% CI 0-3%) | 0/106 | 5/5 | 0 |
+| `reference` (known-good plans: the harness check) | SEMANTICS.md + query_metrics | 99.1% (105/106; 95% CI 95-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/134; 95% CI 0-3%) | 1/106 | 5/5 | 0 |
+| `literal` (face-value plans) | schema + raw SQL | 84.9% (90/106; 95% CI 77-90%) | 17.9% (5/28; 95% CI 8-36%) | 29.1% (39/134; 95% CI 22-37%) | 0/106 | 0/5 | 0 |
+| `literal` (face-value plans) | SEMANTICS.md + query_metrics | 99.1% (105/106; 95% CI 95-100%) | 89.3% (25/28; 95% CI 73-96%) | 2.2% (3/134; 95% CI 1-6%) | 1/106 | 5/5 | 0 |
+| `refuser` (declines everything: the null baseline) | schema + raw SQL | 0.0% (0/106; 95% CI 0-3%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/134; 95% CI 0-3%) | 106/106 | - | 0 |
+| `refuser` (declines everything: the null baseline) | SEMANTICS.md + query_metrics | 0.0% (0/106; 95% CI 0-3%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/134; 95% CI 0-3%) | 106/106 | - | 0 |
 
 ### Face-value plans, by category
 
@@ -44,7 +44,7 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 | search | 10 | 9/10 | 10/10 | 1 | 0 |
 | ga4 | 11 | 10/11 | 11/11 | 1 | 0 |
 | revenue | 13 | 10/13 | 12/13 | 3 | 0 |
-| pipeline | 10 | 9/10 | 10/10 | 1 | 0 |
+| pipeline | 12 | 11/12 | 12/12 | 1 | 0 |
 | cross source | 13 | 9/13 | 13/13 | 4 | 0 |
 | compare | 10 | 9/10 | 10/10 | 1 | 0 |
 | trap | 28 | 5/28 | 25/28 | 23 | 3 |
@@ -84,7 +84,7 @@ Beyond the coverage gaps in the next table.
 
 - **`reference`, both arms: the harness check.** Every reference query and every reference `query_metrics`
   request returns the independently computed ground truth, through the repo's real `marts` views. That is
-  three separate computations agreeing on 104 numbers. The 28/28 on traps is scripted (the reference planner
+  three separate computations agreeing on 106 numbers. The 28/28 on traps is scripted (the reference planner
   declines them by definition), so read it as "the scorer accepts the right behaviour", nothing more.
 - **`reference`, metric arm: coverage.** The one over-refusal is a question the layer has no way to
   answer: the unit prices of the active subscriptions (no metric reads subscription prices). It is declared
@@ -128,9 +128,11 @@ changed. The table above is the layer after the fixes.
 | Traps handled at face value | 20/28 | 25/28 |
 | Wrong numbers at face value | 9/129 | 3/129 |
 
-Both columns count the 129 questions of the first run. Three were added afterwards, so the tables at the top
-count 132: two GA4 totals the catalog gained a metric for (`page_views`, `engaged_sessions`) and one
-question it still cannot answer, kept as a declared gap so that coverage stays a measured number.
+Both columns count the 129 questions of the first run. Five were added afterwards, so the tables at the top
+count 134: two GA4 totals the catalog gained a metric for (`page_views`, `engaged_sessions`), one
+question it still cannot answer, kept as a declared gap so that coverage stays a measured number, and two
+on Twenty's change feed (deals won in a month by the day they moved, stage moves by stage), added with the
+`timeline` grain.
 
 1. **A filter on `campaign_key` without the dimension failed.** `query_metrics(["ad_spend"], filters={
    "campaign_key": "widgets_prospecting"})` compiled SQL that filtered on a column the ad platform views do
@@ -196,7 +198,7 @@ source and every report grain, about 33 000 rows in 50 `raw` tables. The evaluat
 | Search Console | core, queries, pages, query by page, countries, devices |
 | GA4 | core, channels, campaigns, landing pages |
 | Stripe | invoices (revenue), balance transactions, subscriptions |
-| Twenty | opportunities (pipeline), activity (notes and tasks) |
+| Twenty | opportunities (pipeline), activity (notes and tasks), timeline (the change feed: creations and stage moves) |
 
 ### Ground truth
 
@@ -219,7 +221,7 @@ no longer matches the seed.
 | search | 10 | Search Console totals, top queries and pages, breakdowns |
 | ga4 | 11 | Sessions, page views, users, key events, channels, campaigns, the `(other)` bucket |
 | revenue | 13 | Stripe revenue, new customers, attribution, net revenue, refunds, fees, subscriptions |
-| pipeline | 10 | Twenty opportunities, amounts, stages, win rate, CRM tasks |
+| pipeline | 12 | Twenty opportunities, amounts, stages, win rate, CRM tasks, wins and stage moves by the day they happened |
 | cross source | 13 | Ad spend across platforms, ROAS, CAC, cost per opportunity, cost per lead |
 | compare | 10 | A period against the one before, month over month, percentage change |
 | trap | 28 | 11 that need a question back, 17 that have no valid answer |
@@ -315,7 +317,7 @@ runs each distinct query once. If repeated runs do hit the quota, the rows are r
 
 ## A real-model run
 
-Optional, and it costs money: 264 conversations (132 questions in two arms), a few model calls each. The
+Optional, and it costs money: 268 conversations (134 questions in two arms), a few model calls each. The
 SQL arm's schema is about 46 000 characters, sent as a cached system prompt.
 
 ```bash
@@ -342,7 +344,7 @@ Three things are deliberate:
 
 - **No fallback model.** A response served by another model, a refusal by the safety classifiers or a
   truncated reply is an `error` row. A score from the wrong model measures nothing.
-- **Repeats.** A model is not deterministic. `--reps 3` asks every question three times. One pass over 104
+- **Repeats.** A model is not deterministic. `--reps 3` asks every question three times. One pass over 106
   answerable questions has a 95% interval of roughly ±8 points, and 28 traps roughly ±17, so a smaller
   difference between two runs or two arms is noise.
 - **Another model.** `omw/eval/model_planner.py` is under 200 lines over one interface. A planner for
