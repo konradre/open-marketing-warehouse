@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 
 from omw.sources.meta_ads.helpers import InsightsJobError, JobPolling, page_entities, wait_for_job
+from omw.sources.meta_ads.leads import INITIAL_CREATED_TIME, cursor
 from tests.unit.meta_ads.conftest import FakeJob, fixture, fixture_rows
 
 
@@ -59,3 +61,10 @@ def test_wait_for_job_gives_up_when_the_job_never_starts() -> None:
     with pytest.raises(InsightsJobError, match="did not start"):
         wait_for_job(FakeJob([], statuses), polling, clock.sleep, clock)
     assert clock.now == 30.0
+
+
+def test_the_leads_cursor_is_kept_per_ad_with_an_overlap() -> None:
+    asked = {"23870000000000001": "2026-10-03T17:15:00+00:00"}
+    assert cursor(asked, "23870000000000001") == datetime(2026, 10, 3, 16, 15, tzinfo=UTC)
+    assert cursor(asked, "23870000000000002") == INITIAL_CREATED_TIME  # an ad that returned no lead yet
+    assert cursor({}, "23870000000000001") == INITIAL_CREATED_TIME

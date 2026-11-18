@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date
+from collections.abc import Iterator
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -10,10 +11,10 @@ from typing import Any
 import dlt
 import pytest
 
-from omw.pacing import MetaPacer, StopReason
+from omw.pacing import Decision, MetaPacer, StopReason
 from omw.pipelines.meta_ads import run
 from omw.sources.meta_ads import CADENCES, cadence_window, check_token, meta_ads
-from omw.sources.meta_ads.leads import INITIAL_CREATED_TIME
+from omw.sources.meta_ads.leads import INITIAL_CREATED_TIME, leads_resource
 from omw.sources.meta_ads.source import insights_params, shape_insight
 from omw.sources.meta_ads.token import TokenExpiredError
 from omw.sources.windows import Window
@@ -276,3 +277,77 @@ def test_an_injected_session_is_paced_once_and_shared_by_every_account() -> None
     assert [call.path.rstrip("/").rsplit("/", 1)[-1] for call in lookups] == ["act_1", "act_2"]
     assert all(call.query["access_token"] == "tok" for call in lookups)
     assert pacer.summary.requests == len(adapter.calls) == 2  # each response paced exactly once
+
+
+def _leads_by_ad(leads: dict[str, list[tuple[str, str]]]) -> Any:
+    """A lead fetcher over ``{ad_id: [(lead id, created_time)]}`` that honours Meta's ``time_created``
+    filter. The dict can change between runs, as an ad's leads do."""
+
+    def fetch(account: Any, ad_id: str, params: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        since = int(params["filtering"][0]["value"])
+        for lead_id, created in leads.get(ad_id, []):
+            if int(datetime.strptime(created, "%Y-%m-%dT%H:%M:%S%z").timestamp()) > since:
+                yield {"id": lead_id, "ad_id": ad_id, "created_time": created}
+
+    return fetch
+
+
+def _lead_run(pipeline: dlt.Pipeline, pacer: MetaPacer, fetcher: Any) -> Any:
+    return run(
+        pipeline,
+        "daily",
+        [ACCOUNT],
+        today=TODAY,
+        pacer=pacer,
+        leads=True,
+        lead_fetcher=fetcher,
+        entities=[],
+        apply_sql=False,
+        record_ops=False,
+        accounts={ACCOUNT: FakeAccount(pacer=pacer)},
+    )
+
+
+def test_leads_of_ads_a_stopped_run_did_not_reach_are_loaded_by_the_next_run(tmp_path: Path) -> None:
+    """Leads are fetched ad by ad. A run the pacer stops after the first ad has not asked the others, so
+    the cursor must not move past their leads: the newest lead of the first ad says nothing about them."""
+    first_ad, second_ad = (a["id"] for a in fixture_rows("ads")[:2])
+    leads = {
+        first_ad: [("23900000000000011", "2026-10-03T17:15:00+0000")],
+        second_ad: [("23900000000000012", "2026-10-01T09:15:00+0000")],
+    }
+    fetch = _leads_by_ad(leads)
+    pipeline = _pipeline(tmp_path)
+
+    stopping = MetaPacer(sleep=lambda _: None)
+
+    def stop_at_the_second_ad(account: Any, ad_id: str, params: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        if ad_id == second_ad:
+            stopping.apply(Decision(96.0, "x-app-usage:call_count", 0.0, StopReason.UTILISATION, "simulated"))
+        return fetch(account, ad_id, params)
+
+    first = _lead_run(pipeline, stopping, stop_at_the_second_ad)
+    assert first.stopped is not None and first.counts["leads"] == 1
+
+    second = _lead_run(pipeline, MetaPacer(sleep=lambda _: None), fetch)
+    assert second.stopped is None
+    assert second.counts.get("leads", 0) >= 1  # the lead of the second ad, older than the first ad's
+
+
+def test_a_lead_that_arrives_on_an_ad_already_asked_is_loaded_by_the_next_run(tmp_path: Path) -> None:
+    """The pass takes time. A lead created on the first ad after it was asked is older than a lead the
+    second ad returns a moment later; the next run must still ask for it."""
+    first_ad, second_ad = (a["id"] for a in fixture_rows("ads")[:2])
+    leads = {second_ad: [("23900000000000022", "2026-10-03T12:01:00+0000")]}
+    accounts = {ACCOUNT: FakeAccount()}
+
+    def resource() -> Any:
+        return leads_resource(accounts, 100, lambda _name, items: items, _leads_by_ad(leads))
+
+    pipeline = _pipeline(tmp_path)
+    pipeline.run(resource())
+    assert pipeline.last_trace.last_normalize_info.row_counts["leads"] == 1
+    leads[first_ad] = [("23900000000000021", "2026-10-03T12:00:30+0000")]  # visible only after the pass
+    pipeline.run(resource())
+    loaded = pipeline.last_trace.last_normalize_info.row_counts["leads"]
+    assert loaded == 2  # the late lead, and the other one again inside the overlap (merged on id)
