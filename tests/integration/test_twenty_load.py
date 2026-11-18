@@ -56,12 +56,15 @@ def _run(
     deleted: str | None = None,
     won: list[str] | None = None,
     timeline: str = "timeline_activities",
+    lost: list[str] | None = None,
 ) -> dict[str, int]:
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add_passthru("http://127.0.0.1")
         mock.add_passthru("http://localhost")
         register_api(mock, opportunities, deleted, timeline)
-        return run_daily(pipeline, won=won, base_url=BASE_URL, api_key="k", session=default_session(2, 0.0))
+        return run_daily(
+            pipeline, won=won, lost=lost, base_url=BASE_URL, api_key="k", session=default_session(2, 0.0)
+        )
 
 
 @pytest.fixture(scope="module")
@@ -162,6 +165,32 @@ def test_the_won_metrics_follow_the_configured_closed_won_stages(
     finally:
         _run(loaded)  # back to the default for the tests that follow
     assert str(agent_client.command(comment)).endswith("Closed-won stages here: CUSTOMER")
+
+
+def test_closed_lost_stages_split_the_pipeline_into_won_lost_and_open(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    """Twenty's default pipeline has no lost stage, so nothing is lost until the deployment names one. The
+    fixture pipeline: PROPOSAL (36 000 EUR), MEETING (9 000 EUR) and NEW (120 000 USD)."""
+    comment = (
+        "SELECT comment FROM system.columns "
+        "WHERE database = 'marts' AND table = 'twenty_pipeline' AND name = 'is_lost'"
+    )
+    assert str(agent_client.command(comment)).endswith("Closed-lost stages here: none")
+    assert agent_client.command("SELECT countIf(is_lost) FROM marts.twenty_pipeline") == 0
+    _run(loaded, won=["PROPOSAL"], lost=["NEW"])
+    try:
+        assert str(agent_client.command(comment)).endswith("Closed-lost stages here: NEW")
+        rows, _ = _won(agent_client, metrics=["opportunities"], dimensions=["is_won", "is_lost"])
+        split = {(bool(won), bool(lost)): float(count) for won, lost, count in rows}
+        assert split == {(True, False): 1.0, (False, True): 1.0, (False, False): 1.0}  # won, lost, open
+        rows, _ = _won(
+            agent_client, metrics=["pipeline_amount"], dimensions=["is_lost"], filters={"currency": "USD"}
+        )
+        assert {bool(lost): float(amount) for lost, amount in rows} == {True: 120000.0}
+    finally:
+        _run(loaded)
+    assert agent_client.command("SELECT countIf(is_lost) FROM marts.twenty_pipeline") == 0
 
 
 def _by(rows: list[tuple[Any, ...]]) -> dict[Any, float]:

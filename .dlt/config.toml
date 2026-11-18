@@ -35,5 +35,7 @@ days = 7
 [sources.twenty]
 # Stages that count as closed-won (is_won in marts.twenty_pipeline; the won_* metrics). Twenty's default.
 won_stages = ["CUSTOMER"]
+# Stages that count as closed-lost (is_lost). Twenty's default pipeline has none; name yours, for example ["LOST"].
+lost_stages = []
 # Twenty's change feed (timeline activities -> marts.twenty_timeline). It grows with every edit; false leaves it out.
 timeline = true

@@ -3,6 +3,7 @@
 -- Attribution custom fields resolve opportunity, then its point of contact, then its company.
 -- The closed-won stages are configuration (sources.twenty.won_stages, CUSTOMER by default): the pipeline rewrites the
 -- list between the /*won_stages*/ markers and the stage names at the end of the is_won comment before it applies the file.
+-- The closed-lost stages (sources.twenty.lost_stages, none by default) go between the /*lost_stages*/ markers the same way.
 -- Applied by omw.pipelines.twenty after each successful load. SQL SECURITY DEFINER keeps raw invisible to the agent.
 
 CREATE OR REPLACE VIEW marts.twenty_pipeline (
@@ -13,6 +14,7 @@ CREATE OR REPLACE VIEW marts.twenty_pipeline (
     opportunity_name String COMMENT 'Opportunity name at the last sync',
     stage LowCardinality(String) COMMENT 'Pipeline stage as configured in Twenty, by default NEW, SCREENING, MEETING, PROPOSAL, CUSTOMER',
     is_won Bool COMMENT 'True when the stage is a closed-won stage of this deployment. Closed-won stages here: CUSTOMER',
+    is_lost Bool COMMENT 'True when the stage is a closed-lost stage of this deployment. Twenty has none by default. Closed-lost stages here: none',
     amount Decimal(18, 2) COMMENT 'Opportunity amount in its currency (amountMicros / 1 000 000)',
     currency LowCardinality(String) COMMENT 'ISO 4217 currency of the amount, empty when unset',
     close_date DateTime COMMENT 'Expected or actual close date (UTC), 1970-01-01 when unset',
@@ -31,6 +33,7 @@ CREATE OR REPLACE VIEW marts.twenty_pipeline (
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT o.source AS source, 'opportunities' AS report, toDate(o.created_at) AS date, o.id AS opportunity_id, o.name AS opportunity_name, o.stage AS stage,
        o.stage IN (/*won_stages*/'CUSTOMER'/*won_stages*/) AS is_won,
+       has([/*lost_stages*//*lost_stages*/], o.stage) AS is_lost,
        toDecimal64(o.amount, 2) AS amount, o.currency AS currency, o.close_date AS close_date, o.created_at AS created_at,
        o.updated_at AS updated_at, o.company_id AS company_id, c.name AS company_name, c.domain AS company_domain,
        o.person_id AS person_id, p.email AS person_email,

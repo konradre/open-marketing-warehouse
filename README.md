@@ -224,11 +224,15 @@ case), in `.dlt/config.toml` or on the command line. The next sync rewrites the 
 ```toml
 [sources.twenty]
 won_stages = ["CLOSED_WON", "RENEWED"]
+lost_stages = ["CLOSED_LOST"]
 ```
 
 ```bash
 uv run python -m omw.pipelines.twenty daily --won-stage CLOSED_WON --won-stage RENEWED
 ```
+
+`is_lost` marks the closed-lost stages the same way (`lost_stages`, `--lost-stage`). Twenty's default
+pipeline has no lost stage, so the default is none; an opportunity that is neither won nor lost is open.
 
 ```bash
 uv run python -m omw.pipelines.twenty daily    # everything changed since the last run

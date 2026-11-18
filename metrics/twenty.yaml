@@ -7,6 +7,7 @@ reports:
     dimensions:
       stage: Pipeline stage as configured in Twenty (NEW, SCREENING, MEETING, PROPOSAL, CUSTOMER by default)
       is_won: True when the stage is a closed-won stage of the deployment (CUSTOMER unless configured otherwise)
+      is_lost: True when the stage is a closed-lost stage of the deployment (none unless configured)
       currency: ISO 4217 currency of the amount, empty when unset
       company_id: Twenty company id, empty when none
       company_name: Company name at the last sync
@@ -17,7 +18,8 @@ reports:
     campaign_key: campaign_key
     traps:
       - Opportunities are dated by creation day and reflect their current stage and amount, so past days change as deals move.
-      - Stage names are the Twenty configuration. Which stages count as won is configured in the pipeline (is_won); CUSTOMER by default.
+      - Stage names are the Twenty configuration. Which stages count as won or lost is configured in the pipeline (is_won, CUSTOMER by default; is_lost, none by default).
+      - An opportunity that is neither won nor lost is open. A win rate over closed deals is won / (won + lost); over opportunities it counts open ones as not won.
   - name: activity
     view: marts.twenty_activity
     description: Twenty CRM notes and tasks, one row per activity and attached record, dated by creation day.
@@ -61,14 +63,14 @@ metrics:
     report: opportunities
     expr: count()
     unit: count
-    grains: [stage, is_won, currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    grains: [stage, is_won, is_lost, currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
     aliases: [deals, pipeline_count]
     description: Opportunities created, whatever their stage today.
   - name: pipeline_amount
     report: opportunities
     expr: sum(amount)
     unit: currency
-    grains: [stage, is_won, currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
+    grains: [stage, is_won, is_lost, currency, company_id, company_name, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
     aliases: [pipeline, pipeline_value]
     description: Sum of opportunity amounts in their currency, by creation day.
   - name: won_opportunities

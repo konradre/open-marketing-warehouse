@@ -20,6 +20,7 @@ from omw.pipelines.twenty import (
     DEFAULT_WON_STAGES,
     MARTS_SQL,
     TIMELINE_SQL,
+    lost_stages,
     render_won_stages,
     run_daily,
     won_stages,
@@ -256,9 +257,14 @@ def test_a_bad_stage_stops_the_run_before_anything_is_loaded() -> None:
 def test_the_command_takes_the_stages_from_the_flag_then_the_config(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[Any] = []
     monkeypatch.setattr(twenty_pipeline, "build_pipeline", lambda: "pipeline")
-    monkeypatch.setattr(
-        twenty_pipeline, "run_daily", lambda pipeline, won, timeline: seen.append((won, timeline)) or {}
-    )
+    lost_seen: list[Any] = []
+
+    def fake_run(pipeline: Any, won: Any, timeline: bool, lost: Any) -> dict[str, int]:
+        seen.append((won, timeline))
+        lost_seen.append(lost)
+        return {}
+
+    monkeypatch.setattr(twenty_pipeline, "run_daily", fake_run)
     configured: dict[str, Any] = {}
 
     class Config:
@@ -280,6 +286,14 @@ def test_the_command_takes_the_stages_from_the_flag_then_the_config(monkeypatch:
     configured["sources.twenty.timeline"] = True
     assert twenty_pipeline.main(["daily"]) == 0
     assert [timeline for _, timeline in seen[3:]] == [False, False, True]
+    # Closed-lost stages: none unless the flag or the config names them; never one that is also won.
+    assert lost_seen == [()] * 6
+    configured["sources.twenty.lost_stages"] = ["LOST"]
+    assert twenty_pipeline.main(["daily"]) == 0
+    assert twenty_pipeline.main(["daily", "--lost-stage", "CHURNED", "--lost-stage", "NO_BUDGET"]) == 0
+    assert lost_seen[6:] == [("LOST",), ("CHURNED", "NO_BUDGET")]
+    with pytest.raises(ValueError, match="RENEWED is also a closed-won stage"):
+        twenty_pipeline.main(["daily", "--lost-stage", "RENEWED"])
 
 
 def test_the_won_metrics_read_the_flag_not_a_stage_name() -> None:
@@ -380,3 +394,25 @@ def test_the_timeline_view_dates_stage_moves_and_follows_the_closed_won_stages()
     assert catalog.reports["twenty.timeline"].view == "marts.twenty_timeline"
     assert catalog.metrics["crm_wins"].expr == "countIf(became_won)"
     assert catalog.metrics["crm_stage_changes"].expr == "countIf(stage_after != '')"
+
+
+def test_the_closed_lost_stages_are_none_by_default_and_go_where_the_file_marks() -> None:
+    assert lost_stages(None) == () == lost_stages([])
+    assert lost_stages(["LOST", " CLOSED_LOST ", "LOST"]) == ("LOST", "CLOSED_LOST")
+    with pytest.raises(ValueError, match='lost_stages: "a\'b" is not a stage name'):
+        lost_stages(["a'b"])
+    with pytest.raises(ValueError, match="CUSTOMER is also a closed-won stage"):
+        lost_stages(["LOST", "CUSTOMER"], won=("CUSTOMER",))
+    text = MARTS_SQL.read_text()
+    assert "has([/*lost_stages*//*lost_stages*/], o.stage) AS is_lost" in text  # nothing is lost by default
+    assert render_won_stages(DEFAULT_WON_STAGES, [])(text) == text
+    rendered = statements(render_won_stages(["WON"], ["LOST", "NO_BUDGET"])(text))[0]
+    assert "has([/*lost_stages*/'LOST', 'NO_BUDGET'/*lost_stages*/], o.stage) AS is_lost" in rendered
+    assert "Closed-lost stages here: LOST, NO_BUDGET'" in rendered
+    assert "o.stage IN (/*won_stages*/'WON'/*won_stages*/) AS is_won" in rendered
+    # The timeline view has no lost stage to mark; it still takes the won ones.
+    timeline = render_won_stages(["WON"], ["LOST"])(TIMELINE_SQL.read_text())
+    assert "lost_stages" not in timeline and "/*won_stages*/'WON'/*won_stages*/" in timeline
+    catalog = load_catalog()
+    assert "is_lost" in catalog.reports["twenty.opportunities"].dimensions
+    assert "is_lost" in catalog.metrics["pipeline_amount"].grains
