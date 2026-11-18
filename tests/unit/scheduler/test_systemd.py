@@ -22,7 +22,8 @@ def test_the_committed_units_are_the_default_schedule() -> None:
 
 def test_one_timer_per_job_catching_up_after_downtime() -> None:
     units = systemd.render(build_plan())
-    assert len(units) == 11 and systemd.SERVICE in units
+    assert len(units) == 12 and systemd.SERVICE in units
+    assert "OnCalendar=*-*-* *:50:00 UTC" in units["omw-sync-checks.timer"]  # every hour
     weekly = units["omw-sync-meta_ads_weekly.timer"]
     assert "OnCalendar=Sun *-*-* 03:15:00 UTC" in weekly and "Unit=omw-sync@meta_ads_weekly.service" in weekly
     # The weekly reconcile takes Sunday; the daily re-pull has the other six days.
@@ -52,7 +53,7 @@ def test_rendering_follows_the_schedule_and_removes_stale_timers(tmp_path: Path)
     written = systemd.write(systemd.render(plan), tmp_path)
     names = {path.name for path in tmp_path.iterdir()}
     assert "omw-sync-linkedin_ads.timer" not in names and "unrelated.timer" in names
-    assert len(written) == 10
+    assert len(written) == 11
     assert "OnCalendar=Mon,Thu *-*-* 09:30:00 UTC" in (tmp_path / "omw-sync-twenty.timer").read_text()
 
 

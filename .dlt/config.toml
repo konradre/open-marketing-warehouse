@@ -58,6 +58,7 @@ linkedin_ads = "04:45"
 twenty = "05:00"
 backup = "06:00"
 backup_verify = "sun 06:30"        # restore drill of the newest backup, into scratch databases
+checks = "*:50"                    # every hour: all checks of all scheduled sources ("*:MM")
 
 [scheduler]
 # A job still running after this many minutes is stopped and reported as crashed.

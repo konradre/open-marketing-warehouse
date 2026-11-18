@@ -194,6 +194,54 @@ def test_a_credential_about_to_expire_warns_without_failing_the_job(
     assert "service-account key expired on" in notifier.sent[0].details[0]
 
 
+def test_the_hourly_checks_alert_when_a_check_starts_failing_and_not_again(
+    warehouse: FakeWarehouse, notifier: Notifier, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Stripe synced three days ago and nothing has told anyone since; GA4 is fine."""
+    warehouse.objects = {"raw.ga4___sync_windows", "raw.stripe___sync_windows", "ops.check_verdicts"}
+    fresh = datetime.now(tz=UTC).replace(tzinfo=None) - timedelta(hours=1)
+    warehouse.when("raw.ga4___sync_windows", [[fresh, 3]])
+    warehouse.when("raw.stripe___sync_windows", [[fresh - timedelta(days=3), 40]])
+    failing: list[list[str]] = []
+    warehouse.answers.append((lambda sql: "FROM ops.check_verdicts" in sql, failing))
+    monkeypatch.setattr(sync, "checked_sources", lambda budgets: (budgets, {"ga4", "stripe"}))
+    mode = FakeMode(warehouse)
+
+    outcome = run_job(job_named("checks"), mode, notifier, SLOT, "schedule")
+    assert (outcome.status, outcome.exit_code, outcome.rows) == (RunStatus.CHECK_FAILED, 3, 2)
+    assert mode.synced == []  # it checks; it loads nothing
+    assert kinds(notifier) == [("check_failed", "checks")]
+    alert = notifier.sent[0]
+    assert alert.summary == "1 check(s) started failing between syncs"
+    assert len(alert.details) == 1 and alert.details[0].startswith("FAIL stripe/freshness/sync: last sync 7")
+    row = run_row(warehouse)
+    assert (row["job"], row["source"], row["status"], row["checks_failed"]) == (
+        "checks",
+        "",
+        "check_failed",
+        1,
+    )
+    assert row["detail"].startswith("1 pass, 0 warn, 1 fail: FAIL stripe/freshness/sync")
+
+    failing.append(["stripe", "freshness", "sync"])  # what the first run wrote
+    notifier.sent.clear()
+    again = run_job(job_named("checks"), mode, notifier, SLOT, "schedule")
+    assert again.exit_code == 3 and notifier.sent == []  # still failing, already said
+
+
+def test_the_hourly_checks_are_quiet_when_everything_passes(
+    ga4_warehouse: FakeWarehouse, notifier: Notifier, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ga4_warehouse.objects |= {"ops.check_verdicts"}
+    ga4_warehouse.when("FROM ops.check_verdicts", [])
+    monkeypatch.setattr(sync, "checked_sources", lambda budgets: ({"ga4": 30.0}, {"ga4"}))
+    outcome = run_job(job_named("checks"), FakeMode(ga4_warehouse), notifier)
+    assert (outcome.status, outcome.exit_code, outcome.detail) == (RunStatus.OK, 0, "1 pass, 0 warn, 0 fail")
+    assert notifier.sent == []
+    written = next(entry for entry in ga4_warehouse.inserted if entry[0] == "ops.check_results")
+    assert {row[1] for row in written[1]} == {"ga4"}  # a source that is not scheduled is not checked
+
+
 def test_no_warehouse_is_a_failed_job_with_an_alert(warehouse: FakeWarehouse, notifier: Notifier) -> None:
     class Unreachable(FakeMode):
         def client(self) -> Any:

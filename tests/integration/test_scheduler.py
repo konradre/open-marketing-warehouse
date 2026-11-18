@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import shutil
 import threading
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
@@ -24,7 +25,7 @@ from omw.scheduler.jobs import Job, build_plan, job_named
 from omw.scheduler.loop import Scheduler, subprocess_launcher
 from omw.scheduler.modes import FixtureMode
 from omw.scheduler.notify import AlertConfig, Notifier
-from omw.scheduler.runs import RunStore
+from omw.scheduler.runs import Outcome, RunStore
 from omw.scheduler.sync import run_job
 
 pytestmark = pytest.mark.integration
@@ -150,6 +151,7 @@ def test_a_first_tick_runs_every_job_and_checks_after_every_sync(
             "twenty",
             "backup",
             "backup_verify",
+            "checks",
         ],
         0,
     )
@@ -160,15 +162,17 @@ def test_a_first_tick_runs_every_job_and_checks_after_every_sync(
     for job, row in logged.items():
         if job != "meta_ads_daily":
             assert row[1:3] == ("ok", "schedule") and row[3] > 0 and row[4] == 0, row
+    assert logged["checks"][5].endswith("0 warn, 0 fail") and logged["checks"][3] > 20  # every check there is
     assert logged["meta_ads_weekly"][6] == int((stack.sunday.replace(hour=3, minute=15)).timestamp())
     assert stack.hook.received == []
 
-    # Every source was checked after its own sync, and only then: one freshness verdict each, all passing.
+    # Every source was checked after its own sync, and once more by the hourly checks at the end of the
+    # tick: two freshness verdicts each, all passing.
     verdicts = pipeline_client.query(
         "SELECT source, count(), countIf(status = 'pass'), toUnixTimestamp(max(checked_at)) "
         "FROM ops.check_results WHERE check = 'freshness' GROUP BY source"
     ).result_rows
-    assert {row[0]: row[1:3] for row in verdicts} == dict.fromkeys(SOURCES, (1, 1))
+    assert {row[0]: row[1:3] for row in verdicts} == dict.fromkeys(SOURCES, (2, 2))
     failed = pipeline_client.query("SELECT count() FROM ops.check_results WHERE status = 'fail'").result_rows
     assert failed[0][0] == 0
     kinds = pipeline_client.query("SELECT DISTINCT check FROM ops.check_results").result_rows
@@ -206,8 +210,11 @@ def test_a_slot_runs_once_and_monday_brings_the_daily_jobs_back(
     stack: Stack, pipeline_client: Client
 ) -> None:
     before = len(runs(pipeline_client))
-    assert stack.scheduler(stack.sunday + timedelta(hours=3)).tick() == {}
+    assert stack.scheduler(stack.sunday + timedelta(minutes=30)).tick() == {}
     assert len(runs(pipeline_client)) == before
+    # Three hours on, nothing but the hourly checks is due, and they run once for the hours that passed.
+    assert stack.scheduler(stack.sunday + timedelta(hours=3)).tick() == {"checks": 0}
+    assert stack.scheduler(stack.sunday + timedelta(hours=3, minutes=5)).tick() == {}
     monday = stack.sunday + timedelta(days=1)
     only = [
         planned
@@ -233,7 +240,7 @@ def test_a_sync_that_fails_fires_the_hook_exits_1_and_the_next_job_still_runs(
     scheduler.plan = [planned for planned in build_plan() if planned.job.name in ("stripe", "linkedin_ads")]
     stack.hook.received.clear()
     assert scheduler.tick() == {"stripe": 1, "linkedin_ads": 0}
-    assert scheduler.run(once=True) == 0  # the failed slot was attempted: nothing is due, nothing is retried
+    assert scheduler.tick() == {}  # the failed slot was attempted: nothing is due, nothing is retried
 
     assert stack.hook.kinds() == [("sync_failed", "stripe")]
     alert = stack.hook.received[0]
@@ -245,9 +252,10 @@ def test_a_sync_that_fails_fires_the_hook_exits_1_and_the_next_job_still_runs(
     assert logged["linkedin_ads"][1] == "ok"
     # The checks ran after the failed sync too: Stripe has a newer freshness verdict than its last load.
     checked = pipeline_client.query(
-        "SELECT count() FROM ops.check_results WHERE source = 'stripe' AND check = 'freshness'"
+        "SELECT count() FROM ops.check_results WHERE source = 'stripe' AND check = 'freshness' "
+        f"AND checked_at >= toDateTime({int(logged['stripe'][7])})"
     ).result_rows[0][0]
-    assert checked == 2
+    assert checked == 1
 
 
 def test_a_failed_sync_is_retried_quietly_and_the_hook_fires_after_the_last_attempt(
@@ -268,7 +276,9 @@ def test_a_failed_sync_is_retried_quietly_and_the_hook_fires_after_the_last_atte
     recovered = stack.scheduler(thursday, retries=2)  # a restarted loop: the run log alone says "retry"
     recovered.plan = only
     assert recovered.tick() == {"stripe": 0} and recovered.tick() == {}
-    assert [row[1] for row in runs(pipeline_client, since)] == ["failed", "ok"]
+    # One failed attempt and one that loaded. The log keeps whole seconds, and here the two are not even
+    # a second apart, so it cannot say which came first; the ticks above did.
+    assert sorted(row[1] for row in runs(pipeline_client, since)) == ["failed", "ok"]
     assert stack.hook.received == []
 
     # An outage that does not: three attempts, one alert.
@@ -279,6 +289,50 @@ def test_a_failed_sync_is_retried_quietly_and_the_hook_fires_after_the_last_atte
     assert stack.hook.kinds() == [("sync_failed", "stripe")]
     later = f"job = 'stripe' AND slot >= toDateTime({int(friday.replace(hour=0).timestamp())})"
     assert [row[1] for row in runs(pipeline_client, later)] == ["failed", "failed", "failed"]
+
+
+def test_the_hourly_checks_turn_a_source_stale_between_its_syncs_and_say_so_once(
+    stack: Stack, pipeline_client: Client, agent_client: Client
+) -> None:
+    """GA4 synced a moment ago. Give it a budget it has already outlived: its own sync is not due, and the
+    hourly checks are what notice."""
+
+    class Impatient(FixtureMode):
+        def budgets(self) -> dict[str, float] | None:
+            found = dict(super().budgets() or {})
+            found["ga4"] = 1e-9  # hours
+            return found
+
+    def sweep(mode: FixtureMode) -> Outcome:
+        # ops.check_results keeps whole seconds, and the verdict views take the latest row: runs that are
+        # an hour apart in production must at least be a second apart here.
+        time.sleep(1.1)
+        return run_job(job_named("checks"), mode, stack.notifier(), trigger="schedule")
+
+    stack.hook.received.clear()
+    impatient = Impatient(stack.out)
+    first = sweep(impatient)
+    assert (str(first.status), first.exit_code, first.checks_failed) == ("check_failed", 3, 1)
+    assert stack.hook.kinds() == [("check_failed", "checks")]
+    alert = stack.hook.received[0]
+    assert alert["summary"] == "1 check(s) started failing between syncs"
+    assert len(alert["details"]) == 1 and alert["details"][0].startswith("FAIL ga4/freshness/sync: last sync")
+    assert agent_client.query("SELECT status FROM ops.freshness WHERE source = 'ga4'").result_rows == [
+        ("fail",)
+    ]
+
+    again = sweep(impatient)
+    assert again.exit_code == 3 and len(stack.hook.received) == 1  # still stale, already said
+
+    healthy = sweep(stack.mode())
+    assert healthy.exit_code == 0 and len(stack.hook.received) == 1
+    assert agent_client.query("SELECT status FROM ops.freshness WHERE source = 'ga4'").result_rows == [
+        ("pass",)
+    ]
+    # Stale again later is news again.
+    sweep(impatient)
+    assert stack.hook.kinds() == [("check_failed", "checks"), ("check_failed", "checks")]
+    assert sweep(stack.mode()).exit_code == 0
 
 
 def test_a_failed_post_sync_check_fires_the_hook_and_exits_3(

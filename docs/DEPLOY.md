@@ -111,12 +111,13 @@ One job per source and cadence, then the backup. Times are UTC whatever the host
 | `twenty` | `05:00` | Everything changed since the last run. |
 | `backup` | `06:00` | Backs up `raw`, `marts` and `ops`; keeps the newest 7. |
 | `backup_verify` | `sun 06:30` | Restore drill of the newest backup. |
+| `checks` | `*:50` (every hour) | Every check of every scheduled source. |
 
 Change it in `[schedule]` of `.dlt/config.toml`, then `make scheduler-restart` (the loop reads it at start):
 
 ```toml
 [schedule]
-meta_ads_weekly = "sat 02:00"     # "HH:MM" daily, "sun HH:MM", "mon,thu HH:MM"
+meta_ads_weekly = "sat 02:00"     # "HH:MM" daily, "sun HH:MM", "mon,thu HH:MM", "*:MM" every hour
 linkedin_ads = "off"              # not synced and not checked: one line says "we do not use this source"
 ```
 
@@ -126,6 +127,10 @@ How the loop behaves:
   overlaps it.
 - **After every sync, `omw check` for that source**: freshness, over-count, row-count and expiry, written to
   `ops.check_results`. The checks also run after a sync that failed, so the freshness verdict keeps moving.
+- **Once an hour, every check of every scheduled source** (the `checks` job). A sync checks its source
+  right after it ran; a source whose last sync was 24 hours ago passes then and is past its 30-hour budget
+  six hours later. The hourly run is what turns it stale in `ops.freshness`, and with it in the agent's
+  answers. It alerts when a check starts failing, not every hour it keeps failing.
 - **A slot runs once.** Attempts are recorded in `ops.sync_runs`; a restart neither repeats a finished slot
   nor forgets one that passed while the host was down. Several missed days are caught up with one run.
 - **A job that failed is tried again**, for the same slot: `[scheduler] retries` (2) more times,
@@ -209,7 +214,7 @@ webhooks display as it is; the other fields are for anything that wants to route
 | `kind` | When |
 |---|---|
 | `sync_failed` | A sync raised: a dead token, an API error, the warehouse unreachable. Exit 1. Under the loop: after the last retry. |
-| `check_failed` | The sync loaded, a post-sync check failed (stale, over-count, a collapse to zero rows, an expired credential). Exit 3. |
+| `check_failed` | The sync loaded, a post-sync check failed (stale, over-count, a collapse to zero rows, an expired credential). Exit 3. Also from the hourly `checks` job, once, when a check starts failing between syncs. |
 | `expiry_warning` | A credential or LinkedIn's API version is inside its warning window. The job still succeeds. |
 | `backup_failed` | The backup or the restore drill failed. |
 | `job_crashed` | A job's process died or ran out of time before it could report itself, on its last attempt. |
@@ -322,7 +327,8 @@ source's window that was loaded after the backup needs that source's first-load 
 - **ClickHouse server log files:** 5 files of 50 MB each (`deploy/clickhouse/config.d/omw.xml`).
 - **ClickHouse system log tables:** `query_log` and `part_log` keep 30 days; the high-volume diagnostics
   (`trace_log`, `metric_log`, `asynchronous_metric_log`, `text_log` and the like) are off.
-- **`ops` tables:** `ops.sync_runs`, `ops.backup_log` and `ops.backup_manifest` keep 400 days.
+- **`ops` tables:** `ops.check_results`, `ops.sync_runs`, `ops.backup_log` and `ops.backup_manifest` keep
+  400 days.
 - **systemd timers:** the journal. Cap it with `SystemMaxUse=` in `/etc/systemd/journald.conf`.
 
 ## Upgrade
@@ -340,6 +346,8 @@ make scheduler && make schedule
   definition arrives with the next run of that source (`make job JOB=<job>` to have it now).
 - The ClickHouse version is pinned in the compose file and moves with the repository. Back up before a pull
   that changes it: an upgrade in place is supported, a downgrade is not.
+- **`ops.check_results` created before its 400-day TTL existed** keeps everything until you add it, once,
+  as the `pipeline` or `admin` user: `ALTER TABLE ops.check_results MODIFY TTL checked_at + INTERVAL 400 DAY`.
 - **Coming from a stack started before this guide existed:** `make bootstrap` is required once (the backup
   grants), and the server's old diagnostic tables stay on disk until you drop them, as the `admin` user:
   `DROP TABLE IF EXISTS system.trace_log`, and the same for `metric_log`, `asynchronous_metric_log`,

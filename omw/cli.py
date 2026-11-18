@@ -34,18 +34,9 @@ from omw.metrics.campaign_keys import (
 )
 from omw.pipelines.client import pipeline_client
 from omw.scheduler.cli import add_parsers as add_scheduler_parsers
-from omw.scheduler.jobs import SOURCES, enabled_sources, read_plan
+from omw.scheduler.jobs import checked_sources
 
 log = logging.getLogger("omw")
-
-
-def checked_sources(budgets: dict[str, float] | None) -> tuple[dict[str, float] | None, set[str]]:
-    """The freshness budgets and the sources the expiry check covers, without the sources whose jobs are all
-    ``off`` in ``[schedule]``: a source the deployment does not use is neither synced nor checked."""
-    enabled = enabled_sources(read_plan())
-    if budgets is not None:
-        budgets = {source: hours for source, hours in budgets.items() if source in enabled}
-    return budgets, set(budgets) if budgets is not None else enabled & set(SOURCES)
 
 
 def check(args: argparse.Namespace) -> int:

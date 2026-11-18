@@ -22,7 +22,7 @@ from omw.checks.expiry import read_warn_days
 from omw.checks.results import CheckResult
 from omw.checks.runner import CheckRun, apply_ops_sql, run_checks
 from omw.pipelines.instants import instant
-from omw.scheduler.jobs import Job
+from omw.scheduler.jobs import Job, checked_sources
 from omw.scheduler.modes import Mode
 from omw.scheduler.notify import Alert, Notifier
 from omw.scheduler.runs import Outcome, RunStatus, RunStore
@@ -78,6 +78,35 @@ def _checks(job: Job, mode: Mode, client: Any) -> CheckRun:
     )
 
 
+VERDICTS = "ops.check_verdicts"
+
+
+def failing_verdicts(client: Any) -> set[tuple[str, str, str]]:
+    """(source, check, report) of every check whose latest verdict is ``fail``."""
+    rows = client.query(f"SELECT source, check, report FROM {VERDICTS} WHERE status = 'fail'").result_rows
+    return {(str(source), str(check), str(report)) for source, check, report in rows}
+
+
+def _sweep(mode: Mode, client: Any) -> tuple[CheckRun, list[CheckResult]]:
+    """Every check of every scheduled source. Returns the run and the checks that were not failing before
+    it: a source going stale between its own syncs is news once, not once an hour."""
+    apply_ops_sql(client)
+    before = failing_verdicts(client)
+    budgets, sources = checked_sources(mode.budgets())
+    expiries: dict[str, Any] = {}
+    for source in sorted(sources):
+        expiries.update(mode.expiries(source))
+    run = run_checks(
+        client,
+        budgets=budgets,
+        sources=sources,
+        today=mode.today(),
+        expiries=expiries,
+        expiry_warn_days=read_warn_days(),
+    )
+    return run, [r for r in run.failed if (r.source, r.check, r.report) not in before]
+
+
 def run_job(
     job: Job,
     mode: Mode,
@@ -101,6 +130,18 @@ def run_job(
             counts = mode.sync(job)
             outcome.rows = sum(count for table, count in counts.items() if not table.startswith("_dlt"))
             outcome.detail = f"{outcome.rows:,} rows"
+        elif job.kind == "checks":
+            swept, news = _sweep(mode, client)
+            outcome.rows, outcome.detail = len(swept.results), swept.summary()
+            outcome.checks_failed, outcome.checks_warned = len(swept.failed), len(swept.warned)
+            if swept.failed:
+                outcome.status = RunStatus.CHECK_FAILED
+                outcome.detail += ": " + "; ".join(describe(result) for result in swept.failed)
+            if news:
+                summary = f"{len(news)} check(s) started failing between syncs"
+                notifier.send(
+                    Alert("check_failed", "error", job.name, summary, "", tuple(describe(r) for r in news))
+                )
         else:
             outcome.rows, outcome.detail = _run_backup(job, client)
         log.info("%s: %s", job.name, outcome.detail)
@@ -146,11 +187,11 @@ def _alert(
     if outcome.status is RunStatus.FAILED and retries_left > 0:
         log.warning("%s failed; the scheduler will try again (%d more attempt(s))", job.name, retries_left)
     elif outcome.status is RunStatus.FAILED:
-        kind = "sync_failed" if job.kind == "sync" else "backup_failed"
+        kind = {"sync": "sync_failed", "checks": "check_failed"}.get(job.kind, "backup_failed")
         notifier.send(
             Alert(kind, "error", job.name, outcome.problems[0], job.source, tuple(outcome.problems[1:]))
         )
-    elif outcome.status is RunStatus.CHECK_FAILED:
+    elif outcome.status is RunStatus.CHECK_FAILED and job.kind != "checks":  # the sweep alerts on news only
         summary = f"{len(outcome.problems)} post-sync check(s) failed after the sync"
         notifier.send(Alert("check_failed", "error", job.name, summary, job.source, tuple(outcome.problems)))
     expiring = [r for r in (checks.warned if checks else []) if r.check == EXPIRY_CHECK]

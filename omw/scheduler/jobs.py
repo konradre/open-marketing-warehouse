@@ -1,8 +1,9 @@
 """The job table and the plan: which job runs when.
 
 One job per source and cadence (DESIGN.md §5 for Meta's two; every other source re-fetches its own rolling
-window once a day), then the backup and its restore drill. The defaults are in UTC, early in the morning
-after the platforms have closed the previous day, and the jobs run one after another in table order.
+window once a day), then the backup and its restore drill, and an hourly run of every check. The defaults
+are in UTC, early in the morning after the platforms have closed the previous day, and the jobs run one
+after another in table order.
 
 ``[schedule]`` in ``.dlt/config.toml`` moves or disables a job::
 
@@ -24,7 +25,7 @@ import dlt
 
 from omw.scheduler.schedule import Schedule, ScheduleError, parse
 
-Kind = Literal["sync", "backup", "backup_verify"]
+Kind = Literal["sync", "backup", "backup_verify", "checks"]
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,12 @@ JOBS: tuple[Job, ...] = (
         "sun 06:30",
         "restore drill: the newest backup into scratch databases",
     ),
+    Job(
+        "checks",
+        "checks",
+        "*:50",
+        "every post-sync check of every scheduled source, so one that stopped syncing turns stale",
+    ),
 )
 JOB_NAMES = tuple(job.name for job in JOBS)
 SOURCES = tuple(dict.fromkeys(job.source for job in JOBS if job.source))
@@ -171,3 +178,14 @@ def read_plan() -> list[Planned]:
 def enabled_sources(plan: list[Planned]) -> set[str]:
     """Sources with at least one scheduled job."""
     return {planned.job.source for planned in plan if planned.job.source}
+
+
+def checked_sources(
+    budgets: dict[str, float] | None, plan: list[Planned] | None = None
+) -> tuple[dict[str, float] | None, set[str]]:
+    """The freshness budgets and the sources the expiry check covers, without the sources whose jobs are all
+    ``off`` in ``[schedule]``: a source the deployment does not use is neither synced nor checked."""
+    enabled = enabled_sources(read_plan() if plan is None else plan)
+    if budgets is not None:
+        budgets = {source: hours for source, hours in budgets.items() if source in enabled}
+    return budgets, set(budgets) if budgets is not None else enabled & set(SOURCES)

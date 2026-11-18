@@ -38,8 +38,29 @@ class Launcher:
         return code
 
 
+DAILY = {"checks": "off"}
+"""The plan most tests use: the daily and weekly jobs, without the hourly one (it has its own tests)."""
+
+
 def scheduler(store: MemoryStore, launcher: Launcher, notifier: Notifier, now: datetime) -> Scheduler:
-    return Scheduler(build_plan(), launcher, lambda: store, notifier, clock=lambda: now)  # type: ignore[arg-type,return-value]
+    return Scheduler(build_plan(DAILY), launcher, lambda: store, notifier, clock=lambda: now)  # type: ignore[arg-type,return-value]
+
+
+def test_the_hourly_checks_run_last_then_once_an_hour(store: MemoryStore, notifier: Notifier) -> None:
+    launcher = Launcher(store)
+
+    def at(now: datetime) -> Scheduler:
+        return Scheduler(build_plan(), launcher, lambda: store, notifier, clock=lambda: now)  # type: ignore[arg-type,return-value]
+
+    first = at(SUNDAY_NOON).tick()
+    assert list(first)[-1] == "checks" and len(first) == 11  # after every sync of the first tick
+    assert dict(launcher.started)["checks"] == datetime(2026, 11, 22, 11, 50, tzinfo=UTC)
+    assert at(SUNDAY_NOON + timedelta(minutes=49)).tick() == {}
+    assert at(SUNDAY_NOON + timedelta(minutes=50)).tick() == {"checks": 0}
+    assert at(SUNDAY_NOON + timedelta(minutes=55)).tick() == {}
+    launcher.started.clear()
+    assert at(SUNDAY_NOON + timedelta(hours=7)).tick() == {"checks": 0}  # hours of downtime: one run
+    assert launcher.started == [("checks", datetime(2026, 11, 22, 18, 50, tzinfo=UTC))]
 
 
 def test_a_first_start_runs_every_job_once_in_order(store: MemoryStore, notifier: Notifier) -> None:
@@ -145,7 +166,7 @@ def test_the_run_log_is_opened_once_and_again_after_it_failed(store: MemoryStore
         opened.append(1)
         return store
 
-    loop = Scheduler(build_plan(), Launcher(store), open_store, notifier, clock=lambda: SUNDAY_NOON)  # type: ignore[arg-type]
+    loop = Scheduler(build_plan(DAILY), Launcher(store), open_store, notifier, clock=lambda: SUNDAY_NOON)  # type: ignore[arg-type]
     loop.tick()
     loop.tick()
     assert len(opened) == 1  # one connection for the life of the loop, not one a minute
@@ -221,7 +242,7 @@ def retrying(store: MemoryStore, launcher: Launcher, notifier: Notifier, clock: 
         return clock[0]
 
     return Scheduler(
-        build_plan({"backup": "off", "backup_verify": "off"}),
+        build_plan({"backup": "off", "backup_verify": "off", "checks": "off"}),
         launcher,
         lambda: store,  # type: ignore[arg-type,return-value]
         notifier,
