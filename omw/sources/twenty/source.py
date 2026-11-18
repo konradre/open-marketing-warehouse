@@ -1,6 +1,6 @@
-"""The dlt source: three declarative ``rest_api`` resources, cursor-paged, incremental on ``updatedAt``, plus
-one deleted-records pass per object (``deletedAt[is]:NOT_NULL``, incremental on ``deletedAt``) that merges the
-soft-deleted rows into the same tables so the marts can exclude them."""
+"""The dlt source: one declarative ``rest_api`` resource per object, cursor-paged, incremental on
+``updatedAt``, plus one deleted-records pass per object (``deletedAt[is]:NOT_NULL``, incremental on
+``deletedAt``) that merges the soft-deleted rows into the same tables so the marts can exclude them."""
 
 from __future__ import annotations
 
@@ -37,6 +37,7 @@ from omw.sources.twenty.shapes import (
     shape_opportunity,
     shape_person,
 )
+from omw.sources.twenty.timeline import TIMELINE_ACTIVITY_COLUMNS, shape_timeline_activity
 
 SOURCE_NAME = "twenty"
 PAGE_SIZE = 60
@@ -54,7 +55,10 @@ OBJECTS: dict[str, tuple[str, Callable[[Mapping[str, Any]], dict[str, Any]], dic
     "tasks": ("tasks", shape_task, TASK_COLUMNS),
     "note_targets": ("noteTargets", shape_note_target, NOTE_TARGET_COLUMNS),
     "task_targets": ("taskTargets", shape_task_target, TASK_TARGET_COLUMNS),
+    "timeline_activities": ("timelineActivities", shape_timeline_activity, TIMELINE_ACTIVITY_COLUMNS),
 }
+TIMELINE = "timeline_activities"
+"""Twenty's change feed. The one object a run may leave out (``timeline=False``): it grows with every edit."""
 
 
 def updated_at_filter(value: datetime | str) -> str:
@@ -120,7 +124,10 @@ def _resource(name: str, deleted: bool) -> EndpointResource:
     return resource
 
 
-def object_resources(base_url: str, api_key: str, session: requests.Session | None) -> list[DltResource]:
+def object_resources(
+    base_url: str, api_key: str, session: requests.Session | None, timeline: bool = True
+) -> list[DltResource]:
+    names = [name for name in OBJECTS if timeline or name != TIMELINE]
     config: RESTAPIConfig = {
         "client": {
             "base_url": rest_base_url(base_url),
@@ -134,8 +141,8 @@ def object_resources(base_url: str, api_key: str, session: requests.Session | No
             "endpoint": {"params": {"limit": PAGE_SIZE, "order_by": "updatedAt[AscNullsLast]"}},
         },
         "resources": [
-            *(_resource(name, deleted=False) for name in OBJECTS),
-            *(_resource(name, deleted=True) for name in OBJECTS),
+            *(_resource(name, deleted=False) for name in names),
+            *(_resource(name, deleted=True) for name in names),
         ],
     }
     return [clickhouse_adapter(resource, sort=["id"]) for resource in rest_api_resources(config)]
@@ -158,16 +165,18 @@ def twenty(
     base_url: str = dlt.config.value,
     api_key: str | None = dlt.secrets.value,
     session: requests.Session | None = None,
+    timeline: bool = True,
 ) -> Iterator[DltResource]:
-    """Companies, people, opportunities, notes and tasks (with their targets) from a self-hosted Twenty,
-    changed or deleted since the last run.
+    """Companies, people, opportunities, notes and tasks (with their targets) and the timeline activities
+    from a self-hosted Twenty, changed or deleted since the last run.
 
     ``base_url`` is the Twenty instance (``https://twenty.example.com``); ``api_key`` an API key from
-    Settings > Developers. ``session`` is injectable for tests.
+    Settings > Developers. ``timeline=False`` leaves the change feed out. ``session`` is injectable for
+    tests.
     """
     if not base_url:
         raise ValueError("twenty needs base_url (sources.twenty.base_url)")
     if not api_key:
         raise ValueError("twenty needs api_key (sources.twenty.api_key)")
-    yield from object_resources(base_url, api_key, session)
+    yield from object_resources(base_url, api_key, session, timeline)
     yield sync_windows_resource()

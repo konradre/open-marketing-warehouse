@@ -71,7 +71,7 @@ def test_the_seed_loads_every_source_and_the_real_checks_agree(
     warehouse: tuple[World, SeedReport], pipeline_client: Client
 ) -> None:
     world, loaded = warehouse
-    assert loaded.tables == 49 and loaded.rows > 30_000 and loaded.views >= 35 and seeded(pipeline_client)
+    assert loaded.tables == 50 and loaded.rows > 30_000 and loaded.views >= 36 and seeded(pipeline_client)
     # Every over-count and row-count check passes on the synthetic data; only GA4 is stale, by design.
     assert unexpected_verdicts(loaded.checks) == []
     assert len(loaded.checks.results) >= 25 and len(loaded.checks.failed) == 1
