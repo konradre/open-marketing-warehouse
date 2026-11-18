@@ -1,0 +1,122 @@
+{
+  "object": "list",
+  "url": "/v1/invoices",
+  "has_more": false,
+  "data": [
+    {
+      "id": "in_T50000000000011",
+      "object": "invoice",
+      "customer": "cus_T50000000000001",
+      "subscription": "sub_T50000000000011",
+      "status": "paid",
+      "created": 1791075600,
+      "currency": "jpy",
+      "amount_due": 5000,
+      "amount_paid": 5000,
+      "amount_remaining": 0,
+      "subtotal": 5000,
+      "total": 5000,
+      "billing_reason": "subscription_create",
+      "livemode": false,
+      "metadata": {},
+      "status_transitions": {
+        "finalized_at": 1791075600,
+        "marked_uncollectible_at": null,
+        "paid_at": 1791075660,
+        "voided_at": null
+      }
+    },
+    {
+      "id": "in_T50000000000012",
+      "object": "invoice",
+      "customer": "cus_T50000000000001",
+      "subscription": "sub_T50000000000012",
+      "status": "paid",
+      "created": 1791075700,
+      "currency": "ugx",
+      "amount_due": 500000,
+      "amount_paid": 500000,
+      "amount_remaining": 0,
+      "subtotal": 500000,
+      "total": 500000,
+      "billing_reason": "subscription_create",
+      "livemode": false,
+      "metadata": {},
+      "status_transitions": {
+        "finalized_at": 1791075700,
+        "marked_uncollectible_at": null,
+        "paid_at": 1791075760,
+        "voided_at": null
+      }
+    },
+    {
+      "id": "in_T50000000000013",
+      "object": "invoice",
+      "customer": "cus_T50000000000001",
+      "subscription": "sub_T50000000000013",
+      "status": "paid",
+      "created": 1791075800,
+      "currency": "kwd",
+      "amount_due": 5120,
+      "amount_paid": 5120,
+      "amount_remaining": 0,
+      "subtotal": 5120,
+      "total": 5120,
+      "billing_reason": "subscription_create",
+      "livemode": false,
+      "metadata": {},
+      "status_transitions": {
+        "finalized_at": 1791075800,
+        "marked_uncollectible_at": null,
+        "paid_at": 1791075860,
+        "voided_at": null
+      }
+    },
+    {
+      "id": "in_T50000000000014",
+      "object": "invoice",
+      "customer": "cus_T50000000000001",
+      "subscription": "sub_T50000000000014",
+      "status": "paid",
+      "created": 1791075900,
+      "currency": "isk",
+      "amount_due": 250000,
+      "amount_paid": 250000,
+      "amount_remaining": 0,
+      "subtotal": 250000,
+      "total": 250000,
+      "billing_reason": "subscription_create",
+      "livemode": false,
+      "metadata": {},
+      "status_transitions": {
+        "finalized_at": 1791075900,
+        "marked_uncollectible_at": null,
+        "paid_at": 1791075960,
+        "voided_at": null
+      }
+    },
+    {
+      "id": "in_T50000000000015",
+      "object": "invoice",
+      "customer": "cus_T50000000000001",
+      "subscription": "sub_T50000000000015",
+      "status": "paid",
+      "created": 1791076000,
+      "currency": "usd",
+      "amount_due": 1999,
+      "amount_paid": 1999,
+      "amount_remaining": 0,
+      "subtotal": 1999,
+      "total": 1999,
+      "billing_reason": "subscription_create",
+      "livemode": false,
+      "metadata": {},
+      "status_transitions": {
+        "finalized_at": 1791076000,
+        "marked_uncollectible_at": null,
+        "paid_at": 1791076060,
+        "voided_at": null
+      }
+    }
+  ]
+}

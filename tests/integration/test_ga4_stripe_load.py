@@ -171,3 +171,37 @@ def test_stripe_merge_updates_an_invoice_and_appends_only_new_transactions(
     assert paid[0] == 4 and Decimal(str(paid[1])) == Decimal("447")
     with pytest.raises(DatabaseError, match="Code: 497"):
         agent_client.query("SELECT count() FROM raw.stripe___customers")
+
+
+def test_stripe_amounts_follow_the_minor_unit_of_each_currency(
+    stripe_loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    """Stripe reports every amount in the currency's minor unit, and that unit is not always a hundredth:
+    none for JPY, a thousandth for KWD. UGX and ISK have no decimals in practice, but Stripe still
+    represents them with two (500 is 5 UGX). The same five amounts as invoices, subscription prices and
+    balance transactions: 5 000 JPY, 5 000 UGX, 5.12 KWD, 2 500 ISK and 19.99 USD."""
+    client = FakeStripeClient()
+    client.overrides = {
+        "invoices": "invoices_currencies",
+        "subscriptions": "subscriptions_currencies",
+        "balance_transactions": "balance_transactions_currencies",
+    }
+    stripe_pipeline.run_daily(stripe_loaded, today=TODAY, client=client)
+    expected = {"JPY": "5000", "UGX": "5000", "KWD": "5.12", "ISK": "2500", "USD": "19.99"}
+    fees = {"JPY": "180", "UGX": "145", "KWD": "0.15", "ISK": "73", "USD": "0.88"}
+    currencies = "('JPY', 'UGX', 'KWD', 'ISK', 'USD')"
+
+    revenue = agent_client.query(
+        f"SELECT currency, amount FROM marts.stripe_revenue WHERE currency IN {currencies}"
+    ).result_rows
+    assert {c: Decimal(str(a)) for c, a in revenue} == {c: Decimal(a) for c, a in expected.items()}
+    prices = agent_client.query(
+        f"SELECT currency, unit_amount FROM marts.stripe_subscriptions WHERE currency IN {currencies}"
+    ).result_rows
+    assert {c: Decimal(str(a)) for c, a in prices} == {c: Decimal(a) for c, a in expected.items()}
+    balance = agent_client.query(
+        f"SELECT currency, gross, fee, net FROM marts.stripe_balance WHERE currency IN {currencies}"
+    ).result_rows
+    assert {c: (Decimal(str(g)), Decimal(str(f)), Decimal(str(n))) for c, g, f, n in balance} == {
+        c: (Decimal(a), Decimal(fees[c]), Decimal(a) - Decimal(fees[c])) for c, a in expected.items()
+    }

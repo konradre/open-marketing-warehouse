@@ -41,3 +41,37 @@ def test_a_balance_transaction_loaded_while_pending_becomes_available_in_the_vie
     """The source appends a balance transaction once. Its status changes later; ``available_on`` does not."""
     text = (SQL_DIR / "50_stripe_marts.sql").read_text()
     assert "if(status = 'pending' AND available_on <= now(), 'available', status) AS status" in text
+
+
+def test_every_stripe_amount_is_divided_by_the_minor_unit_of_its_currency() -> None:
+    """One divisor expression, the same wherever an amount leaves minor units: 1 for the zero-decimal
+    currencies, 1000 for the three-decimal ones, 100 otherwise. UGX is not zero-decimal to the API
+    (docs.stripe.com/currencies, "Special cases": 5 UGX is an amount of 500)."""
+    text = (SQL_DIR / "50_stripe_marts.sql").read_text()
+    divisors = re.findall(
+        r"/ multiIf\(\w*\.?currency IN \(([^)]*)\), 1, \w*\.?currency IN \(([^)]*)\), 1000, 100\)", text
+    )
+    assert len(divisors) == 5  # invoice amount, subscription price, balance gross, fee and net
+    assert len(set(divisors)) == 1
+    zero, three = (set(re.findall(r"'(\w+)'", group)) for group in divisors[0])
+    assert zero == set(
+        [
+            "bif",
+            "clp",
+            "djf",
+            "gnf",
+            "jpy",
+            "kmf",
+            "krw",
+            "mga",
+            "pyg",
+            "rwf",
+            "vnd",
+            "vuv",
+            "xaf",
+            "xof",
+            "xpf",
+        ]
+    )
+    assert three == set(["bhd", "jod", "kwd", "omr", "tnd"])
+    assert not re.search(r"toDecimal64\([\w.]+, 2\) / 100\b", text)  # no amount with a fixed divisor
