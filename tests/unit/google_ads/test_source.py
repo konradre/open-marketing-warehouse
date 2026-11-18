@@ -110,3 +110,21 @@ def test_a_failed_customer_fails_the_run_and_loads_nothing(
     with pytest.raises(Exception, match="simulated outage"):
         run_daily(pipeline, today=TODAY, customer_ids=[CUSTOMER], client=fake_client, marts_sql=None)
     assert pipeline.last_trace is None or not pipeline.last_trace.last_load_info
+
+
+def test_a_removed_campaign_keeps_the_rows_of_the_days_it_spent(fake_client: FakeGoogleAdsClient) -> None:
+    """Every sync replaces the whole (customer, day) slice of the last 30 days. A campaign removed today
+    still spent on those days: its rows must come back with the slice, or its spend leaves the warehouse."""
+    recorded = google_ads(customer_ids=[CUSTOMER], client=fake_client, window=WINDOW)
+    before = list(recorded.resources["performance_campaigns"])
+    fake_client.removed = {"20010002"}
+    source = google_ads(customer_ids=[CUSTOMER], client=fake_client, window=WINDOW)
+    after = list(source.resources["performance_campaigns"])
+    assert sum(r["cost_micros"] for r in after) == sum(r["cost_micros"] for r in before)
+    assert {r["campaign_status"] for r in after if r["campaign_id"] == "20010002"} == {"REMOVED"}
+    for name in ("performance_ad_groups", "performance_search_terms", "performance_asset_groups"):
+        assert list(source.resources[name]) == list(
+            google_ads(customer_ids=[CUSTOMER], client=FakeGoogleAdsClient(), window=WINDOW).resources[name]
+        ), name
+    entities = {r["campaign_id"]: r["campaign_status"] for r in source.resources["campaigns"]}
+    assert entities["20010002"] == "REMOVED" and len(entities) == 3

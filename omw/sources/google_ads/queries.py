@@ -104,14 +104,17 @@ ENTITY_FIELDS = (
 
 def performance_query(report: Report, window: Window) -> str:
     fields = ", ".join((*report.fields, "segments.date", *METRIC_FIELDS))
+    # No filter on campaign.status: a removed campaign still spent on the days it ran, and every sync
+    # replaces the whole (customer, day) slice, so leaving it out would delete its spend from the window.
     return (
         f"SELECT {fields} FROM {report.resource} "
         f"WHERE segments.date BETWEEN '{window.start.isoformat()}' AND '{window.end.isoformat()}' "
-        "AND campaign.status != 'REMOVED' "
         "ORDER BY segments.date"
     )
 
 
 def entities_query() -> str:
     fields = ", ".join(ENTITY_FIELDS)
-    return f"SELECT {fields} FROM campaign WHERE campaign.status != 'REMOVED' ORDER BY campaign.id"
+    # Removed campaigns included: the entity table is merged on the id and never deletes, so a campaign
+    # left out after its removal would keep its last status and budget. The campaign list view hides them.
+    return f"SELECT {fields} FROM campaign ORDER BY campaign.id"

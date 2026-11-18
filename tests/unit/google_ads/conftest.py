@@ -28,15 +28,28 @@ def fixture_results(name: str) -> list[dict[str, Any]]:
 class FakeGoogleAdsClient(GoogleAdsClient):
     """Answers each query from the fixture its FROM clause names, filtered to the requested window.
 
-    ``restated`` replaces one day's campaign rows; ``fail_customers`` raises for a customer.
+    ``restated`` replaces one day's campaign rows; ``fail_customers`` raises for a customer. ``removed``
+    names campaigns the account removed after the fixtures were recorded: the API reports them with status
+    ``REMOVED``, keeps their metrics, and leaves them out of any query that filters on
+    ``campaign.status != 'REMOVED'``.
     """
 
     def __init__(self) -> None:
         self.queries: list[tuple[str, str]] = []
         self.restated: dict[str, list[dict[str, Any]]] = {}
         self.fail_customers: set[str] = set()
+        self.removed: set[str] = set()
 
     def search_stream(self, customer_id: str, query: str) -> list[dict[str, Any]]:
+        rows = self._rows(customer_id, query)
+        for row in rows:
+            if row["campaign"]["id"] in self.removed and "status" in row["campaign"]:
+                row["campaign"]["status"] = "REMOVED"
+        if "campaign.status != 'REMOVED'" in query:
+            rows = [row for row in rows if row["campaign"]["id"] not in self.removed]
+        return rows
+
+    def _rows(self, customer_id: str, query: str) -> list[dict[str, Any]]:
         self.queries.append((customer_id, query))
         if customer_id in self.fail_customers:
             raise ConnectionError(f"simulated outage for {customer_id}")

@@ -10,7 +10,7 @@ CREATE OR REPLACE VIEW marts.google_ads_campaigns (
     date Date COMMENT 'Day in the account time zone. Conversions are attributed for up to 30 days after the click, so the last 30 days are re-pulled daily and may change',
     campaign_id String COMMENT 'Google Ads campaign id',
     campaign_name String COMMENT 'Campaign name at the time of the pull',
-    campaign_status LowCardinality(String) COMMENT 'ENABLED, PAUSED or UNKNOWN at pull time. REMOVED campaigns are not pulled',
+    campaign_status LowCardinality(String) COMMENT 'ENABLED, PAUSED, REMOVED or UNKNOWN at pull time. A removed campaign keeps the rows of the days it ran',
     channel_type LowCardinality(String) COMMENT 'Advertising channel: SEARCH, DISPLAY, SHOPPING, VIDEO, PERFORMANCE_MAX, ...',
     impressions UInt64 COMMENT 'Times an ad of the campaign was shown',
     clicks UInt64 COMMENT 'Clicks on the ads',
@@ -54,7 +54,7 @@ CREATE OR REPLACE VIEW marts.google_ads_campaign_list (
     time_zone LowCardinality(String) COMMENT 'IANA time zone of the account. Report days are in this zone',
     campaign_id String COMMENT 'Google Ads campaign id',
     campaign_name String COMMENT 'Campaign name at the last pull',
-    campaign_status LowCardinality(String) COMMENT 'ENABLED or PAUSED at the last pull. REMOVED campaigns are not pulled',
+    campaign_status LowCardinality(String) COMMENT 'ENABLED or PAUSED at the last pull. Removed campaigns are not listed',
     serving_status LowCardinality(String) COMMENT 'SERVING, ENDED, PENDING, SUSPENDED or NONE',
     channel_type LowCardinality(String) COMMENT 'Advertising channel: SEARCH, DISPLAY, SHOPPING, VIDEO, PERFORMANCE_MAX, ...',
     bidding_strategy_type LowCardinality(String) COMMENT 'Bidding strategy, for example MAXIMIZE_CONVERSIONS or TARGET_ROAS',
@@ -64,7 +64,8 @@ CREATE OR REPLACE VIEW marts.google_ads_campaign_list (
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT source, customer_id, currency, time_zone, campaign_id, campaign_name, campaign_status, serving_status,
        channel_type, bidding_strategy_type, start_date, end_date, toDecimal64(budget_micros, 6) / 1000000 AS daily_budget
-FROM raw.google_ads___campaigns;
+FROM raw.google_ads___campaigns
+WHERE campaign_status != 'REMOVED';
 
 CREATE OR REPLACE VIEW marts.google_ads_search_terms (
     source LowCardinality(String) COMMENT 'Always google_ads',
