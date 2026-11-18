@@ -26,12 +26,12 @@ from omw.sources.meta_ads.settings import (
     ENTITY_RESOURCES,
     ENTITY_TEXT_DEFAULTS,
     INSIGHT_FIELDS,
-    INSIGHTS_MERGE_KEY,
     LEVEL_KEYS,
     LEVEL_REPORT,
     InsightsLevel,
     entity_columns,
     insights_columns,
+    insights_merge_key,
     insights_sort_key,
 )
 from omw.sources.search_console.grains import column
@@ -183,7 +183,7 @@ def _insights_resource(
         lambda: _paced(pacer, name, rows()),
         name=name,
         write_disposition=MERGE_DISPOSITION,
-        merge_key=list(INSIGHTS_MERGE_KEY),
+        merge_key=list(insights_merge_key(level)),
         columns=insights_columns(level, breakdown),
     )
     return clickhouse_adapter(resource, sort=insights_sort_key(level, breakdown))

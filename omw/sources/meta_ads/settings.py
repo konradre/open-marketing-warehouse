@@ -121,6 +121,15 @@ LEVEL_KEYS: dict[InsightsLevel, tuple[str, ...]] = {
 
 INSIGHTS_MERGE_KEY = ("account_id", "date")
 """The slice a run replaces: every (account, day) it fetched, per level table."""
+AD_LEVEL_MERGE_KEY = (*INSIGHTS_MERGE_KEY, "adset_id")
+"""Ad-level insights are pulled for live ad sets only, so a run replaces only the (account, day, ad set)
+slices it fetched. An ad set paused since is not in the answer; replacing the whole day would delete what
+its ads spent while it ran."""
+
+
+def insights_merge_key(level: InsightsLevel) -> tuple[str, ...]:
+    return AD_LEVEL_MERGE_KEY if level == "ad" else INSIGHTS_MERGE_KEY
+
 
 BREAKDOWNS: dict[str, tuple[str, ...]] = {
     # report name -> Meta `breakdowns` fields, pulled at campaign level into their own table
