@@ -4,6 +4,7 @@ reference plans against the independent ground truth, and the published scripted
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Iterator
 from decimal import Decimal
 from typing import Any
@@ -227,6 +228,37 @@ def test_the_published_scripted_results_are_what_a_fresh_run_gives(runs: dict[st
         assert recorded.keys() == fresh.keys()
 
 
+def same_cell(left: Any, right: Any) -> bool:
+    """Equal, or the same number to nine digits.
+
+    The transports run a query once each, and ClickHouse does not promise two runs the same last bit: a
+    ``sum`` of ``Float64`` values coming out of ``UNION ALL`` branches adds them in the order the branches
+    deliver, which is not fixed (seen in CI: ``25724.29`` and ``25724.289999999997``). A transport that
+    changed a value would be off by far more than that.
+    """
+    if left == right:
+        return True
+    numbers = (int, float)
+    return (
+        isinstance(left, numbers)
+        and isinstance(right, numbers)
+        and math.isclose(left, right, rel_tol=1e-9, abs_tol=1e-9)
+    )
+
+
+def same_row(left: list[Any], right: list[Any]) -> bool:
+    return len(left) == len(right) and all(same_cell(a, b) for a, b in zip(left, right, strict=True))
+
+
+def test_same_cell_allows_the_last_bit_of_a_float_and_nothing_else() -> None:
+    assert same_cell(25724.29, 25724.289999999997) and same_cell("abm_tier_1", "abm_tier_1")
+    assert same_cell(3, 3.0) and same_cell(None, None) and same_cell(0.0, 1e-12)
+    assert not same_cell(25724.29, 25724.30) and not same_cell(100.0, 100.00001)
+    assert not same_cell("25724.29", 25724.29) and not same_cell(None, 0)
+    assert same_row(["a", 1.0], ["a", 1.0000000000001]) and not same_row(["a", 1.0], ["a", 1.0, 2.0])
+    assert not same_row(["a", 1.0], ["b", 1.0])
+
+
 def test_both_sql_transports_give_the_same_answers(
     warehouse: tuple[World, SeedReport],
     agent_client: Client,
@@ -237,9 +269,12 @@ def test_both_sql_transports_give_the_same_answers(
     direct = SqlToolbox(direct_runner(agent_client))
     for question in sample:
         assert question.sql is not None
-        assert direct.call("run_query", {"query": question.sql}) == toolboxes[0].call(
-            "run_query", {"query": question.sql}
-        )
+        one = direct.call("run_query", {"query": question.sql})
+        other = toolboxes[0].call("run_query", {"query": question.sql})
+        assert one["columns"] == other["columns"], question.id
+        assert len(one["rows"]) == len(other["rows"]), question.id
+        for left, right in zip(one["rows"], other["rows"], strict=True):
+            assert same_row(left, right), (question.id, left, right)
     with pytest.raises(ToolError, match="ACCESS_DENIED|Not enough privileges"):
         direct.call("run_query", {"query": "SELECT count() FROM raw.stripe___invoices"})
 
