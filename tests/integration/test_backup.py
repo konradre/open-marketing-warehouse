@@ -142,7 +142,9 @@ def test_a_restore_is_refused_over_data_and_with_force_brings_back_what_was_lost
     # The view came back with its aliases intact, still readable by the agent through its definer.
     assert count(agent_client, VIEW) == 10
     events = pipeline_client.query(
-        f"SELECT event FROM ops.backup_log WHERE backup = '{NAMES[2]}' ORDER BY at"
+        f"SELECT event, count() FROM ops.backup_log WHERE backup = '{NAMES[2]}' GROUP BY event"
     ).result_rows
-    assert events[-1] == ("restored",)
+    # The log row of the backup's creation was written after the backup was taken, so the restore took it
+    # away; what the restore itself wrote is there. (Not "the last event": the log keeps whole seconds.)
+    assert ("restored", 1) in [tuple(row) for row in events]
     assert NAMES[2] in {item.name for item in backup.listing(pipeline_client)}
