@@ -279,7 +279,7 @@ uv run omw campaign-keys list --source google_ads
 
 ## Evaluation
 
-`eval/README.md` reports how the two read paths compare on 129 marketing questions with known answers:
+`eval/README.md` reports how the two read paths compare on 132 marketing questions with known answers:
 schema plus raw SQL through mcp-clickhouse against `SEMANTICS.md` plus `query_metrics`. `make eval-seed`
 loads a deterministic synthetic warehouse for every source and grain, and `make eval-report` runs the
 offline planners through both arms and rewrites the results. A real-model run is optional

@@ -20,8 +20,8 @@ from omw.metrics.runner import plan_request
 CATEGORIES = {"spend", "rates", "search", "ga4", "revenue", "pipeline", "cross_source", "compare", "trap"}
 CANNOT_ANSWER = {"not_in_catalog", "grain_refused"}
 """Tags of answerable questions the metric arm is known not to answer (reported, not hidden). T15 closed
-the nine gaps the first run declared (coverage and distinct counts), so no question carries one today; a new
-question the catalog cannot express must declare it again."""
+the nine gaps the first run declared (coverage and distinct counts); the ones declared today probe what
+the catalog still has no measure for."""
 
 
 def test_about_a_hundred_questions_in_every_category(questions: list[Question]) -> None:
@@ -102,7 +102,8 @@ def test_face_value_metric_requests_are_valid_requests(questions: list[Question]
 def test_caveat_questions_and_declared_gaps_exist(questions: list[Question]) -> None:
     assert sum(bool(question.caveat_terms) for question in questions) >= 5
     gaps = [question for question in questions if CANNOT_ANSWER & set(question.tags)]
-    assert len(gaps) <= 15  # declared gaps must not drown the comparison
+    assert 1 <= len(gaps) <= 15  # honest about coverage without drowning the comparison
+    assert {question.id for question in gaps} == {"active_subscription_prices_usd"}
     assert sum("pitfall" in question.tags for question in questions) >= 15
 
 

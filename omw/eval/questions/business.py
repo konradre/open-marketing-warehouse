@@ -180,6 +180,18 @@ REVENUE_QUESTIONS: tuple[Question, ...] = (
         sql="SELECT count() FROM marts.stripe_subscriptions WHERE status = 'active'",
         metrics=(M(("subscriptions",), None, filters={"status": "active"}),),
     ),
+    R(
+        id="active_subscription_prices_usd",
+        text="What do the unit prices of our active US dollar subscriptions add up to?",
+        shape="scalar",
+        unit="USD",
+        truth=lambda w: total(w.rows("stripe_subscriptions", status="active", currency="USD"), "unit_amount"),
+        sql=(
+            "SELECT sum(unit_amount) FROM marts.stripe_subscriptions "
+            "WHERE status = 'active' AND currency = 'USD'"
+        ),
+        tags=("not_in_catalog",),
+    ),
 )
 
 PIPELINE_QUESTIONS: tuple[Question, ...] = (
