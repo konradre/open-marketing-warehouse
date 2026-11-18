@@ -184,3 +184,20 @@ def test_the_entity_lists_answer_as_snapshots(warehouse: Catalog, agent_client: 
     assert {row[3]: float(row[4]) for row in groups.rows} == {"Widgets Q4": 400.0, "Brand": 0.0}
     compared = _ask(warehouse, agent_client, metrics=["subscriptions"], compare="month")
     assert compared.mood is Mood.REFUSE and "no earlier state" in compared.reason
+
+
+def test_a_report_the_deployment_never_synced_is_refused_in_plain_words(
+    warehouse: Catalog, agent_client: Client
+) -> None:
+    """The fixture load pulls Meta at campaign level only, so marts.meta_ads_ads does not exist."""
+    answer = _ask(
+        warehouse,
+        agent_client,
+        metrics=["meta_ad_spend"],
+        dimensions=["ad_name"],
+        filters={"currency": "USD"},
+        time_range=OCTOBER,
+    )
+    assert answer.mood is Mood.REFUSE and answer.rows == []
+    assert answer.reason.startswith("not loaded in this warehouse: meta_ads.ads (view marts.meta_ads_ads).")
+    assert "DB::Exception" not in answer.reason and "Code:" not in answer.reason

@@ -16,7 +16,7 @@ import clickhouse_connect
 from clickhouse_connect.driver.client import Client
 from clickhouse_connect.driver.exceptions import DatabaseError
 
-from omw.metrics.compiler import Plan, compile_request
+from omw.metrics.compiler import CAMPAIGN_KEYS_TABLE, Plan, compile_request
 from omw.metrics.guard import SqlGuardError, assert_single_select
 from omw.metrics.moods import Answer, ClarifyError, Mood, RefuseError
 from omw.metrics.request import MetricRequest
@@ -86,6 +86,45 @@ def verdict_caveats(plan: Plan, execute: Executor) -> list[str]:
     return found
 
 
+UNKNOWN_TABLE = ("UNKNOWN_TABLE", "Unknown table expression identifier")
+"""How ClickHouse says a table or view is not there (code 60), in its two analyzer generations."""
+
+
+def refusal_reason(plan: Plan, exc: DatabaseError) -> str:
+    """Why the warehouse would not run a compiled query, in the agent's words where the cause is known.
+
+    A view that does not exist is the common one: every ``marts`` view is created by its pipeline after the
+    first successful load, so a report the deployment never synced (ad-level insights, lead forms) has no
+    view yet. That is a fact about the warehouse, not an error in the request.
+    """
+    text = str(exc)
+    if any(marker in text for marker in UNKNOWN_TABLE):
+        missing = [p.report for p in plan.reports if _names(text, p.report.view)]
+        if missing:
+            listed = ", ".join(f"{report.key} (view {report.view})" for report in missing)
+            return (
+                f"not loaded in this warehouse: {listed}. The source has not synced this report yet, so "
+                "there is nothing to answer from"
+            )
+        if _names(text, CAMPAIGN_KEYS_TABLE):
+            return (
+                f"the campaign key mapping {CAMPAIGN_KEYS_TABLE} does not exist yet: it is created by the "
+                "first ad platform sync, or by `python -m omw.metrics.setup`"
+            )
+    return f"the warehouse refused the query: {text[:300]}"
+
+
+def _names(text: str, table: str) -> bool:
+    """Whether an error names ``table`` itself, not a longer name that starts with it."""
+    index = text.find(table)
+    while index != -1:
+        end = index + len(table)
+        if end == len(text) or not (text[end].isalnum() or text[end] == "_"):
+            return True
+        index = text.find(table, end)
+    return False
+
+
 def answer_request(
     catalog: Catalog, request: MetricRequest, execute: Executor, today: date | None = None
 ) -> Answer:
@@ -99,7 +138,7 @@ def answer_request(
     try:
         columns, rows = execute(sql)
     except DatabaseError as exc:
-        return Answer.refuse(f"the warehouse refused the query: {str(exc)[:300]}")
+        return Answer.refuse(refusal_reason(planned, exc))
     truncated = len(rows) >= request.limit
     caveats = [*planned.caveats, *verdict_caveats(planned, execute)]
     if truncated:
