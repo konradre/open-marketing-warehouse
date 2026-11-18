@@ -178,11 +178,13 @@ omw/                    Python package (uv, Python 3.12)
   pipelines/            run entry points + cadences
   checks/               post-sync checks
   metrics/              metric-definition schema, compiler, MCP server
+  eval/                 read-path evaluation: seed, questions, arms, planners, scoring
 metrics/                metric definitions (YAML)
 sql/                    ClickHouse DDL: databases, marts views, users, profiles, quotas
 deploy/                 docker-compose.yml (+ profiles chat, observability), ClickHouse config
 tests/                  unit tests with recorded API fixtures; integration tests against ClickHouse in Docker
 SEMANTICS.md            business semantics for the agent
+eval/                   evaluation report, questions with ground truth, recorded runs
 ```
 
 Tests never call a live platform API. Record fixtures as JSON under `tests/fixtures/<source>/`, with

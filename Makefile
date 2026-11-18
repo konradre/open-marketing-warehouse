@@ -2,7 +2,7 @@
 ENV_FILE := $(wildcard .env)
 COMPOSE  := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE)) -f deploy/docker-compose.yml
 
-.PHONY: up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys
+.PHONY: up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop
 
 up: ## start ClickHouse and mcp-clickhouse, wait until healthy
 	$(COMPOSE) up -d --wait clickhouse mcp-clickhouse
@@ -60,6 +60,15 @@ check: ## run the post-sync checks against the running warehouse (exit 1 on any 
 
 campaign-keys: ## derive campaign keys from the loaded ad platforms
 	uv run omw campaign-keys sync
+
+eval-seed: ## load the synthetic evaluation warehouse (needs `make up`; refuses to replace data it did not seed)
+	uv run omw eval seed
+
+eval-report: ## run the offline planners through both arms and rewrite the results in eval/README.md
+	uv run omw eval report
+
+eval-drop: ## remove everything `make eval-seed` created
+	uv run omw eval drop
 
 clean: ## stop everything and delete volumes
 	$(COMPOSE) --profile chat --profile observability down -v

@@ -1,7 +1,8 @@
 """The ``omw`` command.
 
 ``omw check`` runs the post-sync checks and exits non-zero on any failure. ``omw campaign-keys sync|set|list``
-maintains the cross-platform campaign key mapping (``marts.campaign_keys``).
+maintains the cross-platform campaign key mapping (``marts.campaign_keys``). ``omw eval seed|run|report|drop``
+evaluates the agent read path on a seeded synthetic warehouse (``eval/README.md``).
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import clickhouse_connect
 import dlt
 
 from omw.checks.runner import apply_ops_sql, run_checks
+from omw.eval.cli import add_parser as add_eval_parser
 from omw.metrics.campaign_keys import list_campaign_keys, set_campaign_key, sync_campaign_keys
 
 log = logging.getLogger("omw")
@@ -90,6 +92,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     list_parser = actions.add_parser("list", help="print every mapping row")
     list_parser.add_argument("--source", help="only this source")
     keys_parser.set_defaults(handler=campaign_keys)
+    add_eval_parser(commands)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     handler: Any = args.handler
