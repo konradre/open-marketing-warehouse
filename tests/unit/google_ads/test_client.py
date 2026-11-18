@@ -96,3 +96,19 @@ def test_non_json_error_surfaces_the_http_error() -> None:
     responses.post(URL, body="<html>bad gateway</html>", status=502, content_type="text/html")
     with pytest.raises(requests.HTTPError):
         _client().search_stream(CUSTOMER, QUERY)
+
+
+@responses.activate
+@pytest.mark.parametrize("keep", [0.4, 0.999])
+def test_a_stream_cut_short_returns_nothing_even_with_status_200(keep: float) -> None:
+    """A connection dropped while Google streams the answer leaves a body that stops mid-array: the status
+    is 200 and the first chunks are whole. None of it may be used. A slice is replaced with a complete
+    answer or not at all."""
+    whole = _body("campaigns_stream")
+    cut = whole[: int(len(whole.rstrip()) * keep)]
+    assert json.loads(whole) and cut != whole.rstrip()
+    responses.post(URL, body=cut, content_type="application/json")
+    with pytest.raises(GoogleAdsQueryError, match="response is not JSON") as info:
+        _client().search_stream(CUSTOMER, QUERY)
+    assert info.value.status == 200 and info.value.customer_id == CUSTOMER and info.value.errors == []
+    assert len(responses.calls) == 1  # not retried as if it were a rate limit: the run fails and says why
