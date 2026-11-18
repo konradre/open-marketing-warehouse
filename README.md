@@ -4,7 +4,85 @@ An open-source data layer for marketing agents: scheduled ingestion pipelines, a
 read-only SQL path for the agent. `DESIGN.md` is the source of truth; `docs/THREADS.md` lists the build
 threads.
 
-**Status:** skeleton in place (T1). Sources, checks and the metric layer land in T2–T9.
+**Status:** the seven sources, the post-sync checks, the metric layer and the read-path evaluation are in
+place. `make demo` below runs all of it on synthetic data.
+
+## Quickstart: the demo
+
+Needs Docker (with Compose v2) and [uv](https://docs.astral.sh/uv/). No platform account, no API key and no
+`.env` file.
+
+```bash
+git clone https://github.com/konradre/open-marketing-warehouse.git
+cd open-marketing-warehouse
+make demo
+```
+
+The first run pulls the images; after that it takes about 15 seconds. `make demo` does six things and prints
+each one:
+
+1. **Generate.** A synthetic company is written to `data/demo/` as fixture files: 90 days of all seven
+   sources, in the JSON shapes the platform APIs answer with, in two snapshots. `initial/` is what every API
+   said yesterday. `restated/` is what it says today: one more day, and the recent days revised the way each
+   platform revises them (Meta and Google Ads conversions still arriving, Search Console and GA4 days still
+   filling in, Stripe invoices going from `open` to `paid`, Twenty deals moving stage).
+2. **First load.** The real dlt pipelines load `initial/` in fixture mode: Search Console through its
+   16-month chunked backfill, the others through one wide window. Fixture mode swaps one thing, the HTTP
+   transport: the clients, the paging, the dlt sources, the merges and the marts SQL are the production code.
+   Nothing leaves the machine.
+3. **Daily sync.** Each pipeline runs its ordinary daily sync against `restated/`, re-fetches its rolling
+   window and replaces it. The demo prints how many days came back with different numbers and that no row
+   exists twice.
+4. **Marts.** The views in `marts`, and one campaign key shared by the ad platforms, GA4 (`utm_campaign`),
+   Stripe (customer metadata) and Twenty (the `campaignKey` field), printed as a table.
+5. **Checks.** Freshness, over-count and row-count (`omw check`), all passing.
+6. **Five questions** through `query_metrics` as the `agent` user, one answer mood each:
+
+```
+[2/5] What did each Meta campaign spend over the last 7 days, in dollars?
+  query_metrics({"metrics": ["meta_spend", "meta_clicks"], "dimensions": ["campaign_key"], "filters": {"currency": "USD"}, "time_range": "last_7_days"})
+  mood: disclose
+  caveat: meta_ads.campaigns: days after 2026-10-21 are inside the source's 28-day restatement window and may still change
+    campaign_key         meta_spend  meta_clicks
+    gadgets_launch       1,772.10    2,493
+    lead_gen_ebook       1,322.65    1,462
+    ...
+[4/5] What was our spend last week?
+  mood: clarify
+  reason: 'spend' can mean 3 metrics; ask for one by name
+[5/5] How many people did our Meta ads reach in total over the last 7 days?
+  mood: refuse
+  reason: meta_reach is not additive: it can only be asked at its own grain ...
+```
+
+The other two are a plain `serve` (organic clicks by device over settled days) and a cross-source `disclose`
+(return on ad spend per campaign key: three ad platforms joined to Stripe revenue).
+
+**The data agrees with itself.** A campaign has one key everywhere. Its clicks on the ad platforms become
+its sessions in GA4. A lead-gen campaign's conversions are the lead forms Meta and LinkedIn list, and a
+share of those leads are the people and opportunities in Twenty. A sales campaign's conversions are
+sign-ups; half become paying Stripe customers whose metadata carries the key, and a deal won in Twenty
+becomes a Stripe customer too. GA4's key events are the Stripe sign-ups of that day. The known traps are in
+on purpose: named Search Console queries cover about two thirds of the clicks (the rest is anonymised),
+GA4 folds the long tail into `(other)`, Meta's ad level leaves out a paused ad set, there are two
+currencies, and one LinkedIn campaign is named differently and gets its key by hand.
+
+**The demo only replaces its own data.** It loads the same `raw` tables the real pipelines load, so it
+refuses to run on a warehouse that holds anything else (a real sync, the evaluation seed) unless you pass
+`--force` (`make demo DEMO_ARGS=--force`). `make demo-drop` removes what it loaded.
+
+The steps on their own, and the knobs:
+
+```bash
+uv run omw demo generate --days 120 --seed 7 --today 2026-11-18   # fixtures only; the same arguments give the same files
+uv run omw demo load --snapshot initial                           # empty the warehouse, load the whole history
+uv run omw demo load --snapshot restated                          # one daily sync; prints what it restated
+uv run omw demo ask                                               # the five answers again
+uv run omw demo run --verbose                                     # everything, with the pipelines' own log lines
+```
+
+The code is in `omw/demo/`: `world.py` and `funnel.py` (the company), `fixtures/` (the generator, one module
+per source), `replay/` (fixture mode) and `load.py` (the pipeline calls).
 
 ## Boundary
 
@@ -20,9 +98,10 @@ threads.
 - Agent read path: [mcp-clickhouse](https://github.com/ClickHouse/mcp-clickhouse), connected as the `agent` user
 - Optional, off by default: LibreChat (`chat` profile), Langfuse (`observability` profile)
 
-## Quick start
+## Development setup
 
-Needs Docker (with Compose v2) and [uv](https://docs.astral.sh/uv/).
+For work on the repo, or to load your own accounts. Needs Docker (with Compose v2) and
+[uv](https://docs.astral.sh/uv/).
 
 ```bash
 cp .env.example .env            # laptop defaults; change the passwords for anything shared
@@ -319,7 +398,7 @@ offline planners through both arms and rewrites the results. A real-model run is
 ## Layout
 
 ```
-omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server), eval/ (read-path evaluation harness)
+omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server), eval/ (read-path evaluation harness), demo/ (synthetic fixtures, fixture mode, `make demo`)
 metrics/        metric definitions (YAML), validated by omw/metrics/schema.py
 SEMANTICS.md    business semantics for the agent
 eval/           read-path evaluation: README.md (results), questions.json (ground truth), results/

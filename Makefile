@@ -2,10 +2,16 @@
 ENV_FILE := $(wildcard .env)
 COMPOSE  := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE)) -f deploy/docker-compose.yml
 
-.PHONY: up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop
+.PHONY: up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop demo demo-drop
 
 up: ## start ClickHouse and mcp-clickhouse, wait until healthy
 	$(COMPOSE) up -d --wait clickhouse mcp-clickhouse
+
+demo: up ## the quickstart: synthetic fixtures through the real pipelines (fixture mode), marts, checks, five answers
+	uv run omw demo run $(DEMO_ARGS)
+
+demo-drop: ## remove everything `make demo` loaded
+	uv run omw demo drop
 
 down: ## stop everything (all profiles); keeps volumes
 	$(COMPOSE) --profile chat --profile observability down
