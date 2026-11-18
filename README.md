@@ -235,7 +235,8 @@ uv run python -m omw.pipelines.ga4 daily --days 400   # first load
 
 ### Stripe
 
-`omw.sources.stripe` lists customers and subscriptions in full and merges them on id, re-fetches invoices
+`omw.sources.stripe` lists customers and subscriptions in full and merges them on id, loads every invoice on
+its first run and from then on re-fetches the invoices
 created in the last 90 days and merges them (they change until paid or voided), and appends balance
 transactions incrementally. Those are immutable but for one field: a transaction is loaded while `pending`
 and becomes `available` later, so `marts.stripe_balance` derives its status from `available_on`.

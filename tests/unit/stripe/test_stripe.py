@@ -108,7 +108,7 @@ def test_source_hints(fake_client: FakeStripeClient) -> None:
     subscription_call = next(p for r, p in fake_client.calls if r == "subscriptions")
     assert subscription_call == {"status": "all"}
     invoice_call = next(p for r, p in fake_client.calls if r == "invoices")
-    assert invoice_call["created[gte]"] == int(datetime(2026, 7, 7, tzinfo=UTC).timestamp())
+    assert "created[gte]" not in invoice_call  # a first pull takes the whole history
     with pytest.raises(ValueError, match="api_key"):
         stripe(api_key=None)
 
@@ -138,3 +138,21 @@ def test_balance_transactions_are_incremental_across_runs(
         second_call["created[gte]"] == fixture_data("balance_transactions")[0]["created"]
     )  # the newest seen
     assert counts.get("balance_transactions", 0) == 1  # the already-seen boundary row is deduplicated
+
+
+def test_the_first_run_loads_every_invoice_and_later_runs_the_window(
+    tmp_path: Path, fake_client: FakeStripeClient
+) -> None:
+    """The 90 days are how long an invoice keeps changing, not where revenue starts. A warehouse first
+    synced eight months after the fixture invoices must still hold them, or revenue before the window
+    reads as zero."""
+    pipeline = _pipeline(tmp_path)
+    later = date(2027, 6, 1)
+    counts = run_daily(pipeline, today=later, client=fake_client, marts_sql=None)
+    assert counts["invoices"] == 4
+    assert "created[gte]" not in next(p for r, p in fake_client.calls if r == "invoices")
+
+    counts = run_daily(pipeline, today=later, client=fake_client, marts_sql=None)
+    window_call = [p for r, p in fake_client.calls if r == "invoices"][-1]
+    assert window_call["created[gte]"] == int(datetime(2027, 3, 3, tzinfo=UTC).timestamp())
+    assert counts.get("invoices", 0) == 0  # nothing was created in the last 90 days
