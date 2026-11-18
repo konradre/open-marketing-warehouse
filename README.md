@@ -129,6 +129,7 @@ make chat                       # LibreChat on 127.0.0.1:3080, with the warehous
 make observability              # Langfuse on 127.0.0.1:3000
 deploy/profiles-env.sh .env     # first boot: fills the LIBRECHAT_* and LANGFUSE_* secrets with random values
 make profiles-smoke             # boots both profiles and proves they answer (CI runs this on every push)
+make scheduler-smoke            # builds the scheduler image and runs every job once in fixture mode (CI too)
 ```
 
 ## Sources

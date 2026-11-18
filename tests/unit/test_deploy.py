@@ -71,6 +71,34 @@ def test_every_container_log_and_the_server_logs_are_rotated() -> None:
         assert node is not None and node.get("remove") == "1", table
 
 
+def test_ci_builds_the_image_and_runs_it_in_fixture_mode() -> None:
+    workflow = yaml.safe_load((REPO / ".github/workflows/ci.yml").read_text())
+    job = workflow["jobs"]["scheduler"]
+    assert "needs" not in job  # beside the gate, never in front of it
+    steps = " ".join(str(step.get("run", "")) for step in job["steps"])
+    assert "deploy/scheduler-smoke.sh .env" in steps and "--profile scheduler down -v" in steps
+    smoke = REPO / "deploy/scheduler-smoke.sh"
+    assert smoke.stat().st_mode & 0o111
+    script = smoke.read_text()
+    assert "set -euo pipefail" in script
+    for step in (
+        "build scheduler",
+        'schedule run --once --fixtures "$fixtures"',
+        "backup list",
+        "up -d --wait scheduler",
+        "scheduler stopped (signal 15)",
+    ):
+        assert step in script, step
+    for job_name in (j.name for j in JOBS if j.name != "meta_ads_daily"):
+        assert job_name in script, job_name  # every job must end ok, none is forgotten
+
+
+def test_the_health_check_reads_a_heartbeat_of_this_container_only() -> None:
+    assert "OMW_HEARTBEAT=/tmp/omw-scheduler.heartbeat" in DOCKERFILE
+    state = next(v for v in SERVICES["scheduler"]["volumes"] if v.startswith("scheduler-state:"))
+    assert not "/tmp".startswith(state.split(":")[1])  # the heartbeat is not on the persistent volume
+
+
 def test_the_image_is_pinned_and_holds_no_secrets() -> None:
     images = re.findall(r"^FROM (\S+)", DOCKERFILE, re.MULTILINE)
     assert len(images) == 2

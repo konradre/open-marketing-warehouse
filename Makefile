@@ -2,7 +2,7 @@
 ENV_FILE := $(wildcard .env)
 COMPOSE  := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE)) -f deploy/docker-compose.yml
 
-.PHONY: job scheduler-restart up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop demo demo-drop scheduler scheduler-build scheduler-logs schedule backup backup-list backup-verify backup-prune restore systemd-units
+.PHONY: job scheduler-restart scheduler-smoke up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop demo demo-drop scheduler scheduler-build scheduler-logs schedule backup backup-list backup-verify backup-prune restore systemd-units
 
 up: ## start ClickHouse and mcp-clickhouse, wait until healthy
 	$(COMPOSE) up -d --wait clickhouse mcp-clickhouse
@@ -49,6 +49,9 @@ scheduler: scheduler-build ## start the scheduler (profile scheduler): every sou
 
 scheduler-logs:
 	$(SCHEDULER) logs -f --tail 200 scheduler
+
+scheduler-smoke: ## build the image and prove it on a fresh stack in fixture mode (what CI runs; loads demo data)
+	deploy/scheduler-smoke.sh $(or $(ENV_FILE),.env.example)
 
 scheduler-restart: ## restart the loop, for example after editing [schedule] in .dlt/config.toml
 	$(SCHEDULER) restart scheduler

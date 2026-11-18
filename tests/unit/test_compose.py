@@ -70,7 +70,7 @@ def test_optional_profiles_do_not_block_the_core_stack() -> None:
 def test_ci_boots_the_optional_profiles_in_their_own_job() -> None:
     workflow = yaml.safe_load((REPO / ".github/workflows/ci.yml").read_text())
     jobs = workflow["jobs"]
-    assert set(jobs) == {"gate", "profiles"} and "needs" not in jobs["profiles"]
+    assert set(jobs) == {"gate", "profiles", "scheduler"} and "needs" not in jobs["profiles"]
     steps = " ".join(str(step.get("run", "")) for step in jobs["profiles"]["steps"])
     assert "deploy/profiles-env.sh .env" in steps and "deploy/profiles-smoke.sh .env" in steps
     assert "down -v" in steps
