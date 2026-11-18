@@ -22,8 +22,21 @@ def _campaigns(admin_client: Client, rows: list[list[str]]) -> None:
     admin_client.insert(CAMPAIGNS, rows, column_names=["id", "name"])
 
 
+def _drop_linkedin(admin_client: Client) -> None:
+    """Every LinkedIn table and view, as the other modules do for their dataset: a run that failed midway
+    can leave views behind, and they would break once the campaigns table under them is replaced."""
+    tables = admin_client.query(
+        "SELECT database, name, engine FROM system.tables "
+        "WHERE database IN ('raw', 'marts') AND name LIKE 'linkedin_ads%'"
+    ).result_rows
+    for database, name, engine in sorted(tables, key=lambda t: t[2] != "View"):
+        kind = "VIEW" if engine == "View" else "TABLE"
+        admin_client.command(f"DROP {kind} IF EXISTS {database}.`{name}`")
+
+
 @pytest.fixture
 def pipeline_client(admin_client: Client) -> Iterator[Client]:
+    _drop_linkedin(admin_client)
     admin_client.command("DROP TABLE IF EXISTS marts.campaign_keys")
     _campaigns(
         admin_client,
