@@ -1,0 +1,12 @@
+# The scheduler image copies named paths only (deploy/scheduler/Dockerfile); this keeps everything else,
+# secrets first, out of the build context.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!omw
+!sql
+!metrics
+!.dlt/config.toml
+**/__pycache__
+**/*.pyc

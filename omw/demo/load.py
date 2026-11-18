@@ -29,6 +29,7 @@ from omw.sources.ga4 import GA4Client
 from omw.sources.google_ads.client import GoogleAdsClient
 from omw.sources.linkedin_ads import LINKEDIN_VERSION, LinkedInAuth
 from omw.sources.linkedin_ads import RE_PULL_DAYS as LINKEDIN_DAYS
+from omw.sources.meta_ads.cadences import SyncMode
 from omw.sources.meta_ads.settings import BREAKDOWNS
 from omw.sources.search_console import SearchConsoleClient
 from omw.sources.stripe import StripeClient
@@ -55,6 +56,9 @@ class Run:
     """The first load of a warehouse takes the whole history; a later one the pipelines' daily windows."""
     pacing: PacerSummary | None = None
     """What the Meta pacer saw during this run."""
+    meta_mode: SyncMode | None = None
+    """The Meta cadence to run instead of the one ``first`` implies: the scheduler in fixture mode runs the
+    28-day ``weekly`` reconcile over its own window, on a warehouse that is already loaded."""
 
     @property
     def today(self) -> date:
@@ -94,7 +98,7 @@ def load_meta_ads(run: Run) -> dict[str, int]:
     pacer = MetaPacer(sleep=_no_wait)
     result = meta_ads.run(
         run.pipeline(meta_ads),
-        "weekly" if run.first else "daily",
+        run.meta_mode or ("weekly" if run.first else "daily"),
         run.accounts("meta_ads")["account_ids"],
         levels=("campaign", "ad"),
         today=run.today,

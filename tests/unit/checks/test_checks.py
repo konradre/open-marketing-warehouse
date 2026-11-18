@@ -213,13 +213,13 @@ def test_cli_exit_codes(monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehous
     class Config:
         @staticmethod
         def get(key: str, _type: Any) -> Any:
-            return {"ga4": 1.0}
+            return {"ga4": 1.0} if key == "checks.freshness_hours" else None
 
     monkeypatch.setattr(dlt, "config", Config())
     monkeypatch.setattr(
         cli,
         "run_checks",
-        lambda client, budgets=None, sources=None: CheckRun(
+        lambda client, budgets=None, sources=None, **_: CheckRun(
             [CheckResult("ga4", "freshness", "sync", Status.PASS, 1, 2, "ok")]
         ),
     )
@@ -227,7 +227,7 @@ def test_cli_exit_codes(monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehous
     monkeypatch.setattr(
         cli,
         "run_checks",
-        lambda client, budgets=None, sources=None: CheckRun(
+        lambda client, budgets=None, sources=None, **_: CheckRun(
             [CheckResult("ga4", "freshness", "sync", Status.FAIL, 99, 2, "stale")]
         ),
     )

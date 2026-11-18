@@ -1,0 +1,14 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: %i
+Documentation=file:///srv/omw/docs/DEPLOY.md
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/omw
+# One job at a time, as in the scheduler loop: a job waits for the one before it.
+ExecStart=/usr/bin/flock /run/lock/omw-sync.lock /usr/bin/docker compose --env-file .env -f deploy/docker-compose.yml --profile scheduler run --rm -T scheduler sync %i --trigger timer
+# `omw sync` exits 1 when the job failed and 3 when a post-sync check failed, after firing the hook itself.
+TimeoutStartSec=8h

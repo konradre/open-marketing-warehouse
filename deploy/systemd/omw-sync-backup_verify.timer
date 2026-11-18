@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: backup_verify (sun 06:30 UTC, restore drill: the newest backup into scratch databases)
+
+[Timer]
+OnCalendar=Sun *-*-* 06:30:00 UTC
+Persistent=true
+Unit=omw-sync@backup_verify.service
+
+[Install]
+WantedBy=timers.target

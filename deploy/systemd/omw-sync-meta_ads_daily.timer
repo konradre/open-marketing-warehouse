@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: meta_ads_daily (mon,tue,wed,thu,fri,sat 03:15 UTC, 7-day re-pull)
+
+[Timer]
+OnCalendar=Mon,Tue,Wed,Thu,Fri,Sat *-*-* 03:15:00 UTC
+Persistent=true
+Unit=omw-sync@meta_ads_daily.service
+
+[Install]
+WantedBy=timers.target

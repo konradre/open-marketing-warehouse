@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: meta_ads_weekly (sun 03:15 UTC, 28-day reconcile)
+
+[Timer]
+OnCalendar=Sun *-*-* 03:15:00 UTC
+Persistent=true
+Unit=omw-sync@meta_ads_weekly.service
+
+[Install]
+WantedBy=timers.target

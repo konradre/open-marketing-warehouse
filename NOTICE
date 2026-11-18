@@ -21,5 +21,7 @@ This project re-authors design patterns from the following works:
   https://github.com/ClickHouse/mcp-clickhouse
 - Langfuse self-hosting docker-compose, Copyright Langfuse GmbH, MIT (the `observability` profile is adapted
   from its service layout and environment) https://github.com/langfuse/langfuse
+- uv Docker integration guide, Copyright Astral Software Inc, Apache-2.0 OR MIT (the layered `uv sync`
+  build in deploy/scheduler/Dockerfile follows it) https://github.com/astral-sh/uv
 - LibreChat deploy-compose, Copyright Danny Avila, MIT (the `chat` profile is adapted from its service layout)
   https://github.com/danny-avila/LibreChat

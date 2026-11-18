@@ -5,6 +5,8 @@ maintains the cross-platform campaign key mapping (``marts.campaign_keys``); ``s
 sync would change and writes nothing. ``omw eval seed|run|report|drop``
 evaluates the agent read path on a seeded synthetic warehouse (``eval/README.md``). ``omw demo run`` loads a
 synthetic company through the real pipelines in fixture mode and prints five example answers (``make demo``).
+``omw sync <job>`` runs one scheduled job with its checks and failure hook, ``omw schedule run`` is the
+scheduler loop, and ``omw backup create|verify|restore`` backs the warehouse up (``docs/DEPLOY.md``).
 """
 
 from __future__ import annotations
@@ -15,9 +17,10 @@ import sys
 from collections.abc import Sequence
 from typing import Any
 
-import clickhouse_connect
 import dlt
 
+from omw.backup.cli import add_parser as add_backup_parser
+from omw.checks.expiry import read_expiries, read_warn_days
 from omw.checks.runner import apply_ops_sql, run_checks
 from omw.demo.cli import add_parser as add_demo_parser
 from omw.eval.cli import add_parser as add_eval_parser
@@ -29,27 +32,34 @@ from omw.metrics.campaign_keys import (
     set_campaign_key,
     sync_campaign_keys,
 )
+from omw.pipelines.client import pipeline_client
+from omw.scheduler.cli import add_parsers as add_scheduler_parsers
+from omw.scheduler.jobs import SOURCES, enabled_sources, read_plan
 
 log = logging.getLogger("omw")
 
 
-def pipeline_client() -> Any:
-    """clickhouse-connect as the pipeline user, from the dlt destination credentials."""
-    credentials = dlt.secrets["destination.clickhouse.credentials"]
-    return clickhouse_connect.get_client(
-        host=credentials["host"],
-        port=int(credentials.get("http_port", 8123)),
-        username=credentials["username"],
-        password=credentials["password"],
-        secure=bool(credentials.get("secure", 0)),
-    )
+def checked_sources(budgets: dict[str, float] | None) -> tuple[dict[str, float] | None, set[str]]:
+    """The freshness budgets and the sources the expiry check covers, without the sources whose jobs are all
+    ``off`` in ``[schedule]``: a source the deployment does not use is neither synced nor checked."""
+    enabled = enabled_sources(read_plan())
+    if budgets is not None:
+        budgets = {source: hours for source, hours in budgets.items() if source in enabled}
+    return budgets, set(budgets) if budgets is not None else enabled & set(SOURCES)
 
 
 def check(args: argparse.Namespace) -> int:
     client = pipeline_client()
     apply_ops_sql(client)
-    budgets = dlt.config.get("checks.freshness_hours", dict) or None
-    run = run_checks(client, budgets=budgets, sources=set(args.source) if args.source else None)
+    budgets, sources = checked_sources(dlt.config.get("checks.freshness_hours", dict) or None)
+    wanted = set(args.source) if args.source else None
+    run = run_checks(
+        client,
+        budgets=budgets,
+        sources=wanted,
+        expiries=read_expiries(sources & wanted if wanted else sources),
+        expiry_warn_days=read_warn_days(),
+    )
     for result in run.results:
         level = {"pass": logging.INFO, "warn": logging.WARNING, "fail": logging.ERROR}[str(result.status)]
         log.log(
@@ -135,6 +145,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     keys_parser.set_defaults(handler=campaign_keys)
     add_eval_parser(commands)
     add_demo_parser(commands)
+    add_scheduler_parsers(commands)
+    add_backup_parser(commands)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     handler: Any = args.handler

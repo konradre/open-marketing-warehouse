@@ -1,6 +1,8 @@
 # open-marketing-warehouse — local stack.
 #
 #   make up                                  clickhouse + mcp-clickhouse (the agent's SQL path)
+#   make scheduler                           + the scheduler (profile `scheduler`): every source on its
+#                                            cadence, checks, failure hook, backups (docs/DEPLOY.md)
 #   make chat                                + LibreChat (profile `chat`)
 #   make observability                       + Langfuse (profile `observability`)
 #
@@ -9,6 +11,13 @@
 # Makefile, so the defaults below only apply when no .env exists.
 
 x-clickhouse-image: &clickhouse-image clickhouse/clickhouse-server:25.8.33.6
+
+# Container logs, rotated by Docker: at most 5 x 10 MB per service.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
 
 services:
   clickhouse:
@@ -25,6 +34,8 @@ services:
       - "127.0.0.1:${OMW_CLICKHOUSE_NATIVE_PORT:-9000}:9000"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
+      # Where `omw backup` writes: a named volume, or an absolute host path set as OMW_BACKUP_VOLUME.
+      - ${OMW_BACKUP_VOLUME:-clickhouse-backups}:/backups
       - ./clickhouse/config.d/omw.xml:/etc/clickhouse-server/config.d/omw.xml:ro
       - ./clickhouse/initdb:/docker-entrypoint-initdb.d:ro
       - ../sql:/omw/sql:ro
@@ -34,6 +45,7 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+    logging: *logging
     restart: unless-stopped
 
   # The agent's SQL path (DESIGN.md §2): connected as the `agent` user, so the profile, grants and quota in
@@ -58,6 +70,49 @@ services:
       CLICKHOUSE_MCP_ALLOWED_HOSTS: "127.0.0.1:*,localhost:*,mcp-clickhouse:*"
     ports:
       - "127.0.0.1:${OMW_MCP_PORT:-8000}:8000"
+    logging: *logging
+    restart: unless-stopped
+
+  # ---- profile: scheduler (off by default) ------------------------------------------------------------
+  # One process pulls every platform on its cadence (DESIGN.md §1): `omw schedule run` starts whatever is
+  # due, one job at a time, runs the post-sync checks after every sync, fires the failure hook and makes
+  # the nightly backup. Credentials come from the repo's .dlt/ directory, mounted read-only; the warehouse
+  # address is overridden here, so the same secrets.toml serves the host and the container.
+  scheduler:
+    profiles: ["scheduler"]
+    image: omw-scheduler:local
+    build:
+      context: ..
+      dockerfile: deploy/scheduler/Dockerfile
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    command: ${OMW_SCHEDULER_COMMAND:-schedule run}
+    environment:
+      DESTINATION__CLICKHOUSE__CREDENTIALS__HOST: clickhouse
+      DESTINATION__CLICKHOUSE__CREDENTIALS__PORT: "9000"
+      DESTINATION__CLICKHOUSE__CREDENTIALS__HTTP_PORT: "8123"
+      DESTINATION__CLICKHOUSE__CREDENTIALS__USERNAME: pipeline
+      DESTINATION__CLICKHOUSE__CREDENTIALS__PASSWORD: ${OMW_PIPELINE_PASSWORD:-pipeline-dev-password} # dev default
+      DESTINATION__CLICKHOUSE__CREDENTIALS__DATABASE: raw
+      DESTINATION__CLICKHOUSE__CREDENTIALS__SECURE: "0"
+      # Fixture mode (`schedule run --fixtures`) and the demo read these instead.
+      OMW_CLICKHOUSE_HOST: clickhouse
+      OMW_CLICKHOUSE_HTTP_PORT: "8123"
+      OMW_CLICKHOUSE_NATIVE_PORT: "9000"
+      OMW_PIPELINE_PASSWORD: ${OMW_PIPELINE_PASSWORD:-pipeline-dev-password} # dev default
+      OMW_AGENT_PASSWORD: ${OMW_AGENT_PASSWORD:-agent-dev-password} # dev default
+    volumes:
+      - ../.dlt:/app/.dlt:ro
+      - scheduler-state:/var/lib/omw
+      - ${OMW_BACKUP_VOLUME:-clickhouse-backups}:/backups
+    healthcheck:
+      test: ["CMD", "omw", "schedule", "health"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
+    logging: *logging
     restart: unless-stopped
 
   # ---- profile: chat (LibreChat, off by default) ----------------------------------------------------
@@ -90,6 +145,7 @@ services:
       - librechat-logs:/app/api/logs
     ports:
       - "127.0.0.1:${OMW_CHAT_PORT:-3080}:3080"
+    logging: *logging
     restart: unless-stopped
 
   librechat-mongo:
@@ -100,6 +156,7 @@ services:
     command: mongod --noauth
     volumes:
       - librechat-mongo:/data/db
+    logging: *logging
     restart: unless-stopped
 
   # ---- profile: observability (Langfuse, off by default) ---------------------------------------------
@@ -146,6 +203,7 @@ services:
       REDIS_PORT: "6379"
       REDIS_AUTH: ${LANGFUSE_REDIS_PASSWORD:-}
       REDIS_TLS_ENABLED: "false"
+    logging: *logging
     restart: unless-stopped
 
   langfuse-web:
@@ -160,6 +218,7 @@ services:
       LANGFUSE_S3_MEDIA_UPLOAD_INTERNAL_ENDPOINT: http://langfuse-minio:9000
     ports:
       - "127.0.0.1:${OMW_LANGFUSE_PORT:-3000}:3000"
+    logging: *logging
     restart: unless-stopped
 
   langfuse-postgres:
@@ -178,6 +237,7 @@ services:
       interval: 3s
       timeout: 3s
       retries: 10
+    logging: *logging
     restart: unless-stopped
 
   langfuse-redis:
@@ -191,6 +251,7 @@ services:
       interval: 3s
       timeout: 10s
       retries: 10
+    logging: *logging
     restart: unless-stopped
 
   langfuse-minio:
@@ -212,6 +273,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 2s
+    logging: *logging
     restart: unless-stopped
 
   langfuse-clickhouse:
@@ -233,10 +295,13 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+    logging: *logging
     restart: unless-stopped
 
 volumes:
   clickhouse-data:
+  clickhouse-backups:
+  scheduler-state:
   librechat-mongo:
   librechat-uploads:
   librechat-logs:

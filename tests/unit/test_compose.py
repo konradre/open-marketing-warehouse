@@ -36,7 +36,7 @@ def test_core_services_have_no_profile_and_optional_ones_do() -> None:
     core = {name for name, s in SERVICES.items() if not s.get("profiles")}
     assert core == {"clickhouse", "mcp-clickhouse"}
     profiles = {p for s in SERVICES.values() for p in s.get("profiles", [])}
-    assert profiles == {"chat", "observability"}
+    assert profiles == {"chat", "observability", "scheduler"}
 
 
 def test_clickhouse_has_healthcheck_named_volume_and_bootstrap_mounts() -> None:

@@ -2,7 +2,7 @@
 ENV_FILE := $(wildcard .env)
 COMPOSE  := docker compose $(if $(ENV_FILE),--env-file $(ENV_FILE)) -f deploy/docker-compose.yml
 
-.PHONY: up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop demo demo-drop
+.PHONY: job scheduler-restart up down logs bootstrap chat observability profiles-smoke sync lint format typecheck test unit integration gate clean check campaign-keys eval-seed eval-report eval-drop demo demo-drop scheduler scheduler-build scheduler-logs schedule backup backup-list backup-verify backup-prune restore systemd-units
 
 up: ## start ClickHouse and mcp-clickhouse, wait until healthy
 	$(COMPOSE) up -d --wait clickhouse mcp-clickhouse
@@ -14,7 +14,7 @@ demo-drop: ## remove everything `make demo` loaded
 	uv run omw demo drop
 
 down: ## stop everything (all profiles); keeps volumes
-	$(COMPOSE) --profile chat --profile observability down
+	$(COMPOSE) --profile chat --profile observability --profile scheduler down
 
 logs:
 	$(COMPOSE) logs -f clickhouse mcp-clickhouse
@@ -36,6 +36,48 @@ observability: ## also start Langfuse (profile observability); needs the LANGFUS
 
 profiles-smoke: ## boot both optional profiles (needs the secrets in .env; deploy/profiles-env.sh writes throwaway ones) and prove they answer
 	deploy/profiles-smoke.sh .env
+
+# ---- running it on one host (docs/DEPLOY.md) ----
+SCHEDULER := $(COMPOSE) --profile scheduler
+IN_SCHEDULER := $(SCHEDULER) run --rm -T scheduler
+
+scheduler-build: ## build the scheduler image from this checkout
+	$(SCHEDULER) build scheduler
+
+scheduler: scheduler-build ## start the scheduler (profile scheduler): every source on its cadence, checks, hook, backups
+	$(SCHEDULER) up -d --wait clickhouse mcp-clickhouse scheduler
+
+scheduler-logs:
+	$(SCHEDULER) logs -f --tail 200 scheduler
+
+scheduler-restart: ## restart the loop, for example after editing [schedule] in .dlt/config.toml
+	$(SCHEDULER) restart scheduler
+
+job: ## run one job now with its checks and failure hook: make job JOB=ga4
+	@test -n "$(JOB)" || { echo "usage: make job JOB=<job>   (make schedule lists them)"; exit 2; }
+	$(IN_SCHEDULER) sync $(JOB)
+
+schedule: ## every job, its schedule, its next slot and how its last run ended
+	$(IN_SCHEDULER) schedule list
+
+backup: ## back up raw, marts and ops now
+	$(IN_SCHEDULER) backup create
+
+backup-list: ## every backup, its last restore drill, whether its file is still there
+	$(IN_SCHEDULER) backup list
+
+backup-verify: ## restore drill: the newest backup (or BACKUP=name.zip) into scratch databases
+	$(IN_SCHEDULER) backup verify $(BACKUP)
+
+backup-prune: ## delete all but the newest scheduled backups ([backup] keep)
+	$(IN_SCHEDULER) backup prune
+
+restore: ## replace raw, marts and ops with BACKUP=name.zip (stop the scheduler first; FORCE=1 to replace data)
+	@test -n "$(BACKUP)" || { echo "usage: make restore BACKUP=omw-<time>.zip [FORCE=1]"; exit 2; }
+	$(IN_SCHEDULER) backup restore $(BACKUP) $(if $(FORCE),--force)
+
+systemd-units: ## render [schedule] as systemd timer units into deploy/systemd/
+	uv run omw schedule systemd --output deploy/systemd
 
 sync:
 	uv sync --all-groups
@@ -77,4 +119,4 @@ eval-drop: ## remove everything `make eval-seed` created
 	uv run omw eval drop
 
 clean: ## stop everything and delete volumes
-	$(COMPOSE) --profile chat --profile observability down -v
+	$(COMPOSE) --profile chat --profile observability --profile scheduler down -v

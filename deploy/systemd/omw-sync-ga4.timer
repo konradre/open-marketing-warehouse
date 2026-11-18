@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: ga4 (04:15 UTC, re-fetch the last 7 days)
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 UTC
+Persistent=true
+Unit=omw-sync@ga4.service
+
+[Install]
+WantedBy=timers.target
