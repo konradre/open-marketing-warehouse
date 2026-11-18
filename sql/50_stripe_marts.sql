@@ -1,6 +1,8 @@
 -- Stripe marts (DESIGN.md §4, T5): revenue by date and by campaign key where attribution metadata exists.
--- Amounts are Stripe minor units in raw. The views convert to currency amounts. Zero-decimal currencies
--- (JPY, KRW, ...) are already whole units in Stripe and are not divided. Applied by omw.pipelines.stripe after each load.
+-- Amounts are Stripe minor units in raw. The views convert to currency amounts with one divisor, the same in every
+-- view: 1 for the zero-decimal currencies (JPY, KRW, ...), which are already whole units; 1000 for the three-decimal
+-- ones (BHD, JOD, KWD, OMR, TND); 100 for the rest. UGX and ISK have no decimals in practice, but Stripe still
+-- represents them with two (500 is 5 UGX), so they are divided by 100. Applied by omw.pipelines.stripe after each load.
 
 CREATE OR REPLACE VIEW marts.stripe_revenue (
     source LowCardinality(String) COMMENT 'Always stripe',
@@ -10,7 +12,7 @@ CREATE OR REPLACE VIEW marts.stripe_revenue (
     customer_id String COMMENT 'Stripe customer id',
     subscription_id String COMMENT 'Stripe subscription id, empty for one-off invoices',
     currency LowCardinality(String) COMMENT 'ISO 4217 currency of the invoice, upper case (Stripe reports lower case)',
-    amount Decimal(18, 2) COMMENT 'Amount paid in the invoice currency (minor units / 100, whole units for zero-decimal currencies)',
+    amount Decimal(18, 2) COMMENT 'Amount paid in the invoice currency (minor units / 100, whole units for zero-decimal currencies, minor units / 1000 for three-decimal ones)',
     amount_minor Int64 COMMENT 'Amount paid in Stripe minor units, as reported',
     billing_reason LowCardinality(String) COMMENT 'subscription_create, subscription_cycle, subscription_update, manual, ...',
     campaign_key String COMMENT 'Campaign key for cross-source joins (DESIGN.md §6): metadata.campaign_key on the invoice, else the subscription, else the customer. Empty when no attribution metadata exists',
@@ -21,8 +23,7 @@ CREATE OR REPLACE VIEW marts.stripe_revenue (
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT 'stripe' AS source, 'invoices' AS report, toDate(i.paid_at) AS date, i.id AS invoice_id,
        i.customer_id AS customer_id, i.subscription_id AS subscription_id, upper(i.currency) AS currency,
-       if(i.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
-          toDecimal64(i.amount_paid, 2), toDecimal64(i.amount_paid, 2) / 100) AS amount,
+       toDecimal64(i.amount_paid, 2) / multiIf(i.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','vnd','vuv','xaf','xof','xpf'), 1, i.currency IN ('bhd','jod','kwd','omr','tnd'), 1000, 100) AS amount,
        i.amount_paid AS amount_minor, i.billing_reason AS billing_reason,
        multiIf(i.campaign_key != '', i.campaign_key, s.campaign_key != '', s.campaign_key, c.campaign_key) AS campaign_key,
        multiIf(i.utm_source != '', i.utm_source, s.utm_source != '', s.utm_source, c.utm_source) AS utm_source,
@@ -71,7 +72,7 @@ CREATE OR REPLACE VIEW marts.stripe_subscriptions (
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT s.source AS source, s.id AS subscription_id, s.customer_id AS customer_id, s.status AS status, s.created AS created,
        s.canceled_at AS canceled_at, upper(s.currency) AS currency, s.interval AS interval,
-       toDecimal64(s.unit_amount, 2) / 100 AS unit_amount, toUInt64(s.quantity) AS quantity, s.product_id AS product_id,
+       toDecimal64(s.unit_amount, 2) / multiIf(s.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','vnd','vuv','xaf','xof','xpf'), 1, s.currency IN ('bhd','jod','kwd','omr','tnd'), 1000, 100) AS unit_amount, toUInt64(s.quantity) AS quantity, s.product_id AS product_id,
        if(s.campaign_key != '', s.campaign_key, c.campaign_key) AS campaign_key,
        if(s.utm_source != '', s.utm_source, c.utm_source) AS utm_source,
        if(s.utm_medium != '', s.utm_medium, c.utm_medium) AS utm_medium,
@@ -98,12 +99,11 @@ SELECT source, 'balance' AS report, toDate(created_at) AS date, id AS transactio
        -- Balance transactions are loaded once, when created, and Stripe moves them from pending to available later.
        -- available_on is known from the start, so the status is derived here instead of trusting the loaded one.
        if(status = 'pending' AND available_on <= now(), 'available', status) AS status,
-       upper(currency) AS currency,
-       if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
-          toDecimal64(amount, 2), toDecimal64(amount, 2) / 100) AS gross,
-       if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
-          toDecimal64(fee, 2), toDecimal64(fee, 2) / 100) AS fee,
-       if(currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'),
-          toDecimal64(net, 2), toDecimal64(net, 2) / 100) AS net,
+       -- b.currency is the loaded column, lower case as Stripe reports it. A bare `currency` here is the upper-case
+       -- alias of this SELECT, which matches none of the lists below.
+       upper(b.currency) AS currency,
+       toDecimal64(amount, 2) / multiIf(b.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','vnd','vuv','xaf','xof','xpf'), 1, b.currency IN ('bhd','jod','kwd','omr','tnd'), 1000, 100) AS gross,
+       toDecimal64(fee, 2) / multiIf(b.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','vnd','vuv','xaf','xof','xpf'), 1, b.currency IN ('bhd','jod','kwd','omr','tnd'), 1000, 100) AS fee,
+       toDecimal64(net, 2) / multiIf(b.currency IN ('bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','vnd','vuv','xaf','xof','xpf'), 1, b.currency IN ('bhd','jod','kwd','omr','tnd'), 1000, 100) AS net,
        source_id, available_on
-FROM raw.stripe___balance_transactions;
+FROM raw.stripe___balance_transactions AS b;

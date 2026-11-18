@@ -1,0 +1,77 @@
+{
+  "object": "list",
+  "url": "/v1/balance_transactions",
+  "has_more": false,
+  "data": [
+    {
+      "id": "txn_T50000000000015",
+      "object": "balance_transaction",
+      "type": "charge",
+      "created": 1791076060,
+      "available_on": 1791248800,
+      "currency": "usd",
+      "amount": 1999,
+      "fee": 88,
+      "net": 1911,
+      "source": "ch_T5000000000000015",
+      "reporting_category": "charge",
+      "status": "available"
+    },
+    {
+      "id": "txn_T50000000000014",
+      "object": "balance_transaction",
+      "type": "charge",
+      "created": 1791075960,
+      "available_on": 1791248700,
+      "currency": "isk",
+      "amount": 250000,
+      "fee": 7300,
+      "net": 242700,
+      "source": "ch_T5000000000000014",
+      "reporting_category": "charge",
+      "status": "available"
+    },
+    {
+      "id": "txn_T50000000000013",
+      "object": "balance_transaction",
+      "type": "charge",
+      "created": 1791075860,
+      "available_on": 1791248600,
+      "currency": "kwd",
+      "amount": 5120,
+      "fee": 150,
+      "net": 4970,
+      "source": "ch_T5000000000000013",
+      "reporting_category": "charge",
+      "status": "available"
+    },
+    {
+      "id": "txn_T50000000000012",
+      "object": "balance_transaction",
+      "type": "charge",
+      "created": 1791075760,
+      "available_on": 1791248500,
+      "currency": "ugx",
+      "amount": 500000,
+      "fee": 14500,
+      "net": 485500,
+      "source": "ch_T5000000000000012",
+      "reporting_category": "charge",
+      "status": "available"
+    },
+    {
+      "id": "txn_T50000000000011",
+      "object": "balance_transaction",
+      "type": "charge",
+      "created": 1791075660,
+      "available_on": 1791248400,
+      "currency": "jpy",
+      "amount": 5000,
+      "fee": 180,
+      "net": 4820,
+      "source": "ch_T5000000000000011",
+      "reporting_category": "charge",
+      "status": "available"
+    }
+  ]
+}

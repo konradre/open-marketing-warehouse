@@ -1,5 +1,5 @@
 -- Meta Ads entity lists (DESIGN.md §4): campaigns and ad sets with their budgets, as last pulled.
--- Budgets are Meta's strings in the account currency's minor units (whole units for zero-decimal currencies);
+-- Budgets are Meta's strings in the account currency's minor units (whole units for the eleven currencies Meta gives an offset of 1);
 -- the currency comes from the insights of the same account. Applied by omw.pipelines.meta_ads after each load
 -- that fetched entities. SQL SECURITY DEFINER keeps raw invisible to the agent.
 
@@ -22,9 +22,9 @@ CREATE OR REPLACE VIEW marts.meta_ads_campaign_list (
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT 'meta_ads' AS source, c.account_id AS account_id, a.currency AS currency, c.id AS campaign_id, c.name AS campaign_name,
        c.status AS status, c.effective_status AS effective_status, c.objective AS objective, c.buying_type AS buying_type,
-       if(a.currency IN ('CLP','ISK','JPY','KRW','PYG','TWD','VND','HUF','COP'), toDecimal64(toInt64OrZero(c.daily_budget), 2),
+       if(a.currency IN ('CLP','COP','CRC','HUF','IDR','ISK','JPY','KRW','PYG','TWD','VND'), toDecimal64(toInt64OrZero(c.daily_budget), 2),
           toDecimal64(toInt64OrZero(c.daily_budget), 2) / 100) AS daily_budget,
-       if(a.currency IN ('CLP','ISK','JPY','KRW','PYG','TWD','VND','HUF','COP'), toDecimal64(toInt64OrZero(c.lifetime_budget), 2),
+       if(a.currency IN ('CLP','COP','CRC','HUF','IDR','ISK','JPY','KRW','PYG','TWD','VND'), toDecimal64(toInt64OrZero(c.lifetime_budget), 2),
           toDecimal64(toInt64OrZero(c.lifetime_budget), 2) / 100) AS lifetime_budget,
        ifNull(c.start_time, toDateTime(0)) AS start_time, ifNull(c.stop_time, toDateTime(0)) AS stop_time,
        c.created_time AS created_time, c.updated_time AS updated_time
@@ -57,11 +57,11 @@ SELECT 'meta_ads' AS source, s.account_id AS account_id, a.currency AS currency,
        c.name AS campaign_name, s.id AS adset_id, s.name AS adset_name, s.status AS status,
        s.effective_status AS effective_status, s.optimization_goal AS optimization_goal, s.billing_event AS billing_event,
        s.bid_strategy AS bid_strategy,
-       if(a.currency IN ('CLP','ISK','JPY','KRW','PYG','TWD','VND','HUF','COP'), toDecimal64(toInt64OrZero(s.bid_amount), 2),
+       if(a.currency IN ('CLP','COP','CRC','HUF','IDR','ISK','JPY','KRW','PYG','TWD','VND'), toDecimal64(toInt64OrZero(s.bid_amount), 2),
           toDecimal64(toInt64OrZero(s.bid_amount), 2) / 100) AS bid_amount,
-       if(a.currency IN ('CLP','ISK','JPY','KRW','PYG','TWD','VND','HUF','COP'), toDecimal64(toInt64OrZero(s.daily_budget), 2),
+       if(a.currency IN ('CLP','COP','CRC','HUF','IDR','ISK','JPY','KRW','PYG','TWD','VND'), toDecimal64(toInt64OrZero(s.daily_budget), 2),
           toDecimal64(toInt64OrZero(s.daily_budget), 2) / 100) AS daily_budget,
-       if(a.currency IN ('CLP','ISK','JPY','KRW','PYG','TWD','VND','HUF','COP'), toDecimal64(toInt64OrZero(s.lifetime_budget), 2),
+       if(a.currency IN ('CLP','COP','CRC','HUF','IDR','ISK','JPY','KRW','PYG','TWD','VND'), toDecimal64(toInt64OrZero(s.lifetime_budget), 2),
           toDecimal64(toInt64OrZero(s.lifetime_budget), 2) / 100) AS lifetime_budget,
        ifNull(s.start_time, toDateTime(0)) AS start_time, ifNull(s.end_time, toDateTime(0)) AS end_time,
        s.created_time AS created_time, s.updated_time AS updated_time

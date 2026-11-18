@@ -69,3 +69,15 @@ def test_leads_view_counts_without_the_answers() -> None:
     assert "FROM raw.meta_ads___leads" in stmts[0] and "field_data" not in stmts[0] and ";" not in stmts[0]
     columns = re.findall(r"^\s+(\w+) [\w(), ]+ COMMENT '", stmts[0], re.MULTILINE)
     assert {"currency", "campaign_id", "is_organic", "answer_count"} <= set(columns)
+
+
+def test_budgets_are_whole_units_for_every_currency_meta_gives_offset_one() -> None:
+    """Meta's Marketing API currency table gives eleven currencies an offset of 1: their budgets and bids
+    are whole units, not hundredths."""
+    text = (SQL_DIR / "20_meta_ads_marts_entities.sql").read_text()
+    lists = re.findall(r"a\.currency IN \(([^)]*)\)", text)
+    assert len(lists) == 5  # campaign daily and lifetime budget; ad set bid, daily and lifetime budget
+    for found in lists:
+        assert set(re.findall(r"'(\w+)'", found)) == set(
+            ["CLP", "COP", "CRC", "HUF", "ISK", "IDR", "JPY", "KRW", "PYG", "TWD", "VND"]
+        )
