@@ -66,7 +66,7 @@ reports:
       currency: ISO 4217 currency of the customer account
       campaign_id: Google Ads campaign id
       campaign_name: Campaign name at the last pull
-      campaign_status: ENABLED or PAUSED at the last pull; removed campaigns are not pulled
+      campaign_status: ENABLED or PAUSED at the last pull; removed campaigns are not listed
       serving_status: SERVING, ENDED, PENDING, SUSPENDED or NONE
       channel_type: Advertising channel (SEARCH, DISPLAY, SHOPPING, VIDEO, PERFORMANCE_MAX, ...)
       bidding_strategy_type: Bidding strategy, for example MAXIMIZE_CONVERSIONS or TARGET_ROAS

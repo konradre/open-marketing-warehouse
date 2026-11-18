@@ -183,3 +183,31 @@ def test_restated_days_are_replaced_not_duplicated(loaded: dlt.Pipeline, agent_c
         (date(2026, 10, 3), 3),
     ]
     assert rows[1][2] == 50.0  # 15 + 11 + 24 after the restatement
+
+
+def test_a_removed_campaign_keeps_its_spend_and_leaves_the_campaign_list(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    """Removing a campaign in Google Ads does not un-spend its money. The next sync replaces every day of
+    the 30-day window, removed campaign included, and the campaign list stops listing it and its budget."""
+    spend_sql = f"SELECT sum(cost_micros), count() FROM marts.{DATASET}_campaigns"
+    ad_group_sql = f"SELECT sum(cost_micros), count() FROM marts.{DATASET}_ad_groups"
+    spend, ad_group_spend = (agent_client.query(sql).result_rows[0] for sql in (spend_sql, ad_group_sql))
+
+    client = FakeGoogleAdsClient()
+    client.removed = {"20010002"}
+    run_daily(loaded, today=TODAY, customer_ids=[CUSTOMER], client=client)
+
+    assert agent_client.query(spend_sql).result_rows[0] == spend
+    assert agent_client.query(ad_group_sql).result_rows[0] == ad_group_spend
+    statuses = agent_client.query(
+        f"SELECT DISTINCT campaign_status FROM marts.{DATASET}_campaigns WHERE campaign_id = '20010002'"
+    ).result_rows
+    assert statuses == [("REMOVED",)]
+    listed = agent_client.query(
+        f"SELECT campaign_id, daily_budget FROM marts.{DATASET}_campaign_list ORDER BY campaign_id"
+    ).result_rows
+    assert [(c, Decimal(str(b))) for c, b in listed] == [
+        ("20010001", Decimal("50")),
+        ("20010003", Decimal("100")),
+    ]

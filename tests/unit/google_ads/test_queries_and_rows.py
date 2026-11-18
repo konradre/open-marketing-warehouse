@@ -10,17 +10,20 @@ from tests.unit.google_ads.conftest import CUSTOMER, fixture_results
 WINDOW = Window(date(2026, 10, 1), date(2026, 10, 3))
 
 
-def test_performance_queries_select_the_window_and_skip_removed_campaigns() -> None:
+def test_performance_queries_select_the_window_whatever_the_campaign_status() -> None:
     query = performance_query(REPORTS["campaigns"], WINDOW)
     assert query.startswith("SELECT customer.id, customer.currency_code, campaign.id")
     metrics = "metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, "
     metrics += "metrics.conversions_value"
     assert f"segments.date, {metrics}" in query
     assert "FROM campaign WHERE segments.date BETWEEN '2026-10-01' AND '2026-10-03'" in query
-    assert "campaign.status != 'REMOVED'" in query
     ad_groups = performance_query(REPORTS["ad_groups"], WINDOW)
     assert "FROM ad_group" in ad_groups and "ad_group.id, ad_group.name, ad_group.status" in ad_groups
-    assert "FROM campaign WHERE campaign.status != 'REMOVED'" in entities_query()
+    # Money a campaign spent stays spent when the campaign is removed: no report filters on its status,
+    # and the entity query pulls removed campaigns too, so their status in the warehouse follows.
+    for report in REPORTS.values():
+        assert "campaign.status" not in performance_query(report, WINDOW).split(" WHERE ")[1]
+    assert entities_query().endswith("FROM campaign ORDER BY campaign.id")
 
 
 def test_campaign_rows_are_flat_and_typed() -> None:
