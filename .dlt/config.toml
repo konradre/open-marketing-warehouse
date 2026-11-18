@@ -62,6 +62,10 @@ backup_verify = "sun 06:30"        # restore drill of the newest backup, into sc
 [scheduler]
 # A job still running after this many minutes is stopped and reported as crashed.
 timeout_minutes = 360
+# A job that failed or crashed is tried again for the same slot this many times, this far apart. The failure
+# hook fires when the last attempt has failed too. A failed post-sync check is never retried. 0: no retries.
+retries = 2
+retry_minutes = 30
 
 [backup]
 # Scheduled backups to keep; older ones are deleted after each new one.

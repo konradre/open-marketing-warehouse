@@ -115,6 +115,28 @@ def test_a_failed_sync_still_runs_the_checks_then_alerts_and_exits_1(
     assert row["detail"].startswith("PermissionError: Invalid API Key provided; FAIL stripe/freshness/sync")
 
 
+def test_a_failed_sync_stays_quiet_while_the_loop_will_try_again(
+    warehouse: FakeWarehouse, notifier: Notifier
+) -> None:
+    warehouse.objects = {"raw.stripe___sync_windows"}
+    warehouse.when("raw.stripe___sync_windows", [[datetime.now(tz=UTC).replace(tzinfo=None), 40]])
+    mode = FakeMode(warehouse, ConnectionError("503 Service Unavailable"))
+    outcome = run_job(job_named("stripe"), mode, notifier, retries_left=2)
+    assert (outcome.status, outcome.exit_code) == (RunStatus.FAILED, 1)  # recorded and reported to the loop
+    assert notifier.sent == [] and run_row(warehouse)["status"] == "failed"
+    last = run_job(job_named("stripe"), mode, notifier, retries_left=0)
+    assert last.exit_code == 1 and kinds(notifier) == [("sync_failed", "stripe")]
+
+
+def test_a_failed_check_is_reported_at_once_whatever_retries_are_left(
+    ga4_warehouse: FakeWarehouse, notifier: Notifier
+) -> None:
+    mode = FakeMode(ga4_warehouse)
+    mode.expiry = {"ga4": (datetime.now(tz=UTC).date() - timedelta(days=1)).isoformat()}
+    outcome = run_job(job_named("ga4"), mode, notifier, retries_left=2)
+    assert outcome.exit_code == 3 and kinds(notifier) == [("check_failed", "ga4")]
+
+
 def test_a_failed_check_after_a_good_sync_exits_3(
     ga4_warehouse: FakeWarehouse, notifier: Notifier, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -24,13 +24,17 @@ class Launcher:
         self.codes = codes or {}
         self.silent = silent
         self.started: list[tuple[str, datetime]] = []
+        self.left: list[tuple[str, int]] = []
+        self.now: datetime | None = None
 
-    def __call__(self, job: Job, slot: datetime) -> int:
+    def __call__(self, job: Job, slot: datetime, retries_left: int = 0) -> int:
         self.started.append((job.name, slot))
+        self.left.append((job.name, retries_left))
         code = self.codes.get(job.name, 0)
         status = {0: RunStatus.OK, EXIT_FAILED: RunStatus.FAILED, EXIT_CHECK_FAILED: RunStatus.CHECK_FAILED}
         if code in status and not self.silent:
-            self.store.record(Outcome(job.name, job.source, status[code], slot, slot, slot, "schedule"))
+            at = self.now or slot
+            self.store.record(Outcome(job.name, job.source, status[code], slot, at, at, "schedule"))
         return code
 
 
@@ -121,10 +125,10 @@ def test_a_job_that_cannot_be_started_is_reported_and_the_loop_goes_on(
     store: MemoryStore, notifier: Notifier
 ) -> None:
     class NoFork(Launcher):
-        def __call__(self, job: Job, slot: datetime) -> int:
+        def __call__(self, job: Job, slot: datetime, retries_left: int = 0) -> int:
             if job.name == "ga4":
                 raise OSError("cannot allocate memory")
-            return super().__call__(job, slot)
+            return super().__call__(job, slot, retries_left)
 
     codes = scheduler(store, NoFork(store), notifier, SUNDAY_NOON).tick()
     assert codes["ga4"] == 127 and codes["stripe"] == 0
@@ -209,3 +213,128 @@ def test_run_sleeps_until_the_next_slot_in_short_steps(
     assert naps == [60.0, 60.0, 60.0] and heartbeat.exists()
     assert Scheduler([], Launcher(store), lambda: store, notifier).run(once=True) == 1  # type: ignore[arg-type,return-value]
     beat(None)
+
+
+def retrying(store: MemoryStore, launcher: Launcher, notifier: Notifier, clock: list[datetime]) -> Scheduler:
+    def now() -> datetime:
+        launcher.now = clock[0]
+        return clock[0]
+
+    return Scheduler(
+        build_plan({"backup": "off", "backup_verify": "off"}),
+        launcher,
+        lambda: store,  # type: ignore[arg-type,return-value]
+        notifier,
+        clock=now,
+        retries=2,
+        retry_after=timedelta(minutes=30),
+    )
+
+
+def test_a_failed_job_is_tried_again_after_the_pause_and_only_that_job(
+    store: MemoryStore, notifier: Notifier
+) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"ga4": EXIT_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    assert loop.tick()["ga4"] == 1
+    assert ("ga4", 2) in launcher.left  # the job is told two more attempts will follow
+    launcher.started.clear()
+    clock[0] += timedelta(minutes=29)
+    assert loop.tick() == {}  # not yet
+    clock[0] += timedelta(minutes=1)
+    launcher.codes = {}  # the API is back
+    assert loop.tick() == {"ga4": 0}
+    assert launcher.started == [("ga4", datetime(2026, 11, 22, 4, 15, tzinfo=UTC))]  # the same slot
+    clock[0] += timedelta(hours=3)
+    assert loop.tick() == {}  # it succeeded: nothing left to retry
+    assert [status for job, status in store.statuses() if job == "ga4"] == ["failed", "ok"]
+
+
+def test_a_retry_that_succeeded_in_the_same_second_as_the_failure_settles_the_slot(
+    store: MemoryStore, notifier: Notifier
+) -> None:
+    """Seen in CI: both attempts carried the same second, so "the latest attempt" had no answer and the
+    slot was run a third time. Any attempt that did not fail settles it."""
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"ga4": EXIT_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    loop.retry_after = timedelta(0)
+    loop.tick()
+    launcher.codes = {}
+    assert loop.tick() == {"ga4": 0}  # no time has passed on the clock
+    assert [o.finished_at for o in store.outcomes if o.job == "ga4"] == [SUNDAY_NOON, SUNDAY_NOON]
+    store.outcomes.reverse()  # whichever order the log returns them in
+    assert loop.tick() == {} and retrying(store, launcher, notifier, clock).tick() == {}
+
+
+def test_retries_are_bounded_and_the_last_attempt_is_told_so(store: MemoryStore, notifier: Notifier) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"stripe": EXIT_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    for _ in range(6):
+        loop.tick()
+        clock[0] += timedelta(minutes=31)
+    assert [left for job, left in launcher.left if job == "stripe"] == [2, 1, 0]
+    assert [status for job, status in store.statuses() if job == "stripe"] == ["failed"] * 3
+    # A restarted loop reads the three attempts from the run log and does not start a fourth.
+    fresh = retrying(store, launcher, notifier, clock)
+    assert fresh.tick() == {}
+
+
+def test_a_failed_check_is_not_retried(store: MemoryStore, notifier: Notifier) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"ga4": EXIT_CHECK_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    assert loop.tick()["ga4"] == 3
+    clock[0] += timedelta(hours=2)
+    assert loop.tick() == {}
+
+
+def test_a_crash_is_retried_and_reported_only_when_the_last_attempt_crashed_too(
+    store: MemoryStore, notifier: Notifier
+) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"twenty": -9})
+    loop = retrying(store, launcher, notifier, clock)
+    for _ in range(4):
+        loop.tick()
+        clock[0] += timedelta(minutes=31)
+    assert [status for job, status in store.statuses() if job == "twenty"] == ["crashed"] * 3
+    assert kinds(notifier) == [("job_crashed", "twenty")]  # once, after the third
+
+
+def test_a_job_whose_runs_never_reach_the_log_is_still_bounded(
+    store: MemoryStore, notifier: Notifier
+) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"ga4": EXIT_FAILED}, silent=True)  # failed, and could not say so
+    loop = retrying(store, launcher, notifier, clock)
+    for _ in range(8):
+        loop.tick()
+        clock[0] += timedelta(minutes=31)
+    assert len([name for name, _ in launcher.started if name == "ga4"]) == 1
+
+
+def test_with_once_every_failure_is_the_last_one(store: MemoryStore, notifier: Notifier) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"ga4": EXIT_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    assert loop.run(once=True) == 1
+    assert ("ga4", 0) in launcher.left  # nobody promises another tick, so the job fires the hook itself
+    clock[0] += timedelta(minutes=31)
+    launcher.left.clear()
+    assert retrying(store, launcher, notifier, clock).run(once=True) == 1  # the next invocation retries it
+    assert launcher.left == [("ga4", 0)]
+
+
+def test_the_weekly_reconcile_covers_the_daily_once_not_on_its_retries(
+    store: MemoryStore, notifier: Notifier
+) -> None:
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"meta_ads_weekly": EXIT_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    loop.tick()
+    clock[0] += timedelta(minutes=31)
+    assert loop.tick() == {"meta_ads_weekly": 1}
+    assert [status for job, status in store.statuses() if job == "meta_ads_daily"] == ["skipped"]

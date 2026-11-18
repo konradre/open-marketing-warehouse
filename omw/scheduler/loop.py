@@ -4,6 +4,10 @@ A job is due when the latest slot of its schedule has not been attempted. The lo
 ``ops.sync_runs``, so stopping and starting it neither repeats a finished slot nor forgets one that passed
 while the host was down; a slot missed for days is caught up once, not once per day missed.
 
+A job that failed (it raised, or its process died) is tried again for the same slot after a pause, a
+bounded number of times: most failures of a pull are an API having a bad minute. The hook stays quiet
+until the last attempt has failed too. A failed check is never retried.
+
 Each job runs as its own ``omw sync <job>`` process: a crash or a leak in one sync cannot take the loop
 down, and the job reports itself (run log, hook, exit code) exactly as it does under a systemd timer. The
 loop only steps in when the process could not: it died, or it ran out of time.
@@ -19,21 +23,24 @@ import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from omw.pipelines.instants import instant
 from omw.scheduler.jobs import Job, Planned
 from omw.scheduler.notify import Alert, Notifier
-from omw.scheduler.runs import HANDLED_EXITS, Outcome, RunStatus, RunStore
+from omw.scheduler.runs import HANDLED_EXITS, Outcome, RunStatus, RunStore, SlotState
 
 log = logging.getLogger(__name__)
 
-Launcher = Callable[[Job, datetime], int]
-"""Runs one job for one slot and returns its exit code (``omw sync``'s)."""
+Launcher = Callable[[Job, datetime, int], int]
+"""Runs one job for one slot and returns its exit code (``omw sync``'s). The third argument is how many
+more attempts the loop will make if this one fails."""
 
 MAX_SLEEP_SECONDS = 60.0
 DEFAULT_TIMEOUT_MINUTES = 360
+DEFAULT_RETRIES = 2
+DEFAULT_RETRY_MINUTES = 30
 EXIT_TIMED_OUT = 124
 EXIT_NOT_STARTED = 127
 CRASH_REASONS = {EXIT_TIMED_OUT: "ran out of time", EXIT_NOT_STARTED: "its process could not be started"}
@@ -55,9 +62,9 @@ def subprocess_launcher(
 ) -> Launcher:
     """Run each job as ``python -m omw.cli sync <job>``, killing it when it runs out of time."""
 
-    def launch(job: Job, slot: datetime) -> int:
+    def launch(job: Job, slot: datetime, retries_left: int = 0) -> int:
         command = [sys.executable, "-m", "omw.cli", "sync", job.name, "--slot", slot.isoformat()]
-        command += ["--trigger", "schedule", *extra_args]
+        command += ["--trigger", "schedule", "--retries-left", str(retries_left), *extra_args]
         deadline = time.monotonic() + timeout_minutes * 60
         process = subprocess.Popen(command)  # noqa: S603 - our own interpreter and module, no shell
         try:
@@ -92,19 +99,40 @@ class Scheduler:
     clock: Callable[[], datetime] = instant
     sleep: Callable[[float], None] = time.sleep
     heartbeat: Path | None = None
-    attempted: dict[str, datetime] = field(default_factory=dict)
-    """job -> the latest slot this process started, kept beside the run log: a job that could not write its
-    row (the warehouse went away) is still not started again for the same slot."""
+    retries: int = 0
+    """Further attempts at a slot whose job failed or crashed. ``omw schedule run`` reads
+    ``[scheduler] retries`` (2 unless set)."""
+    retry_after: timedelta = timedelta(minutes=DEFAULT_RETRY_MINUTES)
+    """The pause between a failed attempt and the next one."""
+    started: dict[str, tuple[datetime, int]] = field(default_factory=dict)
+    """job -> (slot, attempts this process started for it), kept beside the run log: a job that could not
+    write its row (the warehouse went away) is still not started without bound for the same slot."""
     state_failed: bool = False
+    once: bool = False
     _store: RunStore | None = None
 
-    def due(self, now: datetime, last: dict[str, datetime]) -> list[tuple[Planned, datetime]]:
+    def _started_here(self, name: str, slot: datetime) -> int:
+        mine = self.started.get(name)
+        return mine[1] if mine is not None and mine[0] == slot else 0
+
+    def due(self, now: datetime, states: dict[str, SlotState]) -> list[tuple[Planned, datetime, int]]:
+        """(job, slot, attempts already made at that slot) for everything to start now."""
         found = []
         for planned in self.plan:
             name = planned.job.name
             slot = planned.schedule.latest(now)
-            if slot > max(last.get(name, EPOCH), self.attempted.get(name, EPOCH)):
-                found.append((planned, slot))
+            state = states.get(name)
+            here = self._started_here(name, slot)
+            if state is None or slot > state.slot:
+                if here == 0:  # a new slot, not started by this process yet
+                    found.append((planned, slot, 0))
+            elif (
+                slot == state.slot
+                and not state.settled
+                and max(state.attempts, here) <= self.retries
+                and now >= state.finished_at + self.retry_after
+            ):
+                found.append((planned, slot, max(state.attempts, here)))
         return found
 
     def tick(self, now: datetime | None = None) -> dict[str, int]:
@@ -112,7 +140,7 @@ class Scheduler:
         now = now or self.clock()
         try:
             store = self._store = self._store or self.store()
-            last = store.last_slots()
+            states = store.slot_states()
         except Exception as exc:  # noqa: BLE001 - no state, no runs; say so once and try again next tick
             self._store = None
             log.error("cannot read the run log: %s", exc)
@@ -128,22 +156,25 @@ class Scheduler:
                 )
             return {"scheduler": 1}
         self.state_failed = False
-        due = self.due(now, last)
-        covered = {name for planned, _ in due for name in planned.job.covers}
+        due = self.due(now, states)
+        covered = {name for planned, _, made in due for name in planned.job.covers if made == 0}
         codes: dict[str, int] = {}
-        for planned, slot in due:
+        for planned, slot, made in due:
             job = planned.job
-            self.attempted[job.name] = slot
+            self.started[job.name] = (slot, self._started_here(job.name, slot) + 1)
+            # With --once nobody promises another tick, so every failure is reported as the last one.
+            left = 0 if self.once else max(self.retries - made, 0)
             beat(self.heartbeat)
-            if job.name in covered:
-                by = next(p.job.name for p, _ in due if job.name in p.job.covers)
+            if job.name in covered and made == 0:
+                by = next(p.job.name for p, _, _ in due if job.name in p.job.covers)
                 log.info("%s: slot %s is covered by %s, skipped", job.name, slot.isoformat(), by)
                 self._record(store, job, RunStatus.SKIPPED, slot, f"covered by {by}")
                 codes[job.name] = 0
                 continue
-            log.info("%s: starting for slot %s", job.name, slot.isoformat())
+            attempt = f" (attempt {made + 1} of {self.retries + 1})" if made else ""
+            log.info("%s: starting for slot %s%s", job.name, slot.isoformat(), attempt)
             try:
-                code = self.launch(job, slot)
+                code = self.launch(job, slot, left)
             except Exception:  # noqa: BLE001 - a job that cannot even start must not take the loop down
                 log.exception("%s could not be started", job.name)
                 code = EXIT_NOT_STARTED
@@ -151,7 +182,10 @@ class Scheduler:
             if code not in HANDLED_EXITS:
                 what = CRASH_REASONS.get(code, f"its process ended with code {code}")
                 self._record(store, job, RunStatus.CRASHED, slot, what)
-                self.notifier.send(Alert("job_crashed", "error", job.name, what, job.source))
+                if left:
+                    log.warning("%s %s; %d more attempt(s) to come", job.name, what, left)
+                else:
+                    self.notifier.send(Alert("job_crashed", "error", job.name, what, job.source))
         return codes
 
     def _record(self, store: RunStore, job: Job, status: RunStatus, slot: datetime, detail: str) -> None:
@@ -166,6 +200,7 @@ class Scheduler:
         if not self.plan:
             log.error("every job is off: nothing to schedule")
             return 1
+        self.once = once
         while True:
             codes = self.tick()
             beat(self.heartbeat)
