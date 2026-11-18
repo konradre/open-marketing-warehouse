@@ -242,3 +242,62 @@ def test_answers_serialise_with_structured_fields(catalog: Catalog) -> None:
         "truncated",
     }
     assert payload["mood"] == "clarify" and payload["comparison"] is None
+
+
+def _missing(table: str) -> Any:
+    def execute(sql: str) -> tuple[list[str], list[list[Any]]]:
+        raise DatabaseError(
+            "Received ClickHouse exception, code: 60, server response: Code: 60. DB::Exception: Unknown "
+            f"table expression identifier '{table}' in scope SELECT ad_name, sum(spend) AS meta_ad_spend "
+            f"FROM {table} WHERE report = 'ads'. (UNKNOWN_TABLE) (version 25.8.33.6 (official build))"
+        )
+
+    return execute
+
+
+def test_a_report_that_was_never_synced_is_refused_in_plain_words(catalog: Catalog) -> None:
+    """Every marts view is created by its pipeline after the first load: one that is not there yet is a
+    fact about the warehouse, and the agent is told which report is missing, not shown a ClickHouse error."""
+    answer = answer_request(
+        catalog,
+        MetricRequest(metrics=["meta_ad_spend"], dimensions=["ad_name", "currency"], time_range=OLD),
+        _missing("marts.meta_ads_ads"),
+        TODAY,
+    )
+    assert answer.mood is Mood.REFUSE and answer.rows == []
+    assert answer.reason == (
+        "not loaded in this warehouse: meta_ads.ads (view marts.meta_ads_ads). The source has not synced "
+        "this report yet, so there is nothing to answer from"
+    )
+    cross = answer_request(
+        catalog,
+        MetricRequest(metrics=["ad_spend"], filters={"currency": "USD"}, time_range=OLD),
+        _missing("marts.linkedin_ads_campaigns"),
+        TODAY,
+    )
+    assert cross.reason.startswith(
+        "not loaded in this warehouse: linkedin_ads.campaigns (view marts.linkedin_ads_campaigns)."
+    )
+    assert "DB::Exception" not in answer.reason + cross.reason
+
+
+def test_a_missing_campaign_key_mapping_says_how_it_is_created(catalog: Catalog) -> None:
+    answer = answer_request(
+        catalog,
+        MetricRequest(metrics=["meta_clicks"], dimensions=["campaign_key"], time_range=OLD),
+        _missing("marts.campaign_keys"),
+        TODAY,
+    )
+    assert answer.mood is Mood.REFUSE and "marts.campaign_keys does not exist yet" in answer.reason
+    assert "omw.metrics.setup" in answer.reason
+
+
+def test_a_view_whose_name_only_starts_like_the_reports_is_not_blamed(catalog: Catalog) -> None:
+    """marts.meta_ads_campaigns is a prefix of marts.meta_ads_campaigns_old: the error must name the view."""
+    answer = answer_request(
+        catalog,
+        MetricRequest(metrics=["meta_clicks"], time_range=OLD),
+        _missing("marts.meta_ads_campaigns_old"),
+        TODAY,
+    )
+    assert answer.mood is Mood.REFUSE and answer.reason.startswith("the warehouse refused the query:")
