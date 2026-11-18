@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from omw.checks.results import Status, Warehouse
@@ -90,6 +90,15 @@ def _default(kind: str) -> Any:
     return ""
 
 
+def _utc(value: Any) -> Any:
+    """A generated datetime as an instant. The world's datetimes are naive UTC wall-clock times; the driver
+    would read a naive one in the host's time zone, and a host that is not on UTC would load every
+    timestamp shifted (and every epoch default as a real date, hiding rows that test for it)."""
+    if isinstance(value, datetime) and value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value
+
+
 def _sync_windows(table: str) -> list[dict[str, Any]]:
     """One completed daily run per source, as its ``sync_windows`` log records it."""
     source = source_of(table)
@@ -115,7 +124,7 @@ def load_raw(client: Warehouse, world: World) -> tuple[int, int]:
         rows = world.raw.get(table) or (_sync_windows(table) if table.endswith("sync_windows") else [])
         if not rows:
             continue
-        data = [[row.get(name, _default(kind)) for name, kind in spec] for row in rows]
+        data = [[_utc(row.get(name, _default(kind))) for name, kind in spec] for row in rows]
         client.insert(f"raw.`{table}`", data, column_names=[name for name, _ in spec])
         total += len(data)
     return len(RAW_TABLES), total
@@ -134,9 +143,9 @@ def apply_views(client: Warehouse) -> int:
 
 def write_campaign_keys(client: Warehouse, world: World) -> None:
     """Derived keys through the pipeline's own sync, then the hand-set rows, which outrank them."""
-    sync_campaign_keys(client, now=NOW - timedelta(hours=2))
+    sync_campaign_keys(client, now=_utc(NOW - timedelta(hours=2)))
     manual = [
-        [row["source"], row["native_id"], row["campaign_key"], row["campaign_name"], "manual", NOW]
+        [row["source"], row["native_id"], row["campaign_key"], row["campaign_name"], "manual", _utc(NOW)]
         for row in world.manual_keys
     ]
     if manual:
