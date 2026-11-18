@@ -1,5 +1,7 @@
 """Freshness: each source's last successful sync (the ``sync_windows`` log every pipeline writes) must be
-within its budget. A missing log, a dead Meta token or a stop recorded by the pacer counts against it."""
+within its budget. A missing log or a dead Meta token fails it. A run that pulled nothing, and a Meta run
+the pacer ended before its window was complete, write no log row (``omw.pipelines.sync_log``), so a source
+that keeps failing that way goes stale here."""
 
 from __future__ import annotations
 

@@ -16,6 +16,7 @@ from typing import Any
 import dlt
 
 from omw.pipelines.marts import SQL_DIR, apply_marts
+from omw.pipelines.sync_log import run_then_log
 from omw.sources.ga4 import RE_PULL_DAYS, SOURCE_NAME, ga4
 
 log = logging.getLogger(__name__)
@@ -25,7 +26,8 @@ MARTS_SQL = SQL_DIR / "40_ga4_marts.sql"
 
 
 class EmptyWindowError(RuntimeError):
-    """The window loaded no ``core`` rows: a wrong property, a dead key or an empty answer."""
+    """The window loaded no ``core`` rows: a wrong property, a dead key or an empty answer. A failed sync:
+    it writes no row to the sync log the freshness check reads."""
 
 
 def build_pipeline(pipelines_dir: str | None = None, destination: Any = "clickhouse") -> dlt.Pipeline:
@@ -54,7 +56,9 @@ def run_daily(
     if pipeline.has_pending_data:
         log.warning("loading a pending package from an earlier run first")
         pipeline.load()
-    pipeline.run(ga4(today=today, days=days, **source_kwargs))
+    run_then_log(
+        pipeline, ga4(today=today, days=days, **source_kwargs), require_rows="core" if fail_on_empty else None
+    )
     counts = row_counts(pipeline)
     if fail_on_empty and counts.get("core", 0) == 0:
         raise EmptyWindowError(

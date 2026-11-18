@@ -172,7 +172,8 @@ the data). The daily sync replaces the whole `(property, search type, day)` slic
 schedules and budgets in the account currency; `--leads` (or `sources.meta_ads.leads`) pulls the lead-ads
 submissions of every ad into `marts.meta_ads_leads` as counts only, the answers stay in `raw`. Every API call goes through the pacer in `omw/pacing/`: it reads Meta's usage headers,
 slows down above 75% utilisation, and ends the run cleanly near 100% or on a rate-limit error, writing the
-reason to `ops.pacing_events` instead of retrying into the limit.
+reason to `ops.pacing_events` instead of retrying into the limit. A run that ended early loads the days it
+completed and is not logged as a sync, so an account whose runs keep stopping fails the freshness check.
 
 Setup: create a system user in Meta Business Settings, give it `ads_read` on the ad accounts, generate a
 token, and put the token, the account ids (without `act_`) and the token's expiry date in
@@ -359,7 +360,8 @@ make backup && make backup-verify   # BACKUP ... TO Disk, then the restore drill
   pages/campaigns, Google ad groups, Meta ads) must not exceed its `core` grain by more than 1% on any
   group over the last 28 days;
 - **freshness**: every source's last successful sync must be within its budget (`[checks.freshness_hours]`
-  in `.dlt/config.toml`); a source that never synced, an empty sync log or an expired Meta token fails;
+  in `.dlt/config.toml`); a source that never synced, an empty sync log or an expired Meta token fails.
+  A run that pulled nothing, or that the Meta pacer ended early, is not a successful sync;
 - **row-count sanity**: the last 7 days of each core grain against the 7 before: a collapse to zero fails,
   a swing beyond 3x warns;
 - **expiry**: a credential with a recorded end date (`token_expires_at` in the source's section of

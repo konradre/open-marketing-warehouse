@@ -9,7 +9,7 @@ from typing import Any
 import dlt
 import pytest
 
-from omw.pipelines.google_ads import EmptyWindowError, run_daily
+from omw.pipelines.google_ads import EmptyWindowError, row_counts, run_daily
 from omw.sources.google_ads import RE_PULL_DAYS, google_ads
 from omw.sources.windows import Window, trailing_window
 from tests.unit.google_ads.conftest import CUSTOMER, FakeGoogleAdsClient
@@ -93,14 +93,13 @@ def test_daily_run_loads_the_window(tmp_path: Path, fake_client: FakeGoogleAdsCl
 
 
 def test_daily_run_fails_on_an_empty_window(tmp_path: Path, fake_client: FakeGoogleAdsClient) -> None:
+    pipeline = _pipeline(tmp_path)
     with pytest.raises(EmptyWindowError):
         run_daily(
-            _pipeline(tmp_path),
-            today=date(2027, 6, 1),
-            customer_ids=[CUSTOMER],
-            client=fake_client,
-            marts_sql=None,
+            pipeline, today=date(2027, 6, 1), customer_ids=[CUSTOMER], client=fake_client, marts_sql=None
         )
+    # A failed sync leaves no row in the log the freshness check reads as "last successful sync".
+    assert row_counts(pipeline).get("sync_windows", 0) == 0
 
 
 def test_a_failed_customer_fails_the_run_and_loads_nothing(

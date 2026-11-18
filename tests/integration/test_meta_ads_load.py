@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -12,6 +12,8 @@ import pytest
 from clickhouse_connect.driver.client import Client
 from clickhouse_connect.driver.exceptions import DatabaseError
 
+from omw.checks.freshness import freshness_checks
+from omw.checks.results import Status
 from omw.pacing import MetaPacer
 from omw.pipelines.meta_ads import run
 from tests.integration.conftest import setting
@@ -235,3 +237,25 @@ def test_a_stopped_run_keeps_complete_days_and_records_the_reason(
         "ORDER BY recorded_at"
     ).result_rows
     assert events == [("meta_ads", ACCOUNT, "weekly", "stopped", "utilisation", 96.0)]
+
+
+def test_a_stopped_run_does_not_count_as_a_sync_for_freshness(
+    loaded: dlt.Pipeline, admin_client: Client
+) -> None:
+    """DESIGN.md §7: freshness is the last successful sync. A run the pacer ended on its first day loads
+    nothing new and must not move the sync log; the next freshness check still counts from the last run
+    that completed its window, and fails once that is past the budget."""
+    log_sql = f"SELECT count(), max(loaded_at) FROM raw.{DATASET}___sync_windows"
+    before = admin_client.query(log_sql).result_rows[0]
+    pacer = MetaPacer(sleep=lambda _: None)
+    account = FakeAccount(pacer=pacer, stop_on=date(2026, 9, 27))
+    result = run(loaded, "daily", [ACCOUNT], today=TODAY, pacer=pacer, accounts={ACCOUNT: account})
+    assert result.stopped is not None and result.counts.get("insights_campaigns", 0) == 0
+    assert admin_client.query(log_sql).result_rows[0] == before
+
+    last_complete: datetime = before[1].replace(tzinfo=None)
+    budgets = {"meta_ads": 30.0}
+    [late] = freshness_checks(admin_client, last_complete + timedelta(hours=31), budgets)
+    assert late.status is Status.FAIL and "31.0h ago" in late.detail
+    [in_time] = freshness_checks(admin_client, last_complete + timedelta(hours=1), budgets)
+    assert in_time.status is Status.PASS

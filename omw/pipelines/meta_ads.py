@@ -4,7 +4,8 @@
     uv run python -m omw.pipelines.meta_ads weekly
 
 The pacer wraps the SDK session (DESIGN.md §5). A pacer stop ends the run cleanly with the complete days it
-has, exit code 0, and the reason in ``ops.pacing_events``; an expired token fails before any API call.
+has, exit code 0, and the reason in ``ops.pacing_events``; it writes no row to the sync log, so a source
+whose runs keep stopping goes stale in the freshness check. An expired token fails before any API call.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from omw.metrics.campaign_keys import sync_after_load
 from omw.pacing import MetaPacer, PacerStop
 from omw.pipelines.marts import SQL_DIR, apply_marts
 from omw.pipelines.ops_log import PacingEvent, record_pacing_events, warehouse_client
+from omw.pipelines.sync_log import run_then_log
 from omw.sources.meta_ads import SOURCE_NAME, InsightsLevel, SyncMode, check_token, meta_ads
 from omw.sources.meta_ads.settings import BREAKDOWNS, LEVEL_REPORT
 from omw.sources.meta_ads.token import TokenExpiredError
@@ -143,21 +145,22 @@ def run(
         log.warning("loading a pending package from an earlier run first")
         pipeline.load()
     try:
-        pipeline.run(
-            meta_ads(
-                account_ids=list(account_ids),
-                mode=mode,
-                levels=levels,
-                breakdowns=breakdowns,
-                leads=leads,
-                pacer=pacer,
-                today=today,
-                **source_kwargs,
-            )
+        source = meta_ads(
+            account_ids=list(account_ids),
+            mode=mode,
+            levels=levels,
+            breakdowns=breakdowns,
+            leads=leads,
+            pacer=pacer,
+            today=today,
+            **source_kwargs,
         )
+        # The sync log row is written only by a run that reached the end of its window: a stopped run
+        # loads its complete days and stays out of the log, so freshness counts from the last full one.
+        run_then_log(pipeline, source, synced=lambda: pacer.stopped is None)
+        result.counts = row_counts(pipeline)
     except PacerStop as stop:  # raised before any resource ran (for example on the currency lookup)
         log.warning("meta_ads %s ended before loading: %s", mode, stop.detail)
-    result.counts = row_counts(pipeline)
     result.stopped = pacer.stopped
     result.events.extend(pacing_events(mode, account_ids, pacer, pacer.stopped))
 

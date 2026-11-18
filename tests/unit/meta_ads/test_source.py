@@ -93,7 +93,41 @@ def test_a_pacer_stop_ends_the_window_with_the_complete_days(pacer: MetaPacer) -
     days = list(source.resources["insights_campaigns"])
     assert {row["date"] for row in days} == {date(2026, 10, 1), date(2026, 10, 2)}
     assert pacer.stopped is not None and pacer.stopped.reason is StopReason.UTILISATION
-    assert list(source.resources["sync_windows"])  # still logs the run
+
+
+def test_a_stopped_run_loads_its_complete_days_but_is_not_logged_as_a_sync(
+    tmp_path: Path, pacer: MetaPacer
+) -> None:
+    """The sync log is what the freshness check reads as "last successful sync" (DESIGN.md §7). A run the
+    pacer ended before the window was complete is not one: its days load, its log row does not."""
+    account = FakeAccount(pacer=pacer, stop_on=date(2026, 10, 3))
+    result = run(
+        _pipeline(tmp_path),
+        "daily",
+        [ACCOUNT],
+        today=TODAY,
+        pacer=pacer,
+        apply_sql=False,
+        record_ops=False,
+        accounts={ACCOUNT: account},
+    )
+    assert result.stopped is not None and result.counts["insights_campaigns"] == 4
+    assert result.counts.get("sync_windows", 0) == 0
+
+
+def test_a_run_stopped_before_it_loads_reports_no_rows_of_an_earlier_run(
+    tmp_path: Path, pacer: MetaPacer
+) -> None:
+    pipeline = _pipeline(tmp_path)
+    kwargs: dict[str, Any] = {"today": TODAY, "apply_sql": False, "record_ops": False}
+    first = run(
+        pipeline, "daily", [ACCOUNT], pacer=pacer, accounts={ACCOUNT: FakeAccount(pacer=pacer)}, **kwargs
+    )
+    assert first.counts["insights_campaigns"] == 6
+    blocked = MetaPacer(sleep=lambda _: None)
+    account = FakeAccount(pacer=blocked, stop_on_currency=True)
+    second = run(pipeline, "daily", [ACCOUNT], pacer=blocked, accounts={ACCOUNT: account}, **kwargs)
+    assert second.stopped is not None and second.counts == {}
 
 
 def test_resources_after_a_stop_do_nothing(pacer: MetaPacer) -> None:

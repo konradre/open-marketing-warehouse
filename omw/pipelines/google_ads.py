@@ -17,6 +17,7 @@ import dlt
 
 from omw.metrics.campaign_keys import sync_after_load
 from omw.pipelines.marts import SQL_DIR, apply_marts
+from omw.pipelines.sync_log import run_then_log
 from omw.sources.google_ads import SOURCE_NAME, google_ads
 
 log = logging.getLogger(__name__)
@@ -26,7 +27,8 @@ MARTS_SQL = SQL_DIR / "30_google_ads_marts.sql"
 
 
 class EmptyWindowError(RuntimeError):
-    """The window loaded no campaign performance rows: a wrong customer, a dead token or an empty answer."""
+    """The window loaded no campaign performance rows: a wrong customer, a dead token or an empty answer.
+    A failed sync: it writes no row to the sync log the freshness check reads."""
 
 
 def build_pipeline(pipelines_dir: str | None = None, destination: Any = "clickhouse") -> dlt.Pipeline:
@@ -55,7 +57,11 @@ def run_daily(
     if pipeline.has_pending_data:
         log.warning("loading a pending package from an earlier run first")
         pipeline.load()
-    pipeline.run(google_ads(today=today, **source_kwargs))
+    run_then_log(
+        pipeline,
+        google_ads(today=today, **source_kwargs),
+        require_rows="performance_campaigns" if fail_on_empty else None,
+    )
     counts = row_counts(pipeline)
     if fail_on_empty and counts.get("performance_campaigns", 0) == 0:
         raise EmptyWindowError(
