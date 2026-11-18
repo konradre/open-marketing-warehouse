@@ -276,7 +276,9 @@ def test_a_failed_sync_is_retried_quietly_and_the_hook_fires_after_the_last_atte
     recovered = stack.scheduler(thursday, retries=2)  # a restarted loop: the run log alone says "retry"
     recovered.plan = only
     assert recovered.tick() == {"stripe": 0} and recovered.tick() == {}
-    assert [row[1] for row in runs(pipeline_client, since)] == ["failed", "ok"]
+    # One failed attempt and one that loaded. The log keeps whole seconds, and here the two are not even
+    # a second apart, so it cannot say which came first; the ticks above did.
+    assert sorted(row[1] for row in runs(pipeline_client, since)) == ["failed", "ok"]
     assert stack.hook.received == []
 
     # An outage that does not: three attempts, one alert.
