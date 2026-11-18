@@ -258,3 +258,43 @@ def test_cli_campaign_keys(monkeypatch: pytest.MonkeyPatch, warehouse: FakeWareh
     )
     assert cli.main(["campaign-keys", "list"]) == 0
     assert "widgets_prospecting\tmeta_ads\t1\tderived\tW" in capsys.readouterr().out
+
+
+def test_cli_campaign_keys_dry_run_prints_the_changes_and_writes_nothing(
+    monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehouse, capsys: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(cli, "pipeline_client", lambda: warehouse)
+    warehouse.objects = {"raw.meta_ads___campaigns", "marts.campaign_keys"}
+    warehouse.when(
+        "FROM marts.campaign_keys FINAL ORDER BY",
+        [
+            ["meta_ads", "2", "old_name", "Old name", "derived"],
+            ["meta_ads", "3", "widgets_q4", "Widgets Q4", "manual"],
+            ["meta_ads", "4", "gadgets", "Gadgets", "derived"],
+        ],
+    )
+    warehouse.when(
+        "FROM raw.meta_ads___campaigns",
+        [["1", "Widgets - Prospecting"], ["2", "New name"], ["3", "Widgets"], ["4", "Gadgets"], ["5", "!"]],
+    )
+    with caplog.at_level("INFO", logger="omw"):
+        assert cli.main(["campaign-keys", "sync", "--dry-run", "--source", "meta_ads"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "add\tmeta_ads\t1\t-\twidgets_prospecting\tWidgets - Prospecting",
+        "change\tmeta_ads\t2\told_name\tnew_name\tNew name",
+    ]
+    assert (
+        "meta_ads (dry run, nothing written): 1 to add, 1 to change, 1 unchanged, 1 kept as set by hand, "
+        "1 without a usable name" in caplog.text
+    )
+    assert warehouse.inserted == [] and warehouse.commands == []
+
+
+def test_cli_campaign_keys_dry_run_with_nothing_loaded(
+    monkeypatch: pytest.MonkeyPatch, warehouse: FakeWarehouse, capsys: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(cli, "pipeline_client", lambda: warehouse)
+    with caplog.at_level("INFO", logger="omw"):
+        assert cli.main(["campaign-keys", "sync", "--dry-run"]) == 0
+    assert capsys.readouterr().out == "" and "no campaign entities loaded yet" in caplog.text
+    assert warehouse.inserted == [] and warehouse.commands == []

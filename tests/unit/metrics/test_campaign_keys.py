@@ -10,7 +10,11 @@ import pytest
 from omw.metrics.campaign_keys import (
     CAMPAIGN_KEYS,
     COLUMNS,
+    WRITTEN,
+    Action,
+    PlannedKey,
     list_campaign_keys,
+    plan_campaign_keys,
     set_campaign_key,
     slug,
     sync_campaign_keys,
@@ -72,6 +76,72 @@ def test_sync_can_be_limited_to_one_source_without_migrating() -> None:
     written = sync_campaign_keys(warehouse, sources={"linkedin_ads"}, now=NOW, ensure=False)
     assert written == {"linkedin_ads": 1} and warehouse.commands == []
     assert warehouse.inserted[0][1][0][:3] == ["linkedin_ads", "800001", "widgets_sponsored_content"]
+
+
+def _planned_warehouse() -> FakeWarehouse:
+    """Meta with one campaign of every kind; Google Ads loaded too; LinkedIn not loaded."""
+    warehouse = FakeWarehouse()
+    warehouse.objects = {"raw.meta_ads___campaigns", "raw.google_ads___campaigns", CAMPAIGN_KEYS}
+    warehouse.when("origin = 'manual'", [["meta_ads", "2"]])
+    warehouse.when(
+        "FROM marts.campaign_keys FINAL ORDER BY",
+        [
+            ["meta_ads", "2", "widgets_q4", "Widgets Q4", "manual"],
+            ["meta_ads", "3", "gadgets_video", "Gadgets - Video", "derived"],
+            ["meta_ads", "4", "old_name", "Old name", "derived"],
+            ["meta_ads", "9", "gone", "A campaign no longer loaded", "derived"],
+        ],
+    )
+    warehouse.when(
+        "FROM raw.meta_ads___campaigns",
+        [
+            ["4", "New name"],
+            ["1", "Widgets - Prospecting"],
+            ["2", "Widgets - Retargeting"],
+            ["3", "Gadgets - Video"],
+            ["5", "--"],
+        ],
+    )
+    warehouse.when("FROM raw.google_ads___campaigns", [["20010001", "Brand - Search"]])
+    return warehouse
+
+
+def test_the_plan_says_what_a_sync_would_do_and_writes_nothing() -> None:
+    warehouse = _planned_warehouse()
+    plan = plan_campaign_keys(warehouse)
+    assert plan == [
+        PlannedKey("meta_ads", "1", "Widgets - Prospecting", "widgets_prospecting", "", Action.ADD),
+        PlannedKey(
+            "meta_ads", "2", "Widgets - Retargeting", "widgets_retargeting", "widgets_q4", Action.MANUAL
+        ),
+        PlannedKey("meta_ads", "3", "Gadgets - Video", "gadgets_video", "gadgets_video", Action.UNCHANGED),
+        PlannedKey("meta_ads", "4", "New name", "new_name", "old_name", Action.CHANGE),
+        PlannedKey("meta_ads", "5", "--", "", "", Action.NO_KEY),
+        PlannedKey("google_ads", "20010001", "Brand - Search", "brand_search", "", Action.ADD),
+    ]
+    assert warehouse.inserted == [] and warehouse.commands == []  # no row, and no CREATE or ALTER either
+
+
+def test_the_plan_and_the_sync_agree_on_every_row() -> None:
+    """The rows a sync writes are the planned ``add``, ``change`` and ``unchanged`` ones, key for key."""
+    plan = plan_campaign_keys(_planned_warehouse())
+    warehouse = _planned_warehouse()
+    written = sync_campaign_keys(warehouse, now=NOW, ensure=False)
+    synced = sorted(tuple(row[:4]) for _, rows, _ in warehouse.inserted for row in rows)
+    planned = sorted(
+        (p.source, p.native_id, p.campaign_key, p.campaign_name) for p in plan if p.action in WRITTEN
+    )
+    assert synced == planned and sum(written.values()) == len(planned) == 4
+
+
+def test_the_plan_before_the_mapping_table_exists_is_all_additions() -> None:
+    warehouse = FakeWarehouse()
+    warehouse.objects = {"raw.linkedin_ads___campaigns", "raw.meta_ads___campaigns"}
+    warehouse.when("FROM raw.linkedin_ads___campaigns", [["800001", "Widgets - Sponsored Content"]])
+    plan = plan_campaign_keys(warehouse, sources={"linkedin_ads"})
+    assert [(p.source, p.native_id, p.action) for p in plan] == [("linkedin_ads", "800001", Action.ADD)]
+    assert not any(CAMPAIGN_KEYS in sql for sql in warehouse.queries)  # the missing table is never read
+    assert warehouse.inserted == [] and warehouse.commands == []
 
 
 def test_set_and_list() -> None:

@@ -273,6 +273,7 @@ and survive every sync:
 
 ```bash
 uv run omw campaign-keys sync                                   # derive keys now (each ad sync does this too)
+uv run omw campaign-keys sync --dry-run                         # print the keys a sync would add or change; write nothing
 uv run omw campaign-keys set google_ads 20010002 widgets_q4 --name "Generic - Widgets"
 uv run omw campaign-keys list --source google_ads
 ```
