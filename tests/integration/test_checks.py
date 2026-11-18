@@ -12,9 +12,14 @@ from clickhouse_connect.driver.client import Client
 from clickhouse_connect.driver.exceptions import DatabaseError
 
 from omw.checks import Status, run_checks
+from omw.checks.freshness import token_events_sql
+from omw.checks.results import CheckResult, write_results
 from omw.checks.runner import apply_ops_sql
 from omw.pipelines import ga4 as ga4_pipeline
 from omw.pipelines import search_console as sc_pipeline
+from omw.pipelines.instants import utc_wall_clock
+from omw.pipelines.marts import SQL_DIR, statements
+from omw.pipelines.ops_log import PacingEvent, record_pacing_events
 from tests.integration.conftest import connect, setting
 from tests.unit.ga4.conftest import PROPERTY, FakeGA4Client
 from tests.unit.search_console.conftest import SITE, FakeSearchConsoleClient
@@ -159,3 +164,36 @@ def test_rowcount_flags_an_empty_current_window(loaded: Client) -> None:
     run = run_checks(loaded, datetime(2026, 10, 12, 6), sources={"ga4"}, write=False)
     rowcount = next(r for r in run.results if r.check == "rowcount")
     assert rowcount.status is Status.FAIL and rowcount.observed == 0.0 and rowcount.expected == 3.0
+
+
+def test_check_and_pacing_times_are_stored_as_the_instant_they_were_written(
+    loaded: Client, admin_client: Client
+) -> None:
+    """Both columns were written as UTC wall-clock without a zone, which the driver reads in the host's
+    zone: on a host that is not on UTC they landed shifted by its offset. A token that expired an hour ago
+    then fell outside (or stayed inside) the freshness check's 24-hour window by that many hours."""
+    write_results(loaded, [CheckResult("instants", "freshness", "sync", Status.PASS, 1, 2, "ok")])
+    for statement in statements((SQL_DIR / "20_meta_ads_ops.sql").read_text()):
+        loaded.command(statement)
+    record_pacing_events(loaded, [PacingEvent("instants", "1", "daily", "token_expired", "token")])
+    try:
+        latest = (
+            "SELECT toUnixTimestamp(max({column})), toUnixTimestamp(now()) FROM {table} "
+            "WHERE source = 'instants'"
+        )
+        checked, server_now = admin_client.query(
+            latest.format(column="checked_at", table="ops.check_results")
+        ).result_rows[0]
+        recorded, _ = admin_client.query(
+            latest.format(column="recorded_at", table="ops.pacing_events")
+        ).result_rows[0]
+        assert abs(checked - server_now) < 120 and abs(recorded - server_now) < 120
+        # The freshness check's own window query finds the event just written, and not through a window
+        # that only opens an hour from now.
+        seen = loaded.query(token_events_sql(utc_wall_clock() - timedelta(hours=1))).result_rows
+        assert [row[0] for row in seen if row[0] == "instants"] == ["instants"]
+        later = loaded.query(token_events_sql(utc_wall_clock() + timedelta(hours=1))).result_rows
+        assert not [row for row in later if row[0] == "instants"]
+    finally:
+        admin_client.command("DELETE FROM ops.pacing_events WHERE source = 'instants'")
+        admin_client.command("DELETE FROM ops.check_results WHERE source = 'instants'")
