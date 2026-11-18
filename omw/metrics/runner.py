@@ -70,13 +70,21 @@ def verdicts_sql(sources: list[str]) -> str:
 def verdict_caveats(plan: Plan, execute: Executor) -> list[str]:
     """Caveats from the post-sync checks: stale sources, and failed checks on the reports the plan used.
 
-    When the view is missing or unreadable (the checks have never run) there is nothing to disclose.
+    When the view does not exist (the checks have never run) there is nothing to disclose. When it exists
+    and cannot be read (the quota ran out after the numbers came back, a timeout), the verdicts are unknown,
+    and that is a caveat of its own: the answer is never served as clean on a check nobody could read.
     """
     reports = {(p.report.source, p.report.name) for p in plan.reports}
     try:
         _, rows = execute(verdicts_sql([source for source, _ in reports]))
-    except DatabaseError:
-        return []
+    except DatabaseError as exc:
+        text = str(exc)
+        if any(marker in text for marker in MISSING_VIEW):
+            return []
+        return [
+            f"the post-sync check verdicts could not be read ({_short(text)}): whether these sources "
+            "are fresh and their checks pass is not known"
+        ]
     found: list[str] = []
     for source, check, report, status, detail in rows:
         if check == "freshness":
@@ -88,6 +96,15 @@ def verdict_caveats(plan: Plan, execute: Executor) -> list[str]:
 
 UNKNOWN_TABLE = ("UNKNOWN_TABLE", "Unknown table expression identifier")
 """How ClickHouse says a table or view is not there (code 60), in its two analyzer generations."""
+MISSING_VIEW = (*UNKNOWN_TABLE, "does not exist", "doesn't exist")
+"""The same, with the wording of older servers: the verdict view was never created."""
+
+
+def _short(text: str) -> str:
+    """The server's own sentence of an error, without the client's prefix and the stack trace."""
+    start = text.find("DB::Exception:")
+    line = (text[start + len("DB::Exception:") :] if start != -1 else text).strip().splitlines()[0]
+    return line[:200]
 
 
 def refusal_reason(plan: Plan, exc: DatabaseError) -> str:
