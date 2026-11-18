@@ -1,7 +1,7 @@
 """Run the seven real pipelines against one fixture snapshot.
 
 Each loader calls the pipeline's own entry point (``run_daily``, ``run_backfill``, ``run``) with the same
-arguments a scheduler would, plus the fixture session or accounts. Nothing else is swapped: the dlt source,
+arguments a scheduler would, plus the fixture session. Nothing else is swapped: the dlt source,
 the merge that replaces a re-fetched slice, the marts SQL and the campaign key sync all run as they do
 against the platforms.
 
@@ -19,8 +19,10 @@ from datetime import date, timedelta
 from typing import Any
 
 from omw.demo.fixtures import SOURCES, Manifest
-from omw.demo.replay import Replay, fixture_lead_fetcher, token_provider
+from omw.demo.replay import TOKEN, Replay, token_provider
 from omw.demo.world import Snapshot
+from omw.pacing import MetaPacer
+from omw.pacing.pacer import PacerSummary
 from omw.pipelines import ga4, google_ads, linkedin_ads, meta_ads, search_console, stripe, twenty
 from omw.sources.ga4 import RE_PULL_DAYS as GA4_DAYS
 from omw.sources.ga4 import GA4Client
@@ -51,6 +53,8 @@ class Run:
     pipelines_dir: str
     first: bool
     """The first load of a warehouse takes the whole history; a later one the pipelines' daily windows."""
+    pacing: PacerSummary | None = None
+    """What the Meta pacer saw during this run."""
 
     @property
     def today(self) -> date:
@@ -84,9 +88,10 @@ def load_search_console(run: Run) -> dict[str, int]:
 
 
 def load_meta_ads(run: Run) -> dict[str, int]:
-    """Campaign and ad level, the three breakdowns and the lead forms; a 28-day-style reconcile over the
-    whole history first, the 7-day daily re-pull afterwards."""
+    """Campaign and ad level, the three breakdowns and the lead forms, through the SDK and the pacer; a
+    28-day-style reconcile over the whole history first, the 7-day daily re-pull afterwards."""
     window: dict[str, Any] = {"window": run.history} if run.first else {}
+    pacer = MetaPacer(sleep=_no_wait)
     result = meta_ads.run(
         run.pipeline(meta_ads),
         "weekly" if run.first else "daily",
@@ -95,12 +100,27 @@ def load_meta_ads(run: Run) -> dict[str, int]:
         today=run.today,
         breakdowns=tuple(BREAKDOWNS),
         leads=True,
-        accounts=run.replay.meta_accounts(),
-        lead_fetcher=fixture_lead_fetcher,
-        sleep=lambda _seconds: None,
+        pacer=pacer,
+        access_token=TOKEN,
+        session=run.replay.new_session(),
+        sleep=_no_wait,
         **window,
     )
+    if result.stopped is not None:
+        raise RuntimeError(f"the pacer ended the Meta run early: {result.stopped.detail}")
+    log.info(
+        "meta_ads: %d Graph API requests, peak utilisation %.0f%% (%s), %d pacer sleeps",
+        pacer.summary.requests,
+        pacer.summary.peak_utilisation,
+        pacer.summary.tier,
+        pacer.summary.sleeps,
+    )
+    run.pacing = pacer.summary
     return result.counts
+
+
+def _no_wait(_seconds: float) -> None:
+    """Async report runs complete at once in fixture mode: no need to wait between polls."""
 
 
 def load_google_ads(run: Run) -> dict[str, int]:

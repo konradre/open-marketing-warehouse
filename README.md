@@ -18,7 +18,7 @@ cd open-marketing-warehouse
 make demo
 ```
 
-The first run pulls the images; after that it takes about 15 seconds. `make demo` does six things and prints
+The first run pulls the images; after that it takes about 20 seconds. `make demo` does six things and prints
 each one:
 
 1. **Generate.** A synthetic company is written to `data/demo/` as fixture files: 90 days of all seven

@@ -65,9 +65,15 @@ def first_load(out: Path, manifest: Manifest, pipelines_dir: str, force: bool) -
     """Empty the warehouse and load the whole history from the ``initial`` snapshot."""
     pipeline = client("pipeline")
     warehouse.reset(pipeline, force)
-    load_snapshot(_run(out, manifest, "initial", pipelines_dir, first=True))
+    run = _run(out, manifest, "initial", pipelines_dir, first=True)
+    load_snapshot(run)
     for source, (tables, rows) in warehouse.row_counts(pipeline).items():
         say(f"  {source:<15} {rows:>6,} rows in {tables} tables")
+    if run.pacing is not None:
+        say(
+            f"  Meta went through the SDK and the pacer: {run.pacing.requests:,} Graph API requests, peak "
+            f"utilisation {run.pacing.peak_utilisation:.0f}% ({run.pacing.tier}), {run.pacing.sleeps} sleeps"
+        )
     for entry in manifest.data["campaign_keys"]:
         for campaign in entry["campaigns"]:
             if campaign["origin"] == "manual":  # what `omw campaign-keys set` does

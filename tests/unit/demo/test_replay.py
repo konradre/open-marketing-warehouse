@@ -4,13 +4,14 @@ No request leaves the process and none goes unanswered silently."""
 from __future__ import annotations
 
 from datetime import date, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from omw.demo.fixtures import Manifest
-from omw.demo.replay import Replay, fixture_lead_fetcher, token_provider
+from omw.demo.replay import TOKEN, Replay, token_provider
 from omw.demo.world import (
     GA4_PROPERTY,
     GOOGLE_EUR,
@@ -20,6 +21,7 @@ from omw.demo.world import (
     SITE_URL,
     TWENTY_URL,
 )
+from omw.pacing import MetaPacer
 from omw.sources.ga4 import GA4AccessError, GA4Client
 from omw.sources.ga4.grains import METRICS
 from omw.sources.google_ads.client import GoogleAdsClient, GoogleAdsQueryError
@@ -161,34 +163,51 @@ def test_linkedin_source_reads_entities_and_windowed_analytics(replay: Replay, d
     assert leads and all(row["date"] in WEEK for row in leads)
 
 
-def test_meta_source_reads_fixture_accounts(replay: Replay, demo_dir: Path) -> None:
-    accounts = replay.meta_accounts()
+def test_meta_source_reads_through_the_sdk_and_the_pacer(replay: Replay, demo_dir: Path) -> None:
+    pacer = MetaPacer(sleep=lambda _: None)
     source = meta_ads(
         account_ids=[META_ACCOUNT],
-        accounts=accounts,
+        access_token=TOKEN,
+        session=replay.new_session(),
+        pacer=pacer,
         window=WEEK,
         levels=("campaign", "ad"),
         breakdowns=("countries",),
         leads=True,
-        lead_fetcher=fixture_lead_fetcher,
+        page_size=3,
         sleep=lambda _: None,
     )
     campaigns = _rows(source.resources["insights_campaigns"])
-    expected = [
-        r
-        for r in payload(demo_dir, "restated", "meta_ads", "insights_campaigns")["data"]
-        if _in_week(r["date_start"])
-    ]
+    fixture = payload(demo_dir, "restated", "meta_ads", "insights_campaigns")["data"]
+    expected = [r for r in fixture if _in_week(r["date_start"])]
     assert len(campaigns) == len(expected) == 4 * WEEK.days
-    assert sum(row["spend"] for row in campaigns) == sum(
-        row["spend"] for row in _rows(source.resources["insights_countries"])
-    )
+    assert sum(row["spend"] for row in campaigns) == sum(Decimal(r["spend"]) for r in expected)
+    countries = _rows(source.resources["insights_countries"])
+    assert sum(row["spend"] for row in countries) == sum(row["spend"] for row in campaigns)
     assert {row["currency"] for row in campaigns} == {"USD"}
     assert len(_rows(source.resources["insights_ads"])) == 2 * len(campaigns)  # two live ads a campaign
-    assert accounts[META_ACCOUNT].insight_requests == 3 * WEEK.days  # one report run per day and report
+    entities = _rows(source.resources["campaigns"])
+    assert {row["name"] for row in entities} >= {"Widgets - Prospecting", "Lead Gen - Ebook"}
     assert len(_rows(source.resources["leads"])) == len(
         payload(demo_dir, "restated", "meta_ads", "leads")["data"]
     )
+
+    calls = [call for call in replay.adapter.calls if call.host == "graph.facebook.com"]
+    started = [call for call in calls if call.method == "POST" and call.path.endswith("/insights")]
+    assert len(started) == 3 * WEEK.days  # one async report run per day and report
+    assert all(call.query["access_token"] == TOKEN for call in calls if call.method == "GET")
+    pages = [call for call in calls if call.path.endswith(f"/act_{META_ACCOUNT}/campaigns")]
+    assert [call.query.get("after") for call in pages] == [None, "3"]  # four campaigns, three a page
+    # Every response went through the pacer, which read the usage headers and never had to slow down.
+    assert pacer.summary.requests == len(calls) > 100
+    assert 0 < pacer.summary.peak_utilisation < pacer.config.slow_at
+    assert (pacer.summary.sleeps, pacer.summary.tier, pacer.stopped) == (0, "standard_access", None)
+
+
+def test_meta_answers_an_unknown_node_with_a_graph_error(replay: Replay) -> None:
+    response = replay.session.get("https://graph.facebook.com/v26.0/act_999/campaigns")
+    assert response.status_code == 404
+    assert response.json()["error"]["type"] == "GraphMethodException"
 
 
 def test_an_unknown_request_gets_a_404_and_never_reaches_the_network(replay: Replay) -> None:
