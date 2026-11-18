@@ -64,6 +64,17 @@ def manual_keys(client: Warehouse) -> set[tuple[str, str]]:
     return {(str(source), str(native_id)) for source, native_id in rows}
 
 
+def instant(now: datetime | None = None) -> datetime:
+    """``now`` as an instant in UTC: the current time when unset, a naive value taken as UTC wall-clock.
+
+    The driver reads a naive datetime in the host's time zone, so a naive UTC time written from a host that
+    is not on UTC lands shifted by the offset. ``updated_at`` decides which mapping row wins, and rows
+    written in SQL get the server's own ``now()``, so the two must be the same clock.
+    """
+    now = now or datetime.now(tz=UTC)
+    return now if now.tzinfo else now.replace(tzinfo=UTC)
+
+
 def derived_rows(
     client: Warehouse, table: CampaignTable, protected: set[tuple[str, str]], now: datetime
 ) -> list[list[Any]]:
@@ -92,7 +103,7 @@ def sync_campaign_keys(
     """
     if ensure:
         ensure_table(client)
-    now = now or datetime.now(tz=UTC).replace(tzinfo=None)
+    now = instant(now)
     loaded = existing_tables(client)
     protected = manual_keys(client)
     written: dict[str, int] = {}
@@ -114,9 +125,10 @@ def set_campaign_key(
     """A manual mapping row. It outranks any derived row and survives every later sync."""
     if not campaign_key.strip():
         raise ValueError("campaign_key must not be empty")
-    now = datetime.now(tz=UTC).replace(tzinfo=None)
     client.insert(
-        CAMPAIGN_KEYS, [[source, native_id, campaign_key, campaign_name, "manual", now]], column_names=COLUMNS
+        CAMPAIGN_KEYS,
+        [[source, native_id, campaign_key, campaign_name, "manual", instant()]],
+        column_names=COLUMNS,
     )
 
 

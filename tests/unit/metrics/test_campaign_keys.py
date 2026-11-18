@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import time
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -17,6 +18,8 @@ from omw.metrics.campaign_keys import (
 from tests.unit.checks.conftest import FakeWarehouse
 
 NOW = datetime(2026, 10, 5, 4, 0)
+AT = NOW.replace(tzinfo=UTC)
+"""The instant a naive ``now`` stands for: UTC wall-clock, whatever zone the host is in."""
 
 
 @pytest.mark.parametrize(
@@ -50,12 +53,12 @@ def test_sync_writes_derived_rows_and_skips_manual_and_unloaded() -> None:
     assert warehouse.inserted == [
         (
             CAMPAIGN_KEYS,
-            [["meta_ads", "1", "widgets_prospecting", "Widgets - Prospecting", "derived", NOW]],
+            [["meta_ads", "1", "widgets_prospecting", "Widgets - Prospecting", "derived", AT]],
             COLUMNS,
         ),
         (
             CAMPAIGN_KEYS,
-            [["google_ads", "20010001", "brand_search", "Brand - Search", "derived", NOW]],
+            [["google_ads", "20010001", "brand_search", "Brand - Search", "derived", AT]],
             COLUMNS,
         ),
     ]
@@ -77,6 +80,7 @@ def test_set_and_list() -> None:
     table, rows, columns = warehouse.inserted[0]
     assert table == CAMPAIGN_KEYS and columns == COLUMNS
     assert rows[0][:5] == ["google_ads", "20010002", "widgets_prospecting", "Generic - Widgets", "manual"]
+    assert rows[0][5].tzinfo is UTC and abs(datetime.now(tz=UTC) - rows[0][5]) < timedelta(minutes=1)
     with pytest.raises(ValueError, match="must not be empty"):
         set_campaign_key(warehouse, "google_ads", "1", "  ")
     warehouse.when(
@@ -84,3 +88,27 @@ def test_set_and_list() -> None:
         [["google_ads", "1", "k", "n", "manual"]],
     )
     assert list_campaign_keys(warehouse, "google_ads") == [["google_ads", "1", "k", "n", "manual"]]
+
+
+@pytest.mark.parametrize("zone", ["UTC", "Australia/Perth", "America/Los_Angeles"])
+def test_updated_at_is_the_same_instant_on_a_host_in_any_time_zone(
+    zone: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``updated_at`` decides which mapping row wins, and SQL-written rows carry the server's UTC ``now()``.
+    A naive datetime is read by the driver in the host's zone: written from Los Angeles it landed hours in
+    the future and outranked every later row until the clock caught up."""
+    monkeypatch.setenv("TZ", zone)
+    time.tzset()
+    try:
+        warehouse = FakeWarehouse()
+        warehouse.objects = {"raw.linkedin_ads___campaigns"}
+        warehouse.when("origin = 'manual'", [])
+        warehouse.when("FROM raw.linkedin_ads___campaigns", [["800001", "Widgets - Sponsored Content"]])
+        sync_campaign_keys(warehouse, sources={"linkedin_ads"}, now=NOW, ensure=False)
+        set_campaign_key(warehouse, "linkedin_ads", "800001", "widgets_q4")
+        derived, manual = (rows[0][5] for _, rows, _ in warehouse.inserted)
+        assert derived.timestamp() == AT.timestamp() == 1791172800.0
+        assert abs(manual.timestamp() - time.time()) < 60
+    finally:
+        monkeypatch.undo()
+        time.tzset()
