@@ -87,7 +87,7 @@ reports:
     campaign_key: "concat('meta_ads:', campaign_id)"
     restatement_days: 28
     traps:
-      - Only ads of ad sets that were active at pull time are pulled, so the ads grain can undercount campaigns; never add the two.
+      - Only ads of ad sets that were active at pull time are pulled, so the ads grain can undercount campaigns; never add the two. An ad set paused since keeps the rows of its last pull, without Meta's later restatements.
   - name: campaign_list
     view: marts.meta_ads_campaign_list
     description: Meta campaigns as last synced, one row per campaign, with status, objective and budgets.

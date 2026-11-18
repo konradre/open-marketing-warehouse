@@ -49,7 +49,14 @@ def test_resources_and_hints(account: FakeAccount, pacer: MetaPacer) -> None:
     assert [c for c, h in campaigns["columns"].items() if h.get("primary_key")] == ["id"]
     insights: dict[str, Any] = dict(source.resources["insights_ads"].compute_table_schema())
     assert insights["x-merge-strategy"] == "delete-insert"
-    assert [c for c, h in insights["columns"].items() if h.get("merge_key")] == ["account_id", "date"]
+    # Ad level: only the ad sets a run fetched are replaced (live ones), never the whole day.
+    assert [c for c, h in insights["columns"].items() if h.get("merge_key")] == [
+        "account_id",
+        "date",
+        "adset_id",
+    ]
+    campaign_level: dict[str, Any] = dict(source.resources["insights_campaigns"].compute_table_schema())
+    assert [c for c, h in campaign_level["columns"].items() if h.get("merge_key")] == ["account_id", "date"]
     assert insights["x-clickhouse-sort"] == ["account_id", "date", "campaign_id", "adset_id", "ad_id"]
     assert all(h["nullable"] is False for h in insights["columns"].values())
     assert account.currency_lookups == 1

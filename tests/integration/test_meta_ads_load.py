@@ -17,7 +17,7 @@ from omw.checks.results import Status
 from omw.pacing import MetaPacer
 from omw.pipelines.meta_ads import run
 from tests.integration.conftest import setting
-from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, fake_lead_fetcher, fixture_rows
+from tests.unit.meta_ads.conftest import ACCOUNT, FakeAccount, FakeJob, fake_lead_fetcher, fixture_rows
 
 pytestmark = pytest.mark.integration
 
@@ -259,3 +259,52 @@ def test_a_stopped_run_does_not_count_as_a_sync_for_freshness(
     assert late.status is Status.FAIL and "31.0h ago" in late.detail
     [in_time] = freshness_checks(admin_client, last_complete + timedelta(hours=1), budgets)
     assert in_time.status is Status.PASS
+
+
+class TwoAdSets(FakeAccount):
+    """Ad-level insights of two ad sets, one ad each, on the three fixture days. ``paused`` names ad sets
+    paused since: Meta leaves their ads out of a query filtered on ``adset.effective_status`` ACTIVE."""
+
+    paused: frozenset[str] = frozenset()
+
+    def get_insights(self, params: dict[str, Any], is_async: bool = False) -> FakeJob:
+        if params["level"] != "ad":
+            return super().get_insights(params, is_async)
+        day = params["time_range"]["since"]
+        live_only = any(f["field"] == "adset.effective_status" for f in params.get("filtering", []))
+        rows = [
+            {
+                "date_start": day,
+                "campaign_id": "23850000000000001",
+                "adset_id": adset_id,
+                "ad_id": ad_id,
+                "impressions": "1000",
+                "clicks": "50",
+                "spend": spend,
+            }
+            for adset_id, ad_id, spend in (
+                ("23860000000000001", "23870000000000001", "28.00"),
+                ("23860000000000009", "23870000000000009", "12.00"),
+            )
+            if "2026-10-01" <= day <= "2026-10-03" and not (live_only and adset_id in self.paused)
+        ]
+        return FakeJob(rows)
+
+
+def test_pausing_an_ad_set_keeps_the_ad_rows_of_the_days_it_ran(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    """Ad-level insights are pulled for live ad sets only (DESIGN.md §5). An ad set paused today still ran
+    last week: re-pulling the window without it must not delete what it spent on those days."""
+    by_day = f"SELECT date, sum(spend), count() FROM marts.{DATASET}_ads GROUP BY date ORDER BY date"
+
+    def sync(paused: frozenset[str]) -> list[tuple[date, Decimal, int]]:
+        pacer = MetaPacer(sleep=lambda _: None)
+        account = TwoAdSets(pacer=pacer)
+        account.paused = paused
+        run(loaded, "daily", [ACCOUNT], levels=["ad"], today=TODAY, pacer=pacer, accounts={ACCOUNT: account})
+        return [(d, Decimal(str(s)), n) for d, s, n in agent_client.query(by_day).result_rows]
+
+    both = sync(frozenset())
+    assert both == [(date(2026, 10, day), Decimal("40"), 2) for day in (1, 2, 3)]
+    assert sync(frozenset({"23860000000000009"})) == both
