@@ -128,3 +128,22 @@ def test_a_removed_campaign_keeps_the_rows_of_the_days_it_spent(fake_client: Fak
         ), name
     entities = {r["campaign_id"]: r["campaign_status"] for r in source.resources["campaigns"]}
     assert entities["20010002"] == "REMOVED" and len(entities) == 3
+
+
+def test_a_run_without_the_campaign_report_is_an_empty_window_not_a_crash(
+    tmp_path: Path, fake_client: FakeGoogleAdsClient
+) -> None:
+    """The campaign report is what makes a run a sync. Leaving it out loads the other reports, logs no
+    sync and fails the same way an empty answer does."""
+    pipeline = _pipeline(tmp_path)
+    with pytest.raises(EmptyWindowError):
+        run_daily(
+            pipeline,
+            today=TODAY,
+            customer_ids=[CUSTOMER],
+            client=fake_client,
+            marts_sql=None,
+            reports=["ad_groups"],
+        )
+    counts = row_counts(pipeline)
+    assert counts["performance_ad_groups"] > 0 and counts.get("sync_windows", 0) == 0

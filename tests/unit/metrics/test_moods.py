@@ -301,3 +301,31 @@ def test_a_view_whose_name_only_starts_like_the_reports_is_not_blamed(catalog: C
         TODAY,
     )
     assert answer.mood is Mood.REFUSE and answer.reason.startswith("the warehouse refused the query:")
+
+
+def test_an_answer_whose_check_verdicts_cannot_be_read_is_disclosed_not_served(catalog: Catalog) -> None:
+    """The numbers came back, the verdict query did not (here: the hourly quota ran out between the two).
+    Whether the source is stale or a check failed is then unknown, and the answer has to say so. Only a
+    warehouse where the checks never ran, and the view does not exist, has nothing to disclose."""
+
+    def execute(sql: str) -> tuple[list[str], list[list[Any]]]:
+        if "ops.check_verdicts" in sql:
+            raise DatabaseError(
+                "Code: 201. DB::Exception: Quota for user `agent` for 3600s has been exceeded: "
+                "queries = 1001/1000. (QUOTA_EXCEEDED)"
+            )
+        return ["date", "sessions"], [[date(2026, 1, 1), 1]]
+
+    request = MetricRequest(metrics=["sessions"], time_range=OLD)
+    answer = answer_request(catalog, request, execute, TODAY)
+    assert answer.mood is Mood.DISCLOSE and answer.rows == [[date(2026, 1, 1), 1]]
+    assert any("check verdicts could not be read" in c and "QUOTA_EXCEEDED" in c for c in answer.caveats)
+
+    never_ran = answer_request(catalog, request, _executor(), TODAY)
+    assert never_ran.mood is Mood.SERVE and never_ran.caveats == []
+    code_60 = _missing("ops.check_verdicts")
+
+    def no_view(sql: str) -> tuple[list[str], list[list[Any]]]:
+        return code_60(sql) if "ops.check_verdicts" in sql else execute(sql)
+
+    assert answer_request(catalog, request, no_view, TODAY).mood is Mood.SERVE
