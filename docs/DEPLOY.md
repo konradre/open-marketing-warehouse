@@ -327,8 +327,8 @@ source's window that was loaded after the backup needs that source's first-load 
 - **ClickHouse server log files:** 5 files of 50 MB each (`deploy/clickhouse/config.d/omw.xml`).
 - **ClickHouse system log tables:** `query_log` and `part_log` keep 30 days; the high-volume diagnostics
   (`trace_log`, `metric_log`, `asynchronous_metric_log`, `text_log` and the like) are off.
-- **`ops` tables:** `ops.check_results`, `ops.sync_runs`, `ops.backup_log` and `ops.backup_manifest` keep
-  400 days.
+- **`ops` tables:** `ops.check_results`, `ops.sync_runs`, `ops.pacing_events`, `ops.backup_log` and
+  `ops.backup_manifest` keep 400 days.
 - **systemd timers:** the journal. Cap it with `SystemMaxUse=` in `/etc/systemd/journald.conf`.
 
 ## Upgrade
@@ -346,8 +346,10 @@ make scheduler && make schedule
   definition arrives with the next run of that source (`make job JOB=<job>` to have it now).
 - The ClickHouse version is pinned in the compose file and moves with the repository. Back up before a pull
   that changes it: an upgrade in place is supported, a downgrade is not.
-- **`ops.check_results` created before its 400-day TTL existed** keeps everything until you add it, once,
-  as the `pipeline` or `admin` user: `ALTER TABLE ops.check_results MODIFY TTL checked_at + INTERVAL 400 DAY`.
+- **`ops.check_results` and `ops.pacing_events` created before their 400-day TTL existed** keep everything
+  until you add it, once, as the `pipeline` or `admin` user:
+  `ALTER TABLE ops.check_results MODIFY TTL checked_at + INTERVAL 400 DAY` and
+  `ALTER TABLE ops.pacing_events MODIFY TTL recorded_at + INTERVAL 400 DAY`.
 - **Coming from a stack started before this guide existed:** `make bootstrap` is required once (the backup
   grants), and the server's old diagnostic tables stay on disk until you drop them, as the `admin` user:
   `DROP TABLE IF EXISTS system.trace_log`, and the same for `metric_log`, `asynchronous_metric_log`,
