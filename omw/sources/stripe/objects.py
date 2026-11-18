@@ -79,8 +79,9 @@ def shape_subscription(obj: Mapping[str, Any]) -> dict[str, Any]:
         "customer_id": _id(obj.get("customer")),
         "status": str(obj.get("status") or ""),
         "created": _ts(obj.get("created")),
-        "current_period_start": _ts(obj.get("current_period_start")),
-        "current_period_end": _ts(obj.get("current_period_end")),
+        # Since 2025-03-31.basil the billing period is on each subscription item, not on the subscription.
+        "current_period_start": _ts(obj.get("current_period_start") or first.get("current_period_start")),
+        "current_period_end": _ts(obj.get("current_period_end") or first.get("current_period_end")),
         "canceled_at": _ts(obj.get("canceled_at")),
         "currency": str(obj.get("currency") or price.get("currency") or ""),
         "price_id": _id(price.get("id")),
@@ -111,13 +112,23 @@ SUBSCRIPTION_COLUMNS: dict[str, TColumnSchema] = {
 }
 
 
+def _invoice_subscription(obj: Mapping[str, Any]) -> str:
+    """The subscription an invoice bills, empty for a one-off invoice.
+
+    Since API version 2025-03-31.basil the id is at ``parent.subscription_details.subscription`` and the
+    top-level ``subscription`` is gone; an account on an older version still sends the top-level field.
+    """
+    details = (obj.get("parent") or {}).get("subscription_details") or {}
+    return _id(details.get("subscription")) or _id(obj.get("subscription"))
+
+
 def shape_invoice(obj: Mapping[str, Any]) -> dict[str, Any]:
     transitions = obj.get("status_transitions") or {}
     return {
         "source": SOURCE,
         "id": str(obj["id"]),
         "customer_id": _id(obj.get("customer")),
-        "subscription_id": _id(obj.get("subscription")),
+        "subscription_id": _invoice_subscription(obj),
         "status": str(obj.get("status") or ""),
         "created": _ts(obj.get("created")),
         "paid_at": _ts(transitions.get("paid_at")),

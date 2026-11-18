@@ -156,3 +156,50 @@ def test_the_first_run_loads_every_invoice_and_later_runs_the_window(
     window_call = [p for r, p in fake_client.calls if r == "invoices"][-1]
     assert window_call["created[gte]"] == int(datetime(2027, 3, 3, tzinfo=UTC).timestamp())
     assert counts.get("invoices", 0) == 0  # nothing was created in the last 90 days
+
+
+def test_an_invoice_names_its_subscription_under_parent_since_the_basil_api() -> None:
+    """The client pins a Stripe-Version after 2025-03-31.basil. From that version an invoice has no
+    top-level ``subscription``: the id is at ``parent.subscription_details.subscription``. Without it the
+    revenue view cannot join the subscription, and attribution kept on the subscription is lost."""
+    current = {
+        "id": "in_T50000000000021",
+        "customer": "cus_T50000000000001",
+        "status": "paid",
+        "created": 1790816400,
+        "currency": "eur",
+        "amount_paid": 4900,
+        "billing_reason": "subscription_cycle",
+        "parent": {
+            "type": "subscription_details",
+            "quote_details": None,
+            "subscription_details": {"subscription": "sub_T50000000000001", "metadata": {}},
+        },
+        "status_transitions": {"paid_at": 1790816500},
+    }
+    assert shape_invoice(current)["subscription_id"] == "sub_T50000000000001"
+    expanded = {
+        **current,
+        "parent": {"subscription_details": {"subscription": {"id": "sub_T50000000000002"}}},
+    }
+    assert shape_invoice(expanded)["subscription_id"] == "sub_T50000000000002"
+    one_off = {**current, "parent": None, "billing_reason": "manual"}
+    assert shape_invoice(one_off)["subscription_id"] == ""
+    legacy = {**current, "parent": None, "subscription": "sub_T50000000000003"}
+    assert shape_invoice(legacy)["subscription_id"] == "sub_T50000000000003"
+
+
+def test_a_subscription_reads_its_billing_period_from_its_first_item_since_the_basil_api() -> None:
+    subscription = fixture_data("subscriptions")[0]
+    start, end = subscription["current_period_start"], subscription["current_period_end"]
+    current = {k: v for k, v in subscription.items() if not k.startswith("current_period_")}
+    current["items"] = {
+        "data": [
+            {**subscription["items"]["data"][0], "current_period_start": start, "current_period_end": end}
+        ]
+    }
+    assert (
+        shape_subscription(current)["current_period_start"]
+        == shape_subscription(subscription)["current_period_start"]
+    )
+    assert shape_subscription(current)["current_period_end"].year >= 2026
