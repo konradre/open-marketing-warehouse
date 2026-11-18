@@ -170,7 +170,10 @@ uv run python -m omw.pipelines.stripe daily
 `omw.sources.linkedin_ads` loads ad accounts, campaign groups (with their daily/total budgets and the
 budget-optimisation flag), campaigns and creatives through dlt's declarative `rest_api` resources, and
 daily campaign and creative analytics (`adAnalytics`, pivots `CAMPAIGN` and `CREATIVE`), exposed as
-`marts.linkedin_ads_campaigns`, `marts.linkedin_ads_creatives` and `marts.linkedin_ads_campaign_list`. The daily run re-fetches the last 7 days and replaces them. The
+`marts.linkedin_ads_campaigns`, `marts.linkedin_ads_creatives` and `marts.linkedin_ads_campaign_list`. The daily run re-fetches the last 7 days and replaces them.
+`adAnalytics` does not paginate and limits a response to 15 000 elements, so a response that reaches the
+limit is never trusted: the window is split by date, then a single day by campaign, and a request that
+cannot be made smaller fails the run instead of loading a short slice. The
 `LinkedIn-Version` header is pinned in `omw/sources/linkedin_ads/version.py`; every run warns three months
 before LinkedIn retires that version and refuses to run after it.
 

@@ -1,4 +1,5 @@
-"""The dlt source: ``rest_api`` resources for the entities, a ``RESTClient`` resource for the analytics."""
+"""The dlt source: ``rest_api`` resources for the entities, a ``RESTClient`` resource for the analytics
+(``omw.sources.linkedin_ads.analytics``, which keeps every request under LinkedIn's response cap)."""
 
 from __future__ import annotations
 
@@ -9,7 +10,6 @@ from typing import Any
 
 import dlt
 import requests
-from dlt.common.schema.typing import TMergeDispositionDict
 from dlt.destinations.adapters import clickhouse_adapter
 from dlt.extract import DltResource
 from dlt.sources.helpers.requests import Client as RetryingClient
@@ -19,18 +19,22 @@ from dlt.sources.rest_api import rest_api_resources
 from dlt.sources.rest_api.typing import RESTAPIConfig
 
 from omw.sources.columns import column
+from omw.sources.linkedin_ads.analytics import (
+    ANALYTICS_MERGE_KEY,
+    MERGE_DISPOSITION,
+    RESPONSE_CAP,
+    analytics_path,
+    analytics_resource,
+    restli_date_range,
+)
 from omw.sources.linkedin_ads.auth import LinkedInAuth
 from omw.sources.linkedin_ads.leads import lead_responses_resource
 from omw.sources.linkedin_ads.shapes import (
     ACCOUNT_COLUMNS,
-    ANALYTICS_FIELDS,
     CAMPAIGN_COLUMNS,
     CAMPAIGN_GROUP_COLUMNS,
     CREATIVE_COLUMNS,
-    PIVOT_REPORT,
-    analytics_columns,
     shape_account,
-    shape_analytics,
     shape_campaign,
     shape_campaign_group,
     shape_creative,
@@ -45,8 +49,17 @@ API_BASE = "https://api.linkedin.com/rest/"
 RE_PULL_DAYS = 7
 """LinkedIn settles conversions and cost over a few days; a week covers it."""
 PAGE_SIZE = 100
-MERGE_DISPOSITION: TMergeDispositionDict = {"disposition": "merge", "strategy": "delete-insert"}
-ANALYTICS_MERGE_KEY = ("account_id", "date")
+
+__all__ = [
+    "ANALYTICS_MERGE_KEY",
+    "API_BASE",
+    "MERGE_DISPOSITION",
+    "RESPONSE_CAP",
+    "analytics_path",
+    "analytics_resource",
+    "linkedin_ads",
+    "restli_date_range",
+]
 
 
 def paginator() -> JSONResponseCursorPaginator:
@@ -120,48 +133,6 @@ def entity_resources(session: requests.Session, account_ids: Sequence[str]) -> l
     return [clickhouse_adapter(resource, sort=["id"]) for resource in rest_api_resources(config)]
 
 
-def restli_date_range(window: Window) -> str:
-    s, e = window.start, window.end
-    return (
-        f"(start:(year:{s.year},month:{s.month},day:{s.day}),end:(year:{e.year},month:{e.month},day:{e.day}))"
-    )
-
-
-def analytics_path(account_id: str, window: Window, pivot: str = "CAMPAIGN") -> str:
-    """The Rest.li query string, built by hand: parentheses must stay literal and URN colons encoded."""
-    return (
-        f"adAnalytics?q=analytics&pivot={pivot}&timeGranularity=DAILY"
-        f"&accounts=List(urn%3Ali%3AsponsoredAccount%3A{account_id})"
-        f"&dateRange={restli_date_range(window)}&fields={','.join(ANALYTICS_FIELDS)}"
-    )
-
-
-def analytics_resource(
-    client: RESTClient, account_ids: Sequence[str], window: Window, pivot: str = "CAMPAIGN"
-) -> DltResource:
-    """Daily analytics at one pivot: ``CAMPAIGN`` (the ``ad_analytics`` table) or ``CREATIVE``
-    (``ad_analytics_creatives``), each replacing its (account, day) slice."""
-    pivot_id = "creative_id" if pivot == "CREATIVE" else "campaign_id"
-
-    def rows() -> Iterator[list[dict[str, Any]]]:
-        for account_id in account_ids:
-            response = client.get(f"adAccounts/{account_id}")
-            response.raise_for_status()  # RESTClient.get does not raise; paginate does
-            currency = str(response.json().get("currency") or "")
-            path = analytics_path(account_id, window, pivot)
-            for page in client.paginate(path, data_selector="elements"):
-                yield [shape_analytics(account_id, currency, item, pivot) for item in page]
-
-    resource = dlt.resource(
-        rows,
-        name="ad_analytics" if pivot == "CAMPAIGN" else f"ad_analytics_{PIVOT_REPORT[pivot]}",
-        write_disposition=MERGE_DISPOSITION,
-        merge_key=list(ANALYTICS_MERGE_KEY),
-        columns=analytics_columns(pivot),
-    )
-    return clickhouse_adapter(resource, sort=[*ANALYTICS_MERGE_KEY, pivot_id])
-
-
 def sync_windows_resource(account_ids: Sequence[str], window: Window) -> DltResource:
     def rows() -> Iterator[dict[str, Any]]:
         loaded_at = datetime.now(tz=UTC)
@@ -202,12 +173,14 @@ def linkedin_ads(
     session: requests.Session | None = None,
     today: date | None = None,
     leads: bool = False,
+    analytics_cap: int = RESPONSE_CAP,
 ) -> Iterator[DltResource]:
     """LinkedIn Ads entities and daily campaign and creative analytics for ``window`` (default: last
     ``days`` days); with ``leads``, the lead-gen form responses submitted inside the window too.
 
     ``account_ids`` are numeric sponsored account ids. ``auth`` is injectable for tests; otherwise the
-    OAuth refresh-token flow from the secrets.
+    OAuth refresh-token flow from the secrets. ``analytics_cap`` is LinkedIn's limit on the elements of one
+    ``adAnalytics`` response; a response that long is split and asked again (tests lower it).
     """
     if not account_ids:
         raise ValueError("linkedin_ads needs at least one account id (sources.linkedin_ads.account_ids)")
@@ -225,8 +198,8 @@ def linkedin_ads(
     client = RESTClient(base_url=API_BASE, session=session, paginator=paginator())
 
     yield from entity_resources(session, accounts)
-    yield analytics_resource(client, accounts, window)
-    yield analytics_resource(client, accounts, window, pivot="CREATIVE")
+    yield analytics_resource(client, accounts, window, cap=analytics_cap)
+    yield analytics_resource(client, accounts, window, pivot="CREATIVE", cap=analytics_cap)
     if leads:
         yield lead_responses_resource(client, accounts, window)
     yield sync_windows_resource(accounts, window)
