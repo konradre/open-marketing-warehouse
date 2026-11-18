@@ -25,6 +25,9 @@ dev = [
     "responses>=0.26.3",
     "types-requests>=2.33.0.20261030",
 ]
+eval = [
+    "anthropic>=2.10.0",
+]
 
 [project.scripts]
 omw = "omw.cli:main"

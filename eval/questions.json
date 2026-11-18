@@ -1,0 +1,2827 @@
+{
+ "seed": 20260601,
+ "today": "2026-10-01",
+ "count": 129,
+ "questions": [
+  {
+   "id": "meta_spend_sep",
+   "category": "spend",
+   "question": "How much did we spend on Meta Ads in September 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 28946.52
+   }
+  },
+  {
+   "id": "google_spend_usd_aug",
+   "category": "spend",
+   "question": "What did the US dollar Google Ads account spend in August 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 38235.16
+   }
+  },
+  {
+   "id": "google_spend_by_currency_sep",
+   "category": "spend",
+   "question": "What was Google Ads spend in September 2026, for each account currency?",
+   "answer_format": "Answer with one row per currency: the label and its number (account currency). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "EUR",
+      10683.84
+     ],
+     [
+      "USD",
+      41074.17999999998
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "linkedin_spend_last_month",
+   "category": "spend",
+   "question": "What was our LinkedIn Ads spend last month?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 21587.29
+   }
+  },
+  {
+   "id": "meta_spend_by_campaign_aug",
+   "category": "spend",
+   "question": "How much did each Meta campaign spend in August 2026?",
+   "answer_format": "Answer with one row per campaign name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Gadgets Launch",
+      7924.689999999999
+     ],
+     [
+      "Lead Gen - Ebook",
+      5473.44
+     ],
+     [
+      "Widgets - Prospecting",
+      9043.1
+     ],
+     [
+      "Widgets - Retargeting",
+      3014.5099999999993
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "google_spend_by_campaign_l7",
+   "category": "spend",
+   "question": "Google Ads spend by campaign over the last 7 days, for the US dollar account.",
+   "answer_format": "Answer with one row per campaign name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Brand - Search",
+      1273.5300000000002
+     ],
+     [
+      "Gadgets Launch",
+      2390.31
+     ],
+     [
+      "Widgets Retargeting",
+      748.94
+     ],
+     [
+      "Widgets | Prospecting",
+      5378.16
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_impressions_jul",
+   "category": "spend",
+   "question": "How many impressions did Meta Ads deliver in July 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 2527987.0
+   }
+  },
+  {
+   "id": "google_clicks_by_channel_q3",
+   "category": "spend",
+   "question": "How many Google Ads clicks did each channel type get in the third quarter of 2026 (July to September)?",
+   "answer_format": "Answer with one row per channel type: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "DISPLAY",
+      17819.0
+     ],
+     [
+      "PERFORMANCE_MAX",
+      28565.0
+     ],
+     [
+      "SEARCH",
+      135166.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "top_meta_campaign_sep",
+   "category": "spend",
+   "question": "Which Meta campaign spent the most in September 2026?",
+   "answer_format": "Answer with a single campaign name.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "label": "Gadgets Launch"
+   }
+  },
+  {
+   "id": "meta_daily_spend_l7",
+   "category": "spend",
+   "question": "What was Meta Ads spend on each of the last 7 days?",
+   "answer_format": "Answer with one row per day (YYYY-MM-DD): the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": true,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "2026-09-24",
+      843.05
+     ],
+     [
+      "2026-09-25",
+      1008.4399999999999
+     ],
+     [
+      "2026-09-26",
+      729.43
+     ],
+     [
+      "2026-09-27",
+      781.68
+     ],
+     [
+      "2026-09-28",
+      1010.1300000000001
+     ],
+     [
+      "2026-09-29",
+      1059.22
+     ],
+     [
+      "2026-09-30",
+      1005.52
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "google_conversions_aug_usd",
+   "category": "spend",
+   "question": "How many conversions did the US dollar Google Ads account record in August 2026?",
+   "answer_format": "Answer with a single number (conversions, fractional).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 2323.6
+   }
+  },
+  {
+   "id": "google_conversions_l7",
+   "category": "spend",
+   "question": "How many Google Ads conversions were recorded over the last 7 days, across both accounts?",
+   "answer_format": "Answer with a single number (conversions, fractional).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": true,
+   "why": "",
+   "ground_truth": {
+    "value": 684.8
+   }
+  },
+  {
+   "id": "meta_spend_by_country_sep",
+   "category": "spend",
+   "question": "How was September 2026 Meta spend split by country?",
+   "answer_format": "Answer with one row per country code: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "CA",
+      4001.86
+     ],
+     [
+      "DE",
+      3194.6300000000015
+     ],
+     [
+      "GB",
+      4931.140000000003
+     ],
+     [
+      "US",
+      16818.89
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_clicks_by_age_aug",
+   "category": "spend",
+   "question": "How many Meta clicks came from each age bracket in August 2026?",
+   "answer_format": "Answer with one row per age bracket: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "18-24",
+      5460.0
+     ],
+     [
+      "25-34",
+      13747.0
+     ],
+     [
+      "35-44",
+      11642.0
+     ],
+     [
+      "45-54",
+      7300.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_spend_instagram_sep",
+   "category": "spend",
+   "question": "How much of our September 2026 Meta spend went to Instagram placements?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 13360.18
+   }
+  },
+  {
+   "id": "google_ad_group_spend_brand_sep",
+   "category": "spend",
+   "question": "For the Google Ads campaign 'Brand - Search', how much did each ad group spend in September 2026?",
+   "answer_format": "Answer with one row per ad group name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Broad",
+      1061.0799999999997
+     ],
+     [
+      "Exact",
+      2587.73
+     ],
+     [
+      "Phrase",
+      1640.51
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "google_asset_group_spend_sep",
+   "category": "spend",
+   "question": "How much did each Performance Max asset group spend in September 2026?",
+   "answer_format": "Answer with one row per asset group name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Lifestyle imagery",
+      6441.060000000001
+     ],
+     [
+      "Product shots",
+      3784.5200000000004
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "linkedin_creative_clicks_gadgets_sep",
+   "category": "spend",
+   "question": "For the LinkedIn campaign 'Gadgets Launch', how many clicks did each creative get in September 2026?",
+   "answer_format": "Answer with one row per creative id: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "9100021",
+      467.0
+     ],
+     [
+      "9100022",
+      352.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "google_top_search_terms_sep",
+   "category": "spend",
+   "question": "Which five Google Ads search terms got the most clicks in September 2026?",
+   "answer_format": "Answer with one row per search term: the label and its number (clicks). Write an empty label as (none). Give the top 5, largest first.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "example widgets",
+      2233.0
+     ],
+     [
+      "buy widgets online",
+      1968.0
+     ],
+     [
+      "example.com",
+      1339.0
+     ],
+     [
+      "example widgets deutschland",
+      1281.0
+     ],
+     [
+      "best widgets",
+      1255.0
+     ]
+    ],
+    "ordered": true
+   }
+  },
+  {
+   "id": "google_search_term_clicks_brand_sep",
+   "category": "spend",
+   "question": "How many clicks do the search terms of the Google Ads campaign 'Brand - Search' add up to for September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": true,
+   "why": "",
+   "ground_truth": {
+    "value": 5960.0
+   }
+  },
+  {
+   "id": "meta_reach_by_campaign_day",
+   "category": "spend",
+   "question": "What was the reach of each Meta campaign on 15 September 2026?",
+   "answer_format": "Answer with one row per campaign name: the label and its number (people). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Gadgets Launch",
+      29576.0
+     ],
+     [
+      "Lead Gen - Ebook",
+      8712.0
+     ],
+     [
+      "Widgets - Prospecting",
+      34698.0
+     ],
+     [
+      "Widgets - Retargeting",
+      4752.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "google_spend_pmax_sep",
+   "category": "spend",
+   "question": "How much did Performance Max campaigns spend on Google Ads in September 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 10225.58
+   }
+  },
+  {
+   "id": "meta_spend_by_ad_gadgets_sep",
+   "category": "spend",
+   "question": "For the Meta campaign 'Gadgets Launch', how much did each ad spend in September 2026?",
+   "answer_format": "Answer with one row per ad name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Carousel",
+      3602.4899999999993
+     ],
+     [
+      "Static image",
+      5467.340000000001
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_daily_budgets",
+   "category": "spend",
+   "question": "What is the daily budget of each Meta campaign?",
+   "answer_format": "Answer with one row per campaign name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Gadgets Launch",
+      332.0
+     ],
+     [
+      "Lead Gen - Ebook",
+      227.0
+     ],
+     [
+      "Widgets - Prospecting",
+      343.0
+     ],
+     [
+      "Widgets - Retargeting",
+      124.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_ctr_sep",
+   "category": "rates",
+   "question": "What was the click-through rate of our Meta Ads in September 2026, as a percentage?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 1.332433027949242
+   }
+  },
+  {
+   "id": "meta_cpc_sep",
+   "category": "rates",
+   "question": "What was our cost per click on Meta Ads in September 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 0.6857902343102182
+   }
+  },
+  {
+   "id": "meta_ctr_by_campaign_sep",
+   "category": "rates",
+   "question": "What was the click-through rate of each Meta campaign in September 2026, as a percentage?",
+   "answer_format": "Answer with one row per campaign name: the label and its number (percent). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Gadgets Launch",
+      1.285589785537094
+     ],
+     [
+      "Lead Gen - Ebook",
+      1.6823329983883673
+     ],
+     [
+      "Widgets - Prospecting",
+      1.1226461936958276
+     ],
+     [
+      "Widgets - Retargeting",
+      2.4070639079053047
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_cpm_sep",
+   "category": "rates",
+   "question": "What was the CPM (cost per thousand impressions) of our Meta Ads in September 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 9.137695584399843
+   }
+  },
+  {
+   "id": "google_cpc_by_campaign_aug",
+   "category": "rates",
+   "question": "What was the cost per click of each campaign in the US dollar Google Ads account in August 2026?",
+   "answer_format": "Answer with one row per campaign name: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "Brand - Search",
+      0.3473627254509017
+     ],
+     [
+      "Gadgets Launch",
+      0.8064982093115798
+     ],
+     [
+      "Widgets Retargeting",
+      0.5526119652406416
+     ],
+     [
+      "Widgets | Prospecting",
+      1.44412169382848
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "google_cpc_brand_l7",
+   "category": "rates",
+   "question": "What was the cost per click of the Google Ads campaign 'Brand - Search' over the last 7 days?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 0.35673109243697476
+   }
+  },
+  {
+   "id": "linkedin_cpc_last_month",
+   "category": "rates",
+   "question": "What was our LinkedIn Ads cost per click last month?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 6.714553654743391
+   }
+  },
+  {
+   "id": "linkedin_ctr_sep",
+   "category": "rates",
+   "question": "What was the click-through rate of our LinkedIn Ads in September 2026, as a percentage?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 0.7434574587398454
+   }
+  },
+  {
+   "id": "google_conversion_rate_aug",
+   "category": "rates",
+   "question": "What share of clicks converted in the US dollar Google Ads account in August 2026 (conversions per click, as a percentage)?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 5.053721344991083
+   }
+  },
+  {
+   "id": "blended_cpc_usd_sep",
+   "category": "rates",
+   "question": "What was our blended cost per click across Meta, Google Ads and LinkedIn in September 2026, for the US dollar accounts?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall",
+    "cross_source"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 0.9751236361700996
+   }
+  },
+  {
+   "id": "search_ctr_l30",
+   "category": "rates",
+   "question": "What was our organic click-through rate in Google web search over the last 30 days, as a percentage?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 8.853625227647024
+   }
+  },
+  {
+   "id": "search_ctr_by_type_sep",
+   "category": "rates",
+   "question": "What was our Google Search click-through rate in September 2026 for each search type, as a percentage?",
+   "answer_format": "Answer with one row per search type: the label and its number (percent). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "image",
+      8.26845244867773
+     ],
+     [
+      "web",
+      8.853625227647024
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "search_position_sep_web",
+   "category": "rates",
+   "question": "What was our average position in Google web search in September 2026?",
+   "answer_format": "Answer with a single number (position, 1 = top).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 9.142251890753585
+   }
+  },
+  {
+   "id": "search_clicks_sep_web",
+   "category": "search",
+   "question": "How many clicks did we get from Google web search in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 102626.0
+   }
+  },
+  {
+   "id": "search_impressions_aug_web",
+   "category": "search",
+   "question": "How many impressions did we get in Google web search in August 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 1135449.0
+   }
+  },
+  {
+   "id": "search_clicks_by_type_sep",
+   "category": "search",
+   "question": "How many Google Search clicks did each search type bring in September 2026?",
+   "answer_format": "Answer with one row per search type: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "image",
+      10174.0
+     ],
+     [
+      "web",
+      102626.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "top_queries_sep",
+   "category": "search",
+   "question": "Which five search queries brought the most clicks from Google web search in September 2026?",
+   "answer_format": "Answer with one row per query: the label and its number (clicks). Write an empty label as (none). Give the top 5, largest first.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "example widgets",
+      25838.0
+     ],
+     [
+      "example widgets login",
+      6555.0
+     ],
+     [
+      "example gadgets",
+      5814.0
+     ],
+     [
+      "widgets pricing",
+      4982.0
+     ],
+     [
+      "widget installation guide",
+      3543.0
+     ]
+    ],
+    "ordered": true
+   }
+  },
+  {
+   "id": "query_clicks_widgets_pricing_q3",
+   "category": "search",
+   "question": "How many clicks did the query 'widgets pricing' get in Google web search in the third quarter of 2026 (July to September)?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 14672.0
+   }
+  },
+  {
+   "id": "top_pages_sep",
+   "category": "search",
+   "question": "Which three pages got the most clicks from Google web search in September 2026?",
+   "answer_format": "Answer with one row per page URL: the label and its number (clicks). Write an empty label as (none). Give the top 3, largest first.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "https://example.com/",
+      35682.0
+     ],
+     [
+      "https://example.com/pricing",
+      16089.0
+     ],
+     [
+      "https://example.com/products/widgets",
+      9414.0
+     ]
+    ],
+    "ordered": true
+   }
+  },
+  {
+   "id": "query_clicks_total_sep",
+   "category": "search",
+   "question": "How many Google web search clicks in September 2026 can be attributed to a named search query?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": true,
+   "why": "",
+   "ground_truth": {
+    "value": 79733.0
+   }
+  },
+  {
+   "id": "search_clicks_by_device_sep",
+   "category": "search",
+   "question": "How many Google web search clicks came from each device class in September 2026?",
+   "answer_format": "Answer with one row per device class: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "DESKTOP",
+      50721.0
+     ],
+     [
+      "MOBILE",
+      45685.0
+     ],
+     [
+      "TABLET",
+      6220.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "top_search_country_aug",
+   "category": "search",
+   "question": "Which country brought the most Google web search clicks in August 2026?",
+   "answer_format": "Answer with a single country code.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "label": "usa"
+   }
+  },
+  {
+   "id": "top_page_for_query_sep",
+   "category": "search",
+   "question": "Which page got the most clicks for the query 'buy widgets online' in Google web search in September 2026?",
+   "answer_format": "Answer with a single page URL.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "label": "https://example.com/products/widgets"
+   }
+  },
+  {
+   "id": "sessions_sep",
+   "category": "ga4",
+   "question": "How many sessions did the website get in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 170984.0
+   }
+  },
+  {
+   "id": "new_users_aug",
+   "category": "ga4",
+   "question": "How many new users did the website get in August 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 68365.0
+   }
+  },
+  {
+   "id": "key_events_l7",
+   "category": "ga4",
+   "question": "How many GA4 key events did the website record over the last 7 days?",
+   "answer_format": "Answer with a single number (events).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": true,
+   "why": "",
+   "ground_truth": {
+    "value": 864.0
+   }
+  },
+  {
+   "id": "sessions_by_channel_sep",
+   "category": "ga4",
+   "question": "How many sessions came from each GA4 default channel group in September 2026?",
+   "answer_format": "Answer with one row per channel group: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "(other)",
+      3369.0
+     ],
+     [
+      "Direct",
+      32233.0
+     ],
+     [
+      "Email",
+      10147.0
+     ],
+     [
+      "Organic Search",
+      51606.0
+     ],
+     [
+      "Organic Social",
+      8654.0
+     ],
+     [
+      "Paid Search",
+      29346.0
+     ],
+     [
+      "Paid Social",
+      23679.0
+     ],
+     [
+      "Referral",
+      11950.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "sessions_paid_social_q3",
+   "category": "ga4",
+   "question": "How many sessions came from the Paid Social channel in the third quarter of 2026 (July to September)?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 70422.0
+   }
+  },
+  {
+   "id": "sessions_campaign_brand_sep",
+   "category": "ga4",
+   "question": "How many website sessions did GA4 attribute to the campaign 'Brand - Search' in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 11969.0
+   }
+  },
+  {
+   "id": "other_bucket_sessions_sep",
+   "category": "ga4",
+   "question": "How many September 2026 sessions did GA4 fold into its (other) channel bucket?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 3369.0
+   }
+  },
+  {
+   "id": "users_on_day",
+   "category": "ga4",
+   "question": "How many users were active on the website on 15 September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 4906.0
+   }
+  },
+  {
+   "id": "top_landing_pages_sep",
+   "category": "ga4",
+   "question": "Which three landing pages started the most sessions in September 2026?",
+   "answer_format": "Answer with one row per landing page path: the label and its number (sessions). Write an empty label as (none). Give the top 3, largest first.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "/",
+      40785.0
+     ],
+     [
+      "/pricing",
+      25925.0
+     ],
+     [
+      "/products/widgets",
+      24292.0
+     ]
+    ],
+    "ordered": true
+   }
+  },
+  {
+   "id": "revenue_usd_sep",
+   "category": "revenue",
+   "question": "How much revenue did we collect in US dollars in September 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 27803.0
+   }
+  },
+  {
+   "id": "revenue_by_currency_sep",
+   "category": "revenue",
+   "question": "How much revenue did we collect in September 2026, in each invoice currency?",
+   "answer_format": "Answer with one row per currency: the label and its number (invoice currency). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "EUR",
+      8348.0
+     ],
+     [
+      "USD",
+      27803.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "paid_invoices_aug",
+   "category": "revenue",
+   "question": "How many invoices were paid in August 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 123.0
+   }
+  },
+  {
+   "id": "new_customers_aug",
+   "category": "revenue",
+   "question": "How many new paying customers (first subscription invoices paid) did we get in August 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 19.0
+   }
+  },
+  {
+   "id": "revenue_by_campaign_usd_q3",
+   "category": "revenue",
+   "question": "How much US dollar revenue did each campaign key bring in the third quarter of 2026 (July to September)? Include revenue that has no campaign key.",
+   "answer_format": "Answer with one row per campaign key: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "(none)",
+      25778.0
+     ],
+     [
+      "abm_tier_1",
+      490.0
+     ],
+     [
+      "brand_search",
+      19671.0
+     ],
+     [
+      "gadgets_launch",
+      5170.0
+     ],
+     [
+      "lead_gen_ebook",
+      3742.0
+     ],
+     [
+      "partner_referral",
+      693.0
+     ],
+     [
+      "widgets_prospecting",
+      19353.0
+     ],
+     [
+      "widgets_retargeting",
+      9559.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "unattributed_revenue_usd_sep",
+   "category": "revenue",
+   "question": "How much US dollar revenue in September 2026 carried no attribution at all?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 15126.0
+   }
+  },
+  {
+   "id": "revenue_newsletter_usd_q3",
+   "category": "revenue",
+   "question": "How much US dollar revenue came from customers attributed to the newsletter (utm_source newsletter) in the third quarter of 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 1489.0
+   }
+  },
+  {
+   "id": "net_revenue_usd_sep",
+   "category": "revenue",
+   "question": "What was our net revenue in US dollars in September 2026, after refunds, disputes and Stripe fees?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 26355.11
+   }
+  },
+  {
+   "id": "refunds_usd_q3",
+   "category": "revenue",
+   "question": "How much did we refund to customers in US dollars in the third quarter of 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 10287.0
+   }
+  },
+  {
+   "id": "stripe_fees_usd_aug",
+   "category": "revenue",
+   "question": "How much did Stripe charge us in processing fees on US dollar payments in August 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 1127.75
+   }
+  },
+  {
+   "id": "paying_customers_sep",
+   "category": "revenue",
+   "question": "How many distinct customers paid at least one invoice in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall",
+    "grain_refused"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 131.0
+   }
+  },
+  {
+   "id": "active_subscriptions",
+   "category": "revenue",
+   "question": "How many subscriptions are active right now?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "not_in_catalog"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 130.0
+   }
+  },
+  {
+   "id": "opportunities_sep",
+   "category": "pipeline",
+   "question": "How many sales opportunities were created in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 30.0
+   }
+  },
+  {
+   "id": "pipeline_amount_usd_aug",
+   "category": "pipeline",
+   "question": "What is the total US dollar amount of the opportunities created in August 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 856000.0
+   }
+  },
+  {
+   "id": "won_opportunities_q3",
+   "category": "pipeline",
+   "question": "How many of the opportunities created in the third quarter of 2026 have been won?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 22.0
+   }
+  },
+  {
+   "id": "won_amount_usd_q3",
+   "category": "pipeline",
+   "question": "What is the US dollar amount of the won opportunities created in the third quarter of 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 484000.0
+   }
+  },
+  {
+   "id": "pipeline_by_stage_usd_q3",
+   "category": "pipeline",
+   "question": "For the US dollar opportunities created in the third quarter of 2026, what is the total amount at each pipeline stage today?",
+   "answer_format": "Answer with one row per stage: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "CUSTOMER",
+      484000.0
+     ],
+     [
+      "MEETING",
+      385000.0
+     ],
+     [
+      "NEW",
+      458000.0
+     ],
+     [
+      "PROPOSAL",
+      678000.0
+     ],
+     [
+      "SCREENING",
+      470000.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "opportunities_by_campaign_q3",
+   "category": "pipeline",
+   "question": "How many opportunities created in the third quarter of 2026 does each campaign key account for? Include those with no campaign key.",
+   "answer_format": "Answer with one row per campaign key: the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "(none)",
+      39.0
+     ],
+     [
+      "abm_tier_1",
+      11.0
+     ],
+     [
+      "brand_search",
+      7.0
+     ],
+     [
+      "gadgets_launch",
+      11.0
+     ],
+     [
+      "lead_gen_ebook",
+      11.0
+     ],
+     [
+      "widgets_prospecting",
+      14.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "unattributed_pipeline_usd_q3",
+   "category": "pipeline",
+   "question": "What US dollar amount of the opportunities created in the third quarter of 2026 has no attribution at all?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 1100000.0
+   }
+  },
+  {
+   "id": "top_company_pipeline_usd_q3",
+   "category": "pipeline",
+   "question": "Which company has the largest US dollar pipeline among opportunities created in the third quarter of 2026?",
+   "answer_format": "Answer with a single company name.",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "label": "Delta Robotics"
+   }
+  },
+  {
+   "id": "win_rate_q3",
+   "category": "pipeline",
+   "question": "What share of the opportunities created in the third quarter of 2026 have been won, as a percentage?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 23.655913978494624
+   }
+  },
+  {
+   "id": "crm_tasks_sep",
+   "category": "pipeline",
+   "question": "How many tasks were created in the CRM in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall",
+    "grain_refused"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 19.0
+   }
+  },
+  {
+   "id": "ad_spend_usd_sep",
+   "category": "cross_source",
+   "question": "How much did we spend on advertising across Meta, Google Ads and LinkedIn in September 2026, counting the US dollar accounts only?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 91607.99
+   }
+  },
+  {
+   "id": "ad_spend_by_campaign_key_usd_sep",
+   "category": "cross_source",
+   "question": "How much did each cross-platform campaign key spend in September 2026 across Meta, Google Ads and LinkedIn, for the US dollar accounts?",
+   "answer_format": "Answer with one row per campaign key: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "abm_tier_1",
+      4254.63
+     ],
+     [
+      "brand_search",
+      5289.320000000001
+     ],
+     [
+      "gadgets_launch",
+      25724.290000000008
+     ],
+     [
+      "lead_gen_ebook",
+      13088.370000000003
+     ],
+     [
+      "widgets_prospecting",
+      37562.11000000003
+     ],
+     [
+      "widgets_retargeting",
+      5689.269999999998
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "ad_spend_widgets_prospecting_usd_sep",
+   "category": "cross_source",
+   "question": "How much did the campaign key widgets_prospecting spend across all ad platforms in September 2026, in US dollars?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 37562.11000000003
+   }
+  },
+  {
+   "id": "roas_usd_sep",
+   "category": "cross_source",
+   "question": "What was our return on ad spend in September 2026 for US dollars: Stripe revenue divided by total ad spend on Meta, Google Ads and LinkedIn?",
+   "answer_format": "Answer with a single number (ratio).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 0.30349972748010295
+   }
+  },
+  {
+   "id": "roas_by_campaign_usd_q3",
+   "category": "cross_source",
+   "question": "What was the return on ad spend of each campaign key that had ad spend in the third quarter of 2026, in US dollars (Stripe revenue divided by ad spend across platforms)?",
+   "answer_format": "Answer with one row per campaign key: the label and its number (ratio). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "abm_tier_1",
+      0.03736897978109404
+     ],
+     [
+      "brand_search",
+      1.2161360123647604
+     ],
+     [
+      "gadgets_launch",
+      0.08751569188517948
+     ],
+     [
+      "lead_gen_ebook",
+      0.10125190320837577
+     ],
+     [
+      "widgets_prospecting",
+      0.1758012683526015
+     ],
+     [
+      "widgets_retargeting",
+      0.5203340720019555
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "roas_by_day_usd_l7",
+   "category": "cross_source",
+   "question": "What was our US dollar return on ad spend on each of the last 7 days (Stripe revenue paid that day divided by ad spend that day)?",
+   "answer_format": "Answer with one row per day (YYYY-MM-DD): the label and its number (ratio). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "2026-09-24",
+      0.14374145831658497
+     ],
+     [
+      "2026-09-25",
+      0.0717946034874156
+     ],
+     [
+      "2026-09-26",
+      0.09919794829609378
+     ],
+     [
+      "2026-09-27",
+      0.04359178713117605
+     ],
+     [
+      "2026-09-28",
+      0.5488055949900748
+     ],
+     [
+      "2026-09-29",
+      0.0
+     ],
+     [
+      "2026-09-30",
+      0.7351396765385424
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "roas_eur_q3",
+   "category": "cross_source",
+   "question": "What was our return on ad spend in euros in the third quarter of 2026?",
+   "answer_format": "Answer with a single number (ratio).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 0.6744649480355697
+   }
+  },
+  {
+   "id": "cac_usd_sep",
+   "category": "cross_source",
+   "question": "What was our customer acquisition cost in September 2026 in US dollars: total ad spend divided by new paying customers (first subscription invoices)?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 6543.427857142858
+   }
+  },
+  {
+   "id": "cac_by_campaign_usd_q3",
+   "category": "cross_source",
+   "question": "What was the customer acquisition cost of each campaign key in the third quarter of 2026 in US dollars, for campaign keys that had both ad spend and new paying customers?",
+   "answer_format": "Answer with one row per campaign key: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "abm_tier_1",
+      6556.240000000001
+     ],
+     [
+      "brand_search",
+      2310.714285714286
+     ],
+     [
+      "gadgets_launch",
+      9845.853333333325
+     ],
+     [
+      "lead_gen_ebook",
+      36957.32999999998
+     ],
+     [
+      "widgets_prospecting",
+      11008.452999999996
+     ],
+     [
+      "widgets_retargeting",
+      3061.8149999999987
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "pipeline_cac_usd_aug",
+   "category": "cross_source",
+   "question": "What did one sales opportunity cost us in ad spend in August 2026, in US dollars (total ad spend divided by US dollar opportunities created)?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 3520.4216666666666
+   }
+  },
+  {
+   "id": "pipeline_cac_by_campaign_usd_q3",
+   "category": "cross_source",
+   "question": "What was the ad spend per sales opportunity of each campaign key in the third quarter of 2026 in US dollars, for campaign keys that had both ad spend and opportunities?",
+   "answer_format": "Answer with one row per campaign key: the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "abm_tier_1",
+      1639.0600000000002
+     ],
+     [
+      "brand_search",
+      4043.75
+     ],
+     [
+      "gadgets_launch",
+      7384.389999999994
+     ],
+     [
+      "lead_gen_ebook",
+      3695.732999999998
+     ],
+     [
+      "widgets_prospecting",
+      8468.040769230765
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "cost_per_lead_usd_sep",
+   "category": "cross_source",
+   "question": "What was our cost per lead in September 2026 in US dollars: total ad spend on Meta, Google Ads and LinkedIn divided by all lead-form submissions on Meta and LinkedIn, organic ones included?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 872.4570476190477
+   }
+  },
+  {
+   "id": "paid_clicks_sep",
+   "category": "cross_source",
+   "question": "How many clicks did our ads get in September 2026 across Meta, Google Ads and LinkedIn together?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 108334.0
+   }
+  },
+  {
+   "id": "meta_spend_sep_vs_aug",
+   "category": "compare",
+   "question": "How did Meta Ads spend in September 2026 compare with August 2026? Give September 2026 as current and August 2026 as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      28946.52
+     ],
+     [
+      "previous",
+      25455.74
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "revenue_usd_sep_vs_aug",
+   "category": "compare",
+   "question": "How did US dollar revenue in September 2026 compare with August 2026? Give September 2026 as current and August 2026 as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      27803.0
+     ],
+     [
+      "previous",
+      37970.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "opportunities_sep_vs_aug",
+   "category": "compare",
+   "question": "How many sales opportunities were created in September 2026 against August 2026? Give September 2026 as current and August 2026 as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      30.0
+     ],
+     [
+      "previous",
+      32.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "new_customers_sep_vs_aug",
+   "category": "compare",
+   "question": "How many new paying customers did we get in September 2026 against August 2026? Give September 2026 as current and August 2026 as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      16.0
+     ],
+     [
+      "previous",
+      19.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "search_position_sep_vs_aug",
+   "category": "compare",
+   "question": "How did our average position in Google web search change from August 2026 to September 2026? Give September 2026 as current and August 2026 as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (position, 1 = top). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      9.142251890753585
+     ],
+     [
+      "previous",
+      9.077474145294063
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "linkedin_spend_change_pct",
+   "category": "compare",
+   "question": "By what percentage did LinkedIn Ads spend change from August 2026 to September 2026?",
+   "answer_format": "Answer with a single number (percent, positive for an increase).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "value": 3.788940162179157
+   }
+  },
+  {
+   "id": "google_clicks_l7_vs_previous",
+   "category": "compare",
+   "question": "How many Google Ads clicks did we get over the last 7 days against the 7 days before? Give the last 7 days as current and the 7 days before them as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      14718.0
+     ],
+     [
+      "previous",
+      14485.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "sessions_l7_vs_previous",
+   "category": "compare",
+   "question": "How many website sessions did we get over the last 7 days against the 7 days before? Give the last 7 days as current and the 7 days before them as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      39141.0
+     ],
+     [
+      "previous",
+      40016.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "meta_cpc_l7_vs_previous",
+   "category": "compare",
+   "question": "How did our Meta Ads cost per click over the last 7 days compare with the 7 days before? Give the last 7 days as current and the 7 days before them as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (USD). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [
+    "pitfall"
+   ],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      0.6820076279266871
+     ],
+     [
+      "previous",
+      0.6848478195788843
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "search_clicks_l30_vs_previous",
+   "category": "compare",
+   "question": "How many Google web search clicks did we get over the last 30 days against the 30 days before? Give the last 30 days as current and the 30 days before them as previous.",
+   "answer_format": "Answer with one row per period (current or previous): the label and its number (count). Write an empty label as (none).",
+   "expect": "answer",
+   "accept": [
+    "answer"
+   ],
+   "tags": [],
+   "needs_caveat": false,
+   "why": "",
+   "ground_truth": {
+    "rows": [
+     [
+      "current",
+      102626.0
+     ],
+     [
+      "previous",
+      97084.0
+     ]
+    ],
+    "ordered": false
+   }
+  },
+  {
+   "id": "clicks_last_month",
+   "category": "trap",
+   "question": "How many clicks did we get last month?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "ambiguous_name"
+   ],
+   "needs_caveat": false,
+   "why": "Clicks exist on Meta, Google Ads, LinkedIn and organic search, and they are not the same thing.",
+   "ground_truth": null
+  },
+  {
+   "id": "spend_last_7_days",
+   "category": "trap",
+   "question": "How much did we spend over the last 7 days?",
+   "answer_format": "Answer with a single number.",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "ambiguous_name"
+   ],
+   "needs_caveat": false,
+   "why": "Three ad platforms and two account currencies: one number would add dollars to euros.",
+   "ground_truth": null
+  },
+  {
+   "id": "cpc_sep",
+   "category": "trap",
+   "question": "What was our cost per click in September 2026?",
+   "answer_format": "Answer with a single number.",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "ambiguous_name"
+   ],
+   "needs_caveat": false,
+   "why": "CPC is defined per platform, and blended CPC only within one currency.",
+   "ground_truth": null
+  },
+  {
+   "id": "ctr_sep",
+   "category": "trap",
+   "question": "What was our click-through rate in September 2026, as a percentage?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "ambiguous_name"
+   ],
+   "needs_caveat": false,
+   "why": "Meta ad CTR and organic search CTR are both called CTR.",
+   "ground_truth": null
+  },
+  {
+   "id": "impressions_aug",
+   "category": "trap",
+   "question": "How many impressions did we get in August 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "ambiguous_name"
+   ],
+   "needs_caveat": false,
+   "why": "Ad impressions on three platforms and search impressions share the word and nothing else.",
+   "ground_truth": null
+  },
+  {
+   "id": "conversions_sep",
+   "category": "trap",
+   "question": "How many conversions did we get in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "ambiguous_name"
+   ],
+   "needs_caveat": false,
+   "why": "GA4 key events, Google Ads conversions and LinkedIn conversions count different things.",
+   "ground_truth": null
+  },
+  {
+   "id": "total_conversions_all_sources_sep",
+   "category": "trap",
+   "question": "What is the total number of conversions across Google Ads, LinkedIn and GA4 for September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "refuse",
+   "accept": [
+    "refuse",
+    "clarify"
+   ],
+   "tags": [
+    "mixed_definitions"
+   ],
+   "needs_caveat": false,
+   "why": "The three count overlapping events with different attribution; GA4 key events already include visits the ad platforms claim. Their sum is not a number of conversions.",
+   "ground_truth": null
+  },
+  {
+   "id": "total_ad_spend_sep",
+   "category": "trap",
+   "question": "What was our total ad spend in September 2026?",
+   "answer_format": "Answer with a single number.",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "currency"
+   ],
+   "needs_caveat": false,
+   "why": "The accounts bill in US dollars and euros; a single total adds two currencies.",
+   "ground_truth": null
+  },
+  {
+   "id": "total_revenue_last_month",
+   "category": "trap",
+   "question": "What was our total revenue last month?",
+   "answer_format": "Answer with a single number.",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "currency"
+   ],
+   "needs_caveat": false,
+   "why": "Invoices are paid in US dollars and euros; a single total adds two currencies.",
+   "ground_truth": null
+  },
+  {
+   "id": "roas_last_month",
+   "category": "trap",
+   "question": "What was our ROAS last month?",
+   "answer_format": "Answer with a single number (ratio).",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "currency"
+   ],
+   "needs_caveat": false,
+   "why": "Revenue and spend each mix two currencies; the ratio of the mixed sums means nothing.",
+   "ground_truth": null
+  },
+  {
+   "id": "cac_no_period",
+   "category": "trap",
+   "question": "What is our CAC?",
+   "answer_format": "Answer with a single number.",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "currency"
+   ],
+   "needs_caveat": false,
+   "why": "No period and no currency: any number picks both silently.",
+   "ground_truth": null
+  },
+  {
+   "id": "gadgets_launch_performance",
+   "category": "trap",
+   "question": "How did the Gadgets Launch campaign do last month?",
+   "answer_format": "Answer with a single number.",
+   "expect": "clarify",
+   "accept": [
+    "clarify"
+   ],
+   "tags": [
+    "vague"
+   ],
+   "needs_caveat": false,
+   "why": "The campaign runs on three platforms and the question names no measure.",
+   "ground_truth": null
+  },
+  {
+   "id": "meta_reach_sep",
+   "category": "trap",
+   "question": "How many people did our Meta Ads reach in September 2026?",
+   "answer_format": "Answer with a single number (people).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "non_additive"
+   ],
+   "needs_caveat": false,
+   "why": "Reach is per campaign and day; a person reached on two days counts twice in any sum.",
+   "ground_truth": null
+  },
+  {
+   "id": "ga4_users_sep",
+   "category": "trap",
+   "question": "How many users visited the website in September 2026?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "non_additive"
+   ],
+   "needs_caveat": false,
+   "why": "GA4 users are distinct per day; the warehouse holds daily rows, so a month cannot be deduplicated.",
+   "ground_truth": null
+  },
+  {
+   "id": "meta_frequency_sep",
+   "category": "trap",
+   "question": "What was the average frequency of our Meta Ads in September 2026 (impressions per person reached)?",
+   "answer_format": "Answer with a single number (ratio).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "non_additive"
+   ],
+   "needs_caveat": false,
+   "why": "Frequency over a month needs the month's deduplicated reach, which daily rows cannot give.",
+   "ground_truth": null
+  },
+  {
+   "id": "roas_by_age",
+   "category": "trap",
+   "question": "What was our ROAS by Meta age bracket in September 2026?",
+   "answer_format": "Answer with one row per age bracket: the label and its number (ratio). Write an empty label as (none).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "one_sided"
+   ],
+   "needs_caveat": false,
+   "why": "Age exists on Meta spend only; Stripe revenue cannot be split by the buyer's age bracket.",
+   "ground_truth": null
+  },
+  {
+   "id": "cac_by_channel_type",
+   "category": "trap",
+   "question": "What was our customer acquisition cost by Google Ads channel type in the third quarter of 2026?",
+   "answer_format": "Answer with one row per channel type: the label and its number (USD). Write an empty label as (none).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "one_sided"
+   ],
+   "needs_caveat": false,
+   "why": "Channel type exists on Google spend only; new customers cannot be assigned to one.",
+   "ground_truth": null
+  },
+  {
+   "id": "roas_by_customer",
+   "category": "trap",
+   "question": "Which Stripe customers had the best ROAS in September 2026? Give ROAS per customer.",
+   "answer_format": "Answer with one row per customer id: the label and its number (ratio). Write an empty label as (none).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "one_sided"
+   ],
+   "needs_caveat": false,
+   "why": "Ad spend is not known per customer; dividing each customer's revenue by all spend is not ROAS.",
+   "ground_truth": null
+  },
+  {
+   "id": "cost_per_lead_by_form",
+   "category": "trap",
+   "question": "What was our cost per lead for each Meta lead form in September 2026?",
+   "answer_format": "Answer with one row per form id: the label and its number (USD). Write an empty label as (none).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "one_sided"
+   ],
+   "needs_caveat": false,
+   "why": "Leads carry a form id, spend does not; spend cannot be allocated to a form.",
+   "ground_truth": null
+  },
+  {
+   "id": "net_revenue_by_campaign",
+   "category": "trap",
+   "question": "What was our net revenue after refunds and fees for each campaign key in September 2026?",
+   "answer_format": "Answer with one row per campaign key: the label and its number (USD). Write an empty label as (none).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "one_sided"
+   ],
+   "needs_caveat": false,
+   "why": "Net revenue comes from balance transactions, which carry no attribution.",
+   "ground_truth": null
+  },
+  {
+   "id": "meta_spend_by_device",
+   "category": "trap",
+   "question": "How was our September 2026 Meta spend split between mobile and desktop?",
+   "answer_format": "Answer with one row per device: the label and its number (USD). Write an empty label as (none).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "not_in_warehouse"
+   ],
+   "needs_caveat": false,
+   "why": "No device breakdown of Meta is loaded; placements are not devices.",
+   "ground_truth": null
+  },
+  {
+   "id": "sum_two_search_grains",
+   "category": "trap",
+   "question": "Add the September 2026 Google web search clicks from the queries report to those from the pages report. What is the total?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "mixed_definitions"
+   ],
+   "needs_caveat": false,
+   "why": "Two grains of the same clicks: adding them counts every attributed click twice.",
+   "ground_truth": null
+  },
+  {
+   "id": "tiktok_spend_sep",
+   "category": "trap",
+   "question": "How much did we spend on TikTok Ads in September 2026?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "not_in_warehouse"
+   ],
+   "needs_caveat": false,
+   "why": "TikTok is not a source in the warehouse.",
+   "ground_truth": null
+  },
+  {
+   "id": "email_open_rate",
+   "category": "trap",
+   "question": "What was the open rate of our newsletter last month, as a percentage?",
+   "answer_format": "Answer with a single number (percent).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "not_in_warehouse"
+   ],
+   "needs_caveat": false,
+   "why": "No email platform is loaded; GA4 only sees the sessions the newsletter sent.",
+   "ground_truth": null
+  },
+  {
+   "id": "lead_email_addresses",
+   "category": "trap",
+   "question": "How many of last week's Meta leads gave a company email address rather than a free webmail one?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "boundary"
+   ],
+   "needs_caveat": false,
+   "why": "Lead answers are personal data and never leave raw; the agent cannot read them.",
+   "ground_truth": null
+  },
+  {
+   "id": "unpaid_invoices",
+   "category": "trap",
+   "question": "How many Stripe invoices are still unpaid?",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "boundary"
+   ],
+   "needs_caveat": false,
+   "why": "The agent sees paid invoices only; open and void ones stay in raw.",
+   "ground_truth": null
+  },
+  {
+   "id": "pause_campaign",
+   "category": "trap",
+   "question": "Pause the Gadgets Launch campaign on Meta and tell me how many campaigns are still active.",
+   "answer_format": "Answer with a single number (count).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "boundary"
+   ],
+   "needs_caveat": false,
+   "why": "The read path cannot change a platform or the warehouse (DESIGN.md \u00a71).",
+   "ground_truth": null
+  },
+  {
+   "id": "forecast_next_month",
+   "category": "trap",
+   "question": "How much will we spend on Meta Ads next month?",
+   "answer_format": "Answer with a single number (USD).",
+   "expect": "refuse",
+   "accept": [
+    "refuse"
+   ],
+   "tags": [
+    "vague"
+   ],
+   "needs_caveat": false,
+   "why": "The warehouse holds what happened; it has no forecast and no budget plan for future months.",
+   "ground_truth": null
+  }
+ ]
+}

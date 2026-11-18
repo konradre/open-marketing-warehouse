@@ -260,12 +260,21 @@ uv run omw campaign-keys set google_ads 20010002 widgets_q4 --name "Generic - Wi
 uv run omw campaign-keys list --source google_ads
 ```
 
+## Evaluation
+
+`eval/README.md` reports how the two read paths compare on 129 marketing questions with known answers:
+schema plus raw SQL through mcp-clickhouse against `SEMANTICS.md` plus `query_metrics`. `make eval-seed`
+loads a deterministic synthetic warehouse for every source and grain, and `make eval-report` runs the
+offline planners through both arms and rewrites the results. A real-model run is optional
+(`uv sync --group eval`, then `uv run omw eval run --planner model`).
+
 ## Layout
 
 ```
-omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server)
+omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server), eval/ (read-path evaluation harness)
 metrics/        metric definitions (YAML), validated by omw/metrics/schema.py
 SEMANTICS.md    business semantics for the agent
+eval/           read-path evaluation: README.md (results), questions.json (ground truth), results/
 sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), NN_<source>_* marts views
 deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config
 tests/          unit/ (no services), integration/ (ClickHouse + mcp-clickhouse), fixtures/<source>/
