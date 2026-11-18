@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import dlt
@@ -30,9 +31,14 @@ def statements(sql_text: str) -> list[str]:
     return found
 
 
-def apply_marts(pipeline: dlt.Pipeline, sql_file: Path) -> int:
-    """Run every statement of ``sql_file`` as the pipeline's warehouse user. Returns the count."""
-    stmts = statements(sql_file.read_text())
+def apply_marts(pipeline: dlt.Pipeline, sql_file: Path, render: Callable[[str], str] | None = None) -> int:
+    """Run every statement of ``sql_file`` as the pipeline's warehouse user. Returns the count.
+
+    ``render`` rewrites the file's text first, for the few views that carry deployment configuration
+    (the Twenty closed-won stages). The file as committed is always valid SQL with the defaults.
+    """
+    text = sql_file.read_text()
+    stmts = statements(render(text) if render else text)
     with pipeline.sql_client() as client:
         for statement in stmts:
             client.execute_sql(statement)

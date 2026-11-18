@@ -83,8 +83,8 @@ without the `currency` dimension or a filter on one currency answers **clarify**
 
 - **opportunities** and **pipeline_amount** (currency) count opportunities and sum their amounts by the day
   each was **created**, at its current stage and amount, so past days change as deals move.
-  **won_opportunities** and **won_amount** are the ones now in the `CUSTOMER` stage (the default closed-won
-  stage; stages are configured in Twenty). `campaign_key` resolves opportunity, then contact, then
+  **won_opportunities** and **won_amount** are the ones now in a closed-won stage (`is_won`: `CUSTOMER`
+  unless the deployment configures others). `campaign_key` resolves opportunity, then contact, then
   company; unattributed pipeline is real pipeline.
 - **crm_activities**, **crm_notes**, **crm_tasks**: distinct notes and tasks by creation day on the `activity`
   grain (one row per attached record). Distinct counts, like `paying_customers`.

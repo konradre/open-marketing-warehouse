@@ -31,3 +31,7 @@ twenty = 30
 
 [sources.linkedin_ads]
 days = 7
+
+[sources.twenty]
+# Stages that count as closed-won (is_won in marts.twenty_pipeline; the won_* metrics). Twenty's default.
+won_stages = ["CUSTOMER"]
