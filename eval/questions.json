@@ -564,9 +564,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -592,9 +590,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -1059,9 +1055,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -1091,9 +1085,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -1109,9 +1101,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -1291,9 +1281,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -1532,8 +1520,7 @@
     "answer"
    ],
    "tags": [
-    "pitfall",
-    "grain_refused"
+    "pitfall"
    ],
    "needs_caveat": false,
    "why": "",
@@ -1550,9 +1537,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "not_in_catalog"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -1761,8 +1746,7 @@
     "answer"
    ],
    "tags": [
-    "pitfall",
-    "grain_refused"
+    "pitfall"
    ],
    "needs_caveat": false,
    "why": "",
@@ -2127,9 +2111,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "pitfall"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {
@@ -2155,9 +2137,7 @@
    "accept": [
     "answer"
    ],
-   "tags": [
-    "pitfall"
-   ],
+   "tags": [],
    "needs_caveat": false,
    "why": "",
    "ground_truth": {

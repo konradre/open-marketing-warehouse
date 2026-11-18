@@ -1,8 +1,9 @@
 """Period comparisons: two windows of the same measure, labelled ``current`` and ``previous``.
 
-``query_metrics`` compares with the window of the same length just before (``previous_period``) or the same
-dates a week, month or year earlier. A calendar month against the calendar month before is neither when the
-months differ in length, so the reference plan asks twice; the face-value plan uses ``compare: month``.
+``query_metrics`` compares with the window of the same length just before (``previous_period``), the same
+weekdays seven days earlier (``week``) or the calendar period before (``month``, ``year``). A calendar month
+against the calendar month before is ``compare: month``: September against 1 to 31 August, whatever the
+lengths of the two months. The ground truth sums each month on its own.
 """
 
 from __future__ import annotations
@@ -33,11 +34,9 @@ def two(current: Period, previous: Period, expression: str, table: str, where: s
     )
 
 
-def _steps(metric: str, filters: dict[str, str] | None = None) -> tuple[M, M]:
-    return (
-        M((metric,), SEP, filters=filters or {}, alias="current"),
-        M((metric,), AUG, filters=filters or {}, alias="previous"),
-    )
+def _steps(metric: str, filters: dict[str, str] | None = None) -> tuple[M, ...]:
+    """September with the calendar month before it, in one request."""
+    return (M((metric,), SEP, filters=filters or {}, compare="month", label="period"),)
 
 
 def _sum(world: World, table: str, column: str, period: Period, **where: object) -> float:
@@ -66,8 +65,6 @@ QUESTIONS: tuple[Question, ...] = (
         ),
         sql=two(SEP, AUG, "sum(spend)", "marts.meta_ads_campaigns"),
         metrics=_steps("meta_spend", USD),
-        naive_metrics=(M(("meta_spend",), SEP, filters=USD, compare="month", label="period"),),
-        tags=("pitfall",),
     ),
     Q(
         id="revenue_usd_sep_vs_aug",
@@ -81,8 +78,6 @@ QUESTIONS: tuple[Question, ...] = (
         ),
         sql=two(SEP, AUG, "sum(amount)", "marts.stripe_revenue", "currency = 'USD'"),
         metrics=_steps("revenue", USD),
-        naive_metrics=(M(("revenue",), SEP, filters=USD, compare="month", label="period"),),
-        tags=("pitfall",),
     ),
     Q(
         id="opportunities_sep_vs_aug",

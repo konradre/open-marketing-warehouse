@@ -128,10 +128,55 @@ def test_the_metric_layer_matches_the_ground_truth_wherever_it_answers(runs: dic
     rows = runs["reference"].of_arm("metrics")
     missed = {row.question.id: row for row in rows if row.score.outcome != "correct"}
     gaps = {row.question.id for row in rows if GAPS & set(row.question.tags)}
-    assert set(missed) == gaps and 5 <= len(gaps) <= 15
-    assert {row.score.outcome for row in missed.values()} == {"over_refusal"}  # never a wrong number
+    # Only a declared gap may be missed, and only by declining. T15 closed the nine the first run declared
+    # (seven grains with no metric, two distinct counts refused above their grain), so today there is none.
+    assert set(missed) == gaps and len(gaps) <= 15
+    assert {row.score.outcome for row in missed.values()} <= {"over_refusal"}  # never a wrong number
     summary = runs["reference"].summary("metrics")
     assert summary.wrong_numbers == 0 and summary.disclosed == summary.need_caveat == 5
+    assert summary.accuracy == 1.0 if not gaps else summary.accuracy < 1.0
+
+
+def test_the_five_gaps_the_first_run_found_are_closed(runs: dict[str, Run]) -> None:
+    """Each finding of eval/README.md, on the question that exposed it, against the independent truth."""
+    reference = {row.question.id: row for row in runs["reference"].of_arm("metrics")}
+    literal = {row.question.id: row for row in runs["literal"].of_arm("metrics")}
+    # 1. a campaign_key filter without the dimension answers (it was a ClickHouse error)
+    assert literal["ad_spend_widgets_prospecting_usd_sep"].score.outcome == "correct"
+    assert literal["ad_spend_widgets_prospecting_usd_sep"].answer.kind == "answer"
+    # 2. a total across currencies is asked back, never served
+    for question_id in ("total_ad_spend_sep", "total_revenue_last_month", "roas_last_month", "cac_no_period"):
+        row = literal[question_id]
+        assert (row.answer.kind, row.score.outcome) == ("clarify", "correct"), question_id
+        assert "Which currency?" in row.answer.reason
+    # 3. exact distinct counts are served above their grain; daily distincts are still refused
+    for question_id in ("paying_customers_sep", "crm_tasks_sep"):
+        assert reference[question_id].score.outcome == "correct", reference[question_id].score.detail
+        assert reference[question_id].answer.kind == "answer"
+    for question_id in ("meta_reach_sep", "ga4_users_sep"):
+        assert (literal[question_id].answer.kind, literal[question_id].score.outcome) == ("refuse", "correct")
+    # 4. compare: month is the calendar month before, and the answer says which window that was
+    for question_id in ("meta_spend_sep_vs_aug", "revenue_usd_sep_vs_aug", "linkedin_spend_change_pct"):
+        row = reference[question_id]
+        assert row.score.outcome == "correct", row.score.detail
+        (call,) = row.calls
+        assert call["arguments"]["compare"] == "month"
+        assert call["result"]["comparison"]["previous"] == {
+            "start": "2026-08-01",
+            "end": "2026-08-31",
+            "days": 31,
+        }
+    # 5. the grains that had no metric
+    for question_id in (
+        "meta_spend_by_ad_gadgets_sep",
+        "meta_daily_budgets",
+        "search_clicks_by_device_sep",
+        "top_search_country_aug",
+        "top_page_for_query_sep",
+        "top_landing_pages_sep",
+        "active_subscriptions",
+    ):
+        assert reference[question_id].score.outcome == "correct", reference[question_id].score.detail
 
 
 def test_face_value_requests_are_wrong_far_more_often_through_raw_sql(runs: dict[str, Run]) -> None:
@@ -143,9 +188,12 @@ def test_face_value_requests_are_wrong_far_more_often_through_raw_sql(runs: dict
     )  # caveats only travel with the layer
     # What the layer does with a face-value request is never worse than raw SQL on the same question.
     by_arm = {(row.question.id, row.arm): row.score.outcome for row in runs["literal"].rows}
-    worse = [qid for (qid, arm), outcome in by_arm.items() if arm == "metrics" and outcome == "wrong_number"
+    worse = [qid for (qid, arm), outcome in by_arm.items() if arm == "metrics" and outcome != "correct"
              and by_arm[(qid, "sql")] == "correct"]  # fmt: skip
-    assert worse == ["meta_spend_sep_vs_aug"]  # compare: month is not the calendar month before
+    assert worse == []
+    # What is left are requests the layer answers correctly as asked: the wrong step happens outside it.
+    left = sorted(qid for (qid, arm), outcome in by_arm.items() if arm == "metrics" and outcome != "correct")
+    assert left == ["forecast_next_month", "sum_two_search_grains", "total_conversions_all_sources_sep"]
 
 
 def test_the_boundary_holds_for_the_face_value_sql(runs: dict[str, Run]) -> None:

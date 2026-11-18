@@ -2,24 +2,31 @@
 
 Single report: aggregate the view at the requested dimensions. Several reports (a cross-source derived
 measure, or metrics from two sources): one CTE per report, each aggregated to the shared dimensions
-first, then a FULL JOIN on them, then the derived arithmetic. Refusals happen here, before any SQL runs:
-a dimension a metric lacks, a non-additive metric away from its own grain, a dimension or filter that
-exists on only one side of a cross-source join.
+first, then a FULL JOIN on them, then the derived arithmetic. What a request may ask for is decided in
+``omw.metrics.rules`` before any SQL is built: refusals first, then the questions back.
 """
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from omw.metrics.moods import ClarifyError, RefuseError
-from omw.metrics.request import MetricRequest, TimeRange
+from omw.metrics.arithmetic import output_select
+from omw.metrics.request import Comparison, MetricRequest, TimeRange
+from omw.metrics.rules import (
+    check_currency,
+    check_derived,
+    check_dimensions,
+    check_filters,
+    check_shared_dimensions,
+    check_time,
+    ident,
+    resolve_metrics,
+)
 from omw.metrics.schema import CAMPAIGN_KEY, PERIOD, TIME_DIMENSION, Catalog, Metric, Report
 
 CAMPAIGN_KEYS_TABLE = "marts.campaign_keys"
-_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 @dataclass
@@ -41,6 +48,8 @@ class Plan:
     derived: list[str]
     output_metrics: list[str]
     caveats: list[str] = field(default_factory=list)
+    comparison: Comparison | None = None
+    """The two windows a ``compare`` request covers, stated with the answer."""
 
     @property
     def columns(self) -> list[str]:
@@ -48,12 +57,6 @@ class Plan:
         if self.request.compare:
             cols.append(PERIOD)
         return [*cols, *self.output_metrics]
-
-
-def _ident(name: str) -> str:
-    if not _IDENT.match(name):
-        raise RefuseError(f"{name!r} is not a valid column name")
-    return name
 
 
 def _literal(value: Any) -> str:
@@ -65,79 +68,33 @@ def _literal(value: Any) -> str:
     return f"'{text}'"
 
 
-def _filter_clause(name: str, value: Any) -> str:
+def _filter_clause(column: str, value: Any) -> str:
     if isinstance(value, list):
-        if not value:
-            raise RefuseError(f"filter on {name} has no values")
-        return f"{_ident(name)} IN ({', '.join(_literal(v) for v in value)})"
-    return f"{_ident(name)} = {_literal(value)}"
+        return f"{column} IN ({', '.join(_literal(v) for v in value)})"
+    return f"{column} = {_literal(value)}"
 
 
-def _resolve_metrics(catalog: Catalog, names: list[str]) -> list[str]:
-    resolved: list[str] = []
-    for name in names:
-        options = catalog.resolve(name)
-        if not options:
-            raise RefuseError(f"unknown metric {name!r}; call list_metrics")
-        if len(options) > 1:
-            candidates = []
-            for option in options:
-                item: Any = catalog.metrics.get(option) or catalog.derived[option]
-                candidates.append({"name": option, "description": item.description})
-            raise ClarifyError(f"{name!r} can mean {len(options)} metrics; ask for one by name", candidates)
-        resolved.append(options[0])
-    return resolved
-
-
-def _check_dimensions(catalog: Catalog, metric: Metric, dimensions: list[str]) -> None:
-    report = catalog.report_of(metric)
-    allowed = {TIME_DIMENSION, *metric.grains}
-    for dimension in dimensions:
-        if dimension not in report.all_dimensions:
-            raise RefuseError(f"{metric.name} ({report.key}) has no dimension {dimension!r}")
-        if dimension not in allowed:
-            raise RefuseError(f"{metric.name} is not available at grain {dimension!r}")
-    if metric.aggregation == "native":
-        native = {TIME_DIMENSION, *metric.grains}
-        if set(dimensions) != native:
-            raise RefuseError(
-                f"{metric.name} is not additive: it can only be asked at its own grain "
-                f"{sorted(native)}, not summed across {sorted(native - set(dimensions))}"
-            )
-
-
-def _check_filters(catalog: Catalog, reports: list[Report], filters: dict[str, Any]) -> None:
-    for name in filters:
-        for report in reports:
-            if name not in report.all_dimensions:
-                if len(reports) > 1:
-                    raise RefuseError(
-                        f"filter on {name!r} exists on only one side of the cross-source join "
-                        f"({report.key} lacks it)"
-                    )
-                raise RefuseError(f"{report.key} has no dimension {name!r} to filter on")
+def _between(window: TimeRange) -> str:
+    return f"{TIME_DIMENSION} BETWEEN '{window.start}' AND '{window.end}'"
 
 
 def _period_expr(current: TimeRange, previous: TimeRange | None) -> str:
+    """The ``period`` column. Windows that share days (``week`` on a longer range) put a shared day in both
+    periods, one row each, so neither total loses it."""
     if previous is None:
         return ""
-    window = f"{TIME_DIMENSION} BETWEEN '{current.start}' AND '{current.end}'"
-    return f"if({window}, 'current', 'previous') AS {PERIOD}"
+    if current.overlaps(previous):
+        return (
+            f"arrayJoin(arrayConcat(if({_between(current)}, ['current'], []), "
+            f"if({_between(previous)}, ['previous'], []))) AS {PERIOD}"
+        )
+    return f"if({_between(current)}, 'current', 'previous') AS {PERIOD}"
 
 
-def _where(report: Report, current: TimeRange, previous: TimeRange | None, filters: dict[str, Any]) -> str:
-    ranges = [f"({TIME_DIMENSION} BETWEEN '{current.start}' AND '{current.end}')"]
-    if previous is not None:
-        ranges.append(f"({TIME_DIMENSION} BETWEEN '{previous.start}' AND '{previous.end}')")
-    clauses = [f"report = '{report.name}'", "(" + " OR ".join(ranges) + ")"]
-    clauses += [_filter_clause(name, value) for name, value in filters.items()]
-    return " AND ".join(clauses)
-
-
-def _campaign_key_select(report: Report) -> str:
+def _campaign_key_expr(report: Report) -> str:
     """The campaign key: the mapping table's value when present, else the report's own derivation."""
     assert report.campaign_key is not None
-    return f"if(ck.campaign_key != '', ck.campaign_key, {report.campaign_key}) AS {CAMPAIGN_KEY}"
+    return f"if(ck.campaign_key != '', ck.campaign_key, {report.campaign_key})"
 
 
 def _campaign_key_join(report: Report) -> str:
@@ -156,13 +113,28 @@ def _native_id(report: Report) -> str:
     return "campaign_id" if "campaign_id" in report.dimensions else CAMPAIGN_KEY
 
 
+def _where(
+    report: Report, current: TimeRange | None, previous: TimeRange | None, filters: dict[str, Any]
+) -> str:
+    """Every row condition of one report. A filter on ``campaign_key`` reads the same expression the
+    dimension does: a view whose key comes from ``marts.campaign_keys`` has no such column to filter on."""
+    clauses: list[str] = []
+    if current is not None:  # a snapshot has neither a report column nor dates
+        ranges = [f"({_between(window)})" for window in (current, previous) if window is not None]
+        clauses += [f"report = '{report.name}'", "(" + " OR ".join(ranges) + ")"]
+    for name, value in filters.items():
+        mapped = name == CAMPAIGN_KEY and report.maps_campaign_key
+        clauses.append(_filter_clause(_campaign_key_expr(report) if mapped else ident(name), value))
+    return f" WHERE {' AND '.join(clauses)}" if clauses else ""
+
+
 def _select_dims(report: Report, dimensions: list[str]) -> list[str]:
     parts = []
     for dimension in dimensions:
-        if dimension == CAMPAIGN_KEY and report.campaign_key and report.campaign_key != CAMPAIGN_KEY:
-            parts.append(_campaign_key_select(report))
+        if dimension == CAMPAIGN_KEY and report.maps_campaign_key:
+            parts.append(f"{_campaign_key_expr(report)} AS {CAMPAIGN_KEY}")
         else:
-            parts.append(_ident(dimension))
+            parts.append(ident(dimension))
     return parts
 
 
@@ -175,85 +147,27 @@ def _report_query(
     report: Report,
     metrics: list[Metric],
     dimensions: list[str],
-    current: TimeRange,
+    current: TimeRange | None,
     previous: TimeRange | None,
     filters: dict[str, Any],
 ) -> str:
     select = _select_dims(report, dimensions)
-    period = _period_expr(current, previous)
+    period = _period_expr(current, previous) if current is not None else ""
     if period:
         select.append(period)
     select += [f"{metric.expr} AS {metric.name}" for metric in metrics]
-    needs_map = CAMPAIGN_KEY in dimensions and report.campaign_key not in (None, CAMPAIGN_KEY)
+    needs_map = report.maps_campaign_key and (CAMPAIGN_KEY in dimensions or CAMPAIGN_KEY in filters)
     join = _campaign_key_join(report) if needs_map else ""
     return (
-        f"SELECT {', '.join(select)} FROM {report.view}{join} "
-        f"WHERE {_where(report, current, previous, filters)}"
+        f"SELECT {', '.join(select)} FROM {report.view}{join}"
+        f"{_where(report, current, previous, filters)}"
         f"{_group_by(dimensions, previous is not None)}"
     )
 
 
-def _guard_divisions(expression: str) -> str:
-    """Wrap every divisor (a name or a parenthesised group) in ``nullIf(..., 0)``."""
-    out = []
-    i = 0
-    while i < len(expression):
-        char = expression[i]
-        if char != "/":
-            out.append(char)
-            i += 1
-            continue
-        j = i + 1
-        while j < len(expression) and expression[j] == " ":
-            j += 1
-        if j < len(expression) and expression[j] == "(":
-            depth, k = 0, j
-            while k < len(expression):
-                depth += expression[k] == "("
-                depth -= expression[k] == ")"
-                k += 1
-                if depth == 0:
-                    break
-        else:
-            k = j
-            while k < len(expression) and (expression[k].isalnum() or expression[k] in "_."):
-                k += 1
-            if k < len(expression) and expression[k] == "(":  # a function call: include its arguments
-                depth = 0
-                while k < len(expression):
-                    depth += expression[k] == "("
-                    depth -= expression[k] == ")"
-                    k += 1
-                    if depth == 0:
-                        break
-        out.append(f"/ nullIf({expression[j:k]}, 0)")
-        i = k
-    return "".join(out)
-
-
-def _derived_sql(catalog: Catalog, name: str) -> str:
-    """The derived expression over Float64 column references, every division guarded against zero."""
-    derived = catalog.derived[name]
-    expression = derived.derived
-    for operand in derived.operands:
-        if operand in catalog.derived:
-            replacement = f"({_derived_sql(catalog, operand)})"
-        else:
-            replacement = f"toFloat64({operand})"
-        expression = re.sub(rf"(?<![a-z0-9_]){operand}(?![a-z0-9_])", replacement, expression)
-    return _guard_divisions(expression)
-
-
-def _output_select(catalog: Catalog, requested: list[str]) -> list[str]:
-    """Output columns in the requested order: a base metric by name, a derived one by its expression."""
-    return [
-        name if name in catalog.metrics else f"{_derived_sql(catalog, name)} AS {name}" for name in requested
-    ]
-
-
 def compile_request(catalog: Catalog, request: MetricRequest, today: date | None = None) -> Plan:
     today = today or date.today()
-    requested = _resolve_metrics(catalog, request.metrics)
+    requested = resolve_metrics(catalog, request.metrics)
     derived = [name for name in requested if name in catalog.derived]
     base: list[Metric] = []
     for name in requested:
@@ -261,39 +175,19 @@ def compile_request(catalog: Catalog, request: MetricRequest, today: date | None
             if metric not in base:
                 base.append(metric)
 
-    dimensions = [_ident(d) for d in request.dimensions]
-    for name in derived:
-        common = set(catalog.derived[name].requires_common_grain)
-        outside = [d for d in dimensions if d not in common]
-        if outside:
-            raise RefuseError(
-                f"{name} is a cross-source measure; it can only be asked at {sorted(common)}, "
-                f"not by {outside}"
-            )
-        for key in request.filters:
-            if key not in common:
-                raise RefuseError(
-                    f"{name} cannot be filtered by {key!r}: it is not part of its common grain "
-                    f"{sorted(common)}"
-                )
+    dimensions = [ident(d) for d in request.dimensions]
+    check_derived(catalog, derived, dimensions, request.filters)
     by_report: dict[str, list[Metric]] = {}
     for metric in base:
         by_report.setdefault(metric.report_key, []).append(metric)
     reports = [catalog.reports[key] for key in by_report]
-    if len(reports) > 1:
-        for dimension in dimensions:
-            lacking = [r.key for r in reports if dimension not in r.all_dimensions]
-            if lacking:
-                raise RefuseError(
-                    f"dimension {dimension!r} exists on only one side of the cross-source join "
-                    f"({lacking} lack it)"
-                )
-    _check_filters(catalog, reports, request.filters)
+    check_shared_dimensions(reports, dimensions)
+    check_filters(reports, request.filters)
     for metric in base:
-        _check_dimensions(catalog, metric, dimensions)
+        check_dimensions(catalog, metric, dimensions)
+    current, previous, comparison = check_time(reports, request, today)
+    check_currency(catalog, requested, request)  # the one question back, after every refusal
 
-    current = request.window(today)
-    previous = current.shifted(request.compare) if request.compare else None
     plans = [
         ReportPlan(
             report,
@@ -309,7 +203,7 @@ def compile_request(catalog: Catalog, request: MetricRequest, today: date | None
     if len(plans) == 1:
         plan = plans[0]
         if derived:
-            select = [*keys, *_output_select(catalog, requested)]
+            select = [*keys, *output_select(catalog, requested)]
             sql = (
                 f"WITH {plan.alias} AS ({plan.cte}) SELECT {', '.join(select)} FROM {plan.alias} "
                 f"ORDER BY {order} LIMIT {request.limit}"
@@ -322,38 +216,67 @@ def compile_request(catalog: Catalog, request: MetricRequest, today: date | None
         for plan in plans[1:]:
             using = f" USING ({', '.join(keys)})" if keys else " ON 1 = 1"
             joins += f" FULL OUTER JOIN {plan.alias}{using}"
-        select = [*keys, *_output_select(catalog, requested)]
+        select = [*keys, *output_select(catalog, requested)]
         sql = f"WITH {ctes} SELECT {', '.join(select)} FROM {joins} ORDER BY {order} LIMIT {request.limit}"
 
-    caveats = _caveats(catalog, base, reports, request, current, today)
-    return Plan(request, sql, plans, derived, output, caveats)
+    caveats = _caveats(base, reports, request, current, comparison, today)
+    return Plan(request, sql, plans, derived, output, caveats, comparison)
 
 
 def _caveats(
-    catalog: Catalog,
     base: list[Metric],
     reports: list[Report],
     request: MetricRequest,
-    current: TimeRange,
+    current: TimeRange | None,
+    comparison: Comparison | None,
     today: date,
 ) -> list[str]:
     found: list[str] = []
-    end = current.end
     for report in reports:
-        if report.restatement_days:
+        if report.restatement_days and current is not None:
             boundary = date.fromordinal(today.toordinal() - report.restatement_days)
-            if end >= boundary:
+            if current.end >= boundary:
                 found.append(
                     f"{report.key}: days after {boundary} are inside the source's "
                     f"{report.restatement_days}-day "
                     "restatement window and may still change"
                 )
+        if report.snapshot:
+            ignored = "; the time_range was not applied" if request.time_range is not None else ""
+            found.append(
+                f"{report.key} is the state at the last sync, not a history: it has no dates{ignored}"
+            )
         found.extend(f"{report.key}: {trap}" for trap in report.traps)
     for metric in base:
         if metric.approximate:
             found.append(f"{metric.name} is an approximate distinct count")
-        has_currency = "currency" in catalog.report_of(metric).dimensions
-        pinned = "currency" in request.dimensions or "currency" in request.filters
-        if metric.unit == "currency" and has_currency and not pinned:
-            found.append(f"{metric.name} mixes currencies; add the currency dimension or filter to one")
+        if metric.aggregation == "distinct" and request.dimensions:
+            found.append(
+                f"{metric.name} is a distinct count, recounted for each row: the rows do not add up to "
+                "the total"
+            )
+    found.extend(_comparison_caveats(comparison))
     return list(dict.fromkeys(found))
+
+
+def _comparison_caveats(comparison: Comparison | None) -> list[str]:
+    if comparison is None:
+        return []
+    current, previous = comparison.current, comparison.previous
+    if comparison.overlap_days:
+        return [
+            f"the compared windows share {comparison.overlap_days} days ({current.start} to {previous.end}); "
+            "those days count in both periods"
+        ]
+    months = comparison.compare in ("month", "year")
+    whole = TimeRange(start=current.start, end=current.end).whole_months
+    if months and not whole and previous.days != current.days:
+        return [
+            f"the previous window ({previous.start} to {previous.end}) has {_days(previous.days)} against "
+            f"{_days(current.days)}: the earlier month is shorter"
+        ]
+    return []
+
+
+def _days(count: int) -> str:
+    return f"{count} day" if count == 1 else f"{count} days"

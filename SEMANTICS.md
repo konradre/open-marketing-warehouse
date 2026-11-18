@@ -1,9 +1,11 @@
 # Semantics for the agent
 
-What each number means and what it hides. Metrics live in `metrics/*.yaml`; the `query_metrics` tool answers
-with a mood: **serve**, **disclose** (read the caveats), **clarify** (pick a candidate) or **refuse** (no
-valid path). Every table is one *report grain*: filter on one `report`, never sum two grains. Rates and
-cross-source measures are computed at query time from their parts; never sum a rate yourself.
+What each number means and what it hides. The `query_metrics` tool answers with a mood: **serve**,
+**disclose** (read the caveats), **clarify** (pick a candidate) or **refuse** (no valid path). Every table
+is one *report grain*: filter on one `report`, never sum two grains. Rates, distinct counts and
+cross-source measures are computed at query time; never sum them yourself.
+**Money is never totalled across currencies**: a money measure (spend, revenue, budgets, ROAS, ...)
+without the `currency` dimension or a filter on one currency answers **clarify**.
 
 ## Ad spend and delivery
 
@@ -13,12 +15,13 @@ cross-source measures are computed at query time from their parts; never sum a r
   at its own grain only. `meta_impressions` counts ad views; `meta_cpc` and `meta_ctr` are recomputed from
   spend, clicks and impressions. `meta_age_gender_spend`, `meta_age_gender_clicks`, `meta_country_spend`,
   `meta_country_clicks`, `meta_placement_spend` and `meta_placement_clicks` are breakdown grains that sum
-  to campaigns on spend and clicks.
-- **google_spend** (currency): Google Ads cost per customer account, campaign and day (`cost_micros` /
-  1 000 000). Conversions are attributed for up to **30 days** after the click, so recent conversions grow.
+  to campaigns on spend and clicks. `meta_ad_spend`, `meta_ad_clicks`, `meta_ad_impressions`: the ad grain,
+  ad sets live at pull time only; it can undercount campaigns.
+- **google_spend** (currency): Google Ads cost per customer account, campaign and day. Conversions are
+  attributed for up to **30 days** after the click, so recent conversions grow.
   `google_conversions` are the account's own conversion actions, fractional with modelled attribution.
   `google_impressions`, `google_clicks` and `google_cpc` follow the same rules; `google_ad_group_spend` is
-  the ad group grain and sums to the campaign grain. `google_search_term_clicks`, `google_search_term_spend`
+  the ad group grain, summing to campaigns. `google_search_term_clicks`, `google_search_term_spend`
   and `google_search_term_conversions` are the search term grain, which **undercounts** campaigns (Google
   withholds low-volume terms). `google_asset_group_spend`, `google_asset_group_clicks` and
   `google_asset_group_conversions` are the Performance Max asset group grain.
@@ -27,9 +30,14 @@ cross-source measures are computed at query time from their parts; never sum a r
   clicks; `linkedin_conversions` are Insight Tag conversions, post-click and post-view;
   `linkedin_impressions` and `linkedin_cpc` follow Meta's rules. `linkedin_creative_spend`,
   `linkedin_creative_clicks` and `linkedin_creative_conversions` are the creative grain, summing to campaigns.
-- **ad_spend** = meta_spend + google_spend + linkedin_spend and **blended_cpc** = ad_spend / all clicks,
-  only at the common grain (date, campaign_key, currency). Never sum across currencies: add the `currency`
-  dimension or filter to one.
+- **Campaign lists and budgets** are snapshots of the last sync: no dates, `time_range` or `compare`.
+  `meta_campaigns`, `google_campaigns`, `linkedin_campaigns` count campaigns (filter the status);
+  `meta_daily_budget`, `google_daily_budget`, `linkedin_daily_budget` sum their daily budgets. A Meta
+  budget sits on the campaign or its ad sets (`meta_ad_sets`, `meta_ad_set_daily_budget`), a LinkedIn one
+  on the campaign or its group (`linkedin_group_daily_budget`, per group only); the other is 0. A shared
+  Google budget repeats on each campaign.
+- **ad_spend** = meta_spend + google_spend + linkedin_spend and **blended_cpc** = ad_spend / all clicks
+  are cross-source measures (below).
 - `spend`, `cost`, `clicks`, `impressions`, `conversions`, `ctr`, `cpc`, `leads` are ambiguous across
   platforms: name the platform (`meta_spend`, `linkedin_leads`) or the blended measure (`ad_spend`).
 
@@ -37,24 +45,28 @@ cross-source measures are computed at query time from their parts; never sum a r
 
 - **search_clicks**, **search_impressions**, **search_ctr**, **search_position**: the `core` grain per
   property and search type. Position is impression-weighted (1 = top).
-- **query_clicks** (per query) and **page_clicks** (per page) are breakdown grains that **undercount core**:
-  Google withholds anonymised queries. The last 3 days are provisional.
+- **query_clicks** (per query), **page_clicks** (per page) and `search_query_page_clicks` (per query and
+  page) are breakdown grains that **undercount core**: Google withholds anonymised queries.
+  `search_device_clicks`, `search_device_impressions` (device class) and `search_country_clicks`,
+  `search_country_impressions` (country) sum to core. The last 3 days are provisional.
 
 ## Site analytics (GA4)
 
-- **sessions**, **new_users**, **key_events** per property and day. `key_events` are what the property
-  configured as key events (formerly conversions). **users** is distinct users per day and is **not
+- **sessions**, **new_users**, **key_events** per property and day. `key_events` are the property's
+  configured key events (formerly conversions). **users** is distinct users per day and is **not
   additive** across days.
-- **channel_sessions** and **campaign_sessions** are breakdown grains. GA4 folds high-cardinality values into
-  an **(other)** row, kept and flagged `is_other`, so the breakdown still sums to `core`. `(not set)` means
-  no campaign data. GA4 `total_revenue` is modelled; Stripe is billing truth.
+- **channel_sessions**, **campaign_sessions**, `landing_page_sessions` and `landing_page_key_events` (by landing
+  page) are breakdown grains. GA4 folds high-cardinality values into an **(other)** row,
+  kept and flagged `is_other`, so the breakdown still sums to `core`. `(not set)` means no campaign data.
+  GA4 `total_revenue` is modelled; Stripe is billing truth.
 
 ## Revenue (Stripe)
 
-- **revenue** (currency): paid invoice amounts in the invoice currency (ISO 4217 upper case, like the ad
-  platforms), dated by the day the invoice was paid. Refunds and voids are not netted. **paid_invoices** and
-  **new_customers** (first subscription invoices) are counts; **paying_customers** is a distinct count, not
-  additive across days.
+- **revenue** (currency): paid invoice amounts in the invoice currency (ISO 4217 upper case), dated by
+  payment day. Refunds and voids are not netted. **paid_invoices** and
+  **new_customers** (first subscription invoices) are counts; **paying_customers** is a distinct count:
+  right at any period and grain; rows do not add up.
+- **subscriptions** counts the subscription list (a snapshot) in every status: filter `status` (`active`).
 - **campaign_key** on revenue comes from the invoice, else the subscription, else the customer metadata
   (`campaign_key` or `utm_campaign`). Revenue without a key is real revenue: `attributed = false`, never
   dropped when comparing to spend.
@@ -72,10 +84,10 @@ cross-source measures are computed at query time from their parts; never sum a r
 - **opportunities** and **pipeline_amount** (currency) count opportunities and sum their amounts by the day
   each was **created**, at its current stage and amount, so past days change as deals move.
   **won_opportunities** and **won_amount** are the ones now in the `CUSTOMER` stage (the default closed-won
-  stage; stage names are the Twenty configuration). `campaign_key` resolves opportunity, then contact, then
+  stage; stages are configured in Twenty). `campaign_key` resolves opportunity, then contact, then
   company; unattributed pipeline is real pipeline.
 - **crm_activities**, **crm_notes**, **crm_tasks**: distinct notes and tasks by creation day on the `activity`
-  grain (one row per attached record), so **not additive** across records: ask at their own grain.
+  grain (one row per attached record). Distinct counts, like `paying_customers`.
 
 ## Cross-source measures
 
@@ -91,6 +103,8 @@ cross-source measures are computed at query time from their parts; never sum a r
 - `date` is the day in each source's own time zone (ad account, property, UTC for Stripe and Twenty).
   `time_range` is `{start, end}` or a name: `today`, `yesterday`, `last_7_days`, `last_30_days`,
   `last_90_days` (ending yesterday), `month_to_date`, `last_month`, `year_to_date`. `compare` adds a
-  `period` column (`current` / `previous`).
+  `period` column (`current` / `previous`) and a `comparison` field stating both windows:
+  `previous_period` is as many days just before, `week` 7 days earlier, `month` and `year` the calendar
+  period before (September against 1 to 31 August).
 - Post-sync verdicts (`ops.freshness`, `ops.check_verdicts`) travel with the numbers: a stale source or a
   failed over-count or row-count check on the report used is disclosed as a caveat.

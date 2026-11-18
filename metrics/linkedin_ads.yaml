@@ -30,6 +30,7 @@ reports:
   - name: leads
     view: marts.linkedin_ads_leads
     description: LinkedIn lead-gen form responses, one row per lead, dated by submission day.
+    row_level: true
     dimensions:
       account_id: LinkedIn sponsored account id
       currency: ISO 4217 currency of the sponsored account
@@ -41,6 +42,26 @@ reports:
     campaign_key: "concat('linkedin_ads:', campaign_id)"
     traps:
       - Only loaded with --leads (needs r_marketing_leadgen_automation).
+  - name: campaign_list
+    view: marts.linkedin_ads_campaign_list
+    description: LinkedIn campaigns as last synced, one row per campaign, with its campaign group, status and budgets.
+    row_level: true
+    snapshot: true
+    dimensions:
+      account_id: LinkedIn sponsored account id
+      currency: ISO 4217 currency of the budgets and bids
+      campaign_group_id: Campaign group the campaign belongs to
+      campaign_group_name: Campaign group name at the last pull
+      group_budget_optimization: True when LinkedIn distributes the group budget across its campaigns
+      campaign_id: LinkedIn campaign id
+      campaign_name: Campaign name at the last pull
+      status: ACTIVE, PAUSED, ARCHIVED, COMPLETED, CANCELED, DRAFT or PENDING_DELETION
+      type: SPONSORED_UPDATES, TEXT_AD, SPONSORED_INMAILS or DYNAMIC
+      objective_type: BRAND_AWARENESS, WEBSITE_VISIT, LEAD_GENERATION, WEBSITE_CONVERSION, ...
+      cost_type: CPM, CPC or CPV
+    campaign_key: "concat('linkedin_ads:', campaign_id)"
+    traps:
+      - A campaign's daily budget is 0 when its campaign group's budget applies; see linkedin_group_daily_budget.
 metrics:
   - name: linkedin_spend
     report: campaigns
@@ -103,3 +124,24 @@ metrics:
     grains: [account_id, currency, campaign_id, campaign_name, creative_id, form_id, lead_type, campaign_key]
     aliases: [leads]
     description: Lead-gen form responses on LinkedIn, by submission day.
+  - name: linkedin_campaigns
+    report: campaign_list
+    expr: count()
+    unit: count
+    grains: [account_id, currency, campaign_group_id, campaign_group_name, group_budget_optimization, campaign_id, campaign_name, status, type, objective_type, cost_type, campaign_key]
+    aliases: [campaigns]
+    description: LinkedIn campaigns as last synced, in any status; filter status for the live ones.
+  - name: linkedin_daily_budget
+    report: campaign_list
+    expr: sum(daily_budget)
+    unit: currency
+    grains: [account_id, currency, campaign_group_id, campaign_group_name, group_budget_optimization, campaign_id, campaign_name, status, type, objective_type, cost_type, campaign_key]
+    aliases: [daily_budget, budget]
+    description: Daily budget set on LinkedIn campaigns, in the account currency; 0 where the group budget applies.
+  - name: linkedin_group_daily_budget
+    report: campaign_list
+    expr: max(group_daily_budget)
+    unit: currency
+    aggregation: native
+    grains: [account_id, currency, campaign_group_id, campaign_group_name]
+    description: "Daily budget set on a LinkedIn campaign group. Not additive: it repeats on every campaign of the group, so ask per group."

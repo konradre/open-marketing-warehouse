@@ -105,4 +105,12 @@ def answer_request(
     if truncated:
         caveats.append(f"result cut at the limit of {request.limit} rows; narrow the request")
     mood = Mood.DISCLOSE if caveats else Mood.SERVE
-    return Answer(mood=mood, caveats=caveats, sql=sql, columns=columns, rows=rows, truncated=truncated)
+    return Answer(
+        mood=mood,
+        caveats=caveats,
+        comparison=planned.comparison,
+        sql=sql,
+        columns=columns,
+        rows=rows,
+        truncated=truncated,
+    )

@@ -25,6 +25,33 @@ reports:
       search_type: web, image, video, news, discover or googleNews
       page: Canonical URL of the page
     restatement_days: 3
+  - name: devices
+    view: marts.search_console_devices
+    description: Search Console per device class. Sums to core.
+    dimensions:
+      site_url: Search Console property
+      search_type: web, image, video, news, discover or googleNews
+      device: DESKTOP, MOBILE or TABLET
+    restatement_days: 3
+  - name: countries
+    view: marts.search_console_countries
+    description: Search Console per country. Sums to core except for a small unknown remainder.
+    dimensions:
+      site_url: Search Console property
+      search_type: web, image, video, news, discover or googleNews
+      country: ISO 3166-1 alpha-3 country code in lower case (usa, deu, ...)
+    restatement_days: 3
+  - name: query_page
+    view: marts.search_console_query_page
+    description: Search Console per query and page. Undercounts core like queries does.
+    dimensions:
+      site_url: Search Console property
+      search_type: web, image, video, news, discover or googleNews
+      query: Search query text
+      page: Canonical URL of the page shown for the query
+    restatement_days: 3
+    traps:
+      - Google withholds anonymised (rare or private) queries; query and page totals are lower than core.
 metrics:
   - name: search_clicks
     report: core
@@ -67,3 +94,33 @@ metrics:
     unit: count
     grains: [site_url, search_type, page]
     description: Clicks per landing page.
+  - name: search_device_clicks
+    report: devices
+    expr: sum(clicks)
+    unit: count
+    grains: [site_url, search_type, device]
+    description: Search clicks per device class (DESKTOP, MOBILE, TABLET).
+  - name: search_device_impressions
+    report: devices
+    expr: sum(impressions)
+    unit: count
+    grains: [site_url, search_type, device]
+    description: Search impressions per device class.
+  - name: search_country_clicks
+    report: countries
+    expr: sum(clicks)
+    unit: count
+    grains: [site_url, search_type, country]
+    description: Search clicks per country of the searcher.
+  - name: search_country_impressions
+    report: countries
+    expr: sum(impressions)
+    unit: count
+    grains: [site_url, search_type, country]
+    description: Search impressions per country of the searcher.
+  - name: search_query_page_clicks
+    report: query_page
+    expr: sum(clicks)
+    unit: count
+    grains: [site_url, search_type, query, page]
+    description: Clicks per search query and the page shown for it. Lower than search_clicks because of anonymised queries.

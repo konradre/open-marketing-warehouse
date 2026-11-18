@@ -7,11 +7,12 @@ ground truth computed outside both:
   mcp-clickhouse as the `agent` user.
 - **Arm `metrics`**: the agent gets `SEMANTICS.md` and the `query_metrics` tools.
 
-**What the offline run shows.** With the best plan, raw SQL can answer all 101 answerable questions and the
-metric layer 92; it has no measure for the other 9. Taken at face value, the same questions give a wrong
-number 30% of the time through raw SQL and 7% of the time through the metric layer, which also turns 20 of
-28 trap questions into a refusal or a question back where raw SQL does so for 5. The eval also found five
-gaps in the metric layer itself, listed under [What the eval found](#what-the-eval-found-in-the-metric-layer).
+**What the offline run shows.** With the best plan, raw SQL and the metric layer each answer all 101
+answerable questions. Taken at face value, the same questions give a wrong number 30% of the time through
+raw SQL and 2% of the time through the metric layer, which also turns 25 of 28 trap questions into a refusal
+or a question back where raw SQL does so for 5. The first run of this eval found five gaps in the metric
+layer itself (it answered 92 of the 101 and gave 9 wrong numbers at face value); they are fixed, and listed
+with what changed under [What the eval found](#what-the-eval-found-in-the-metric-layer).
 
 **What it does not show.** No model was run for these numbers. The offline planners follow plans written by
 hand, so the results describe the two *tool surfaces*, not how well a model uses them. A real-model run is
@@ -27,9 +28,9 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 | Planner | Arm | Accuracy on answerable questions | Refuse/clarify correct on traps | Wrong-number rate (all questions) | Over-refusals | Caveats carried | Errors |
 |---|---|---|---|---|---|---|---|
 | `reference` (known-good plans: the harness check) | schema + raw SQL | 100.0% (101/101; 95% CI 96-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/129; 95% CI 0-3%) | 0/101 | 5/5 | 0 |
-| `reference` (known-good plans: the harness check) | SEMANTICS.md + query_metrics | 91.1% (92/101; 95% CI 84-95%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/129; 95% CI 0-3%) | 9/101 | 5/5 | 0 |
+| `reference` (known-good plans: the harness check) | SEMANTICS.md + query_metrics | 100.0% (101/101; 95% CI 96-100%) | 100.0% (28/28; 95% CI 88-100%) | 0.0% (0/129; 95% CI 0-3%) | 0/101 | 5/5 | 0 |
 | `literal` (face-value plans) | schema + raw SQL | 84.2% (85/101; 95% CI 76-90%) | 17.9% (5/28; 95% CI 8-36%) | 30.2% (39/129; 95% CI 23-39%) | 0/101 | 0/5 | 0 |
-| `literal` (face-value plans) | SEMANTICS.md + query_metrics | 89.1% (90/101; 95% CI 82-94%) | 71.4% (20/28; 95% CI 53-85%) | 7.0% (9/129; 95% CI 4-13%) | 10/101 | 5/5 | 0 |
+| `literal` (face-value plans) | SEMANTICS.md + query_metrics | 100.0% (101/101; 95% CI 96-100%) | 89.3% (25/28; 95% CI 73-96%) | 2.3% (3/129; 95% CI 1-7%) | 0/101 | 5/5 | 0 |
 | `refuser` (declines everything: the null baseline) | schema + raw SQL | 0.0% (0/101; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/129; 95% CI 0-3%) | 101/101 | - | 0 |
 | `refuser` (declines everything: the null baseline) | SEMANTICS.md + query_metrics | 0.0% (0/101; 95% CI 0-4%) | 60.7% (17/28; 95% CI 42-76%) | 0.0% (0/129; 95% CI 0-3%) | 101/101 | - | 0 |
 
@@ -37,15 +38,15 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 
 | Category | Questions | Correct: schema + raw SQL | Correct: SEMANTICS.md + query_metrics | Wrong numbers: schema + raw SQL | Wrong numbers: SEMANTICS.md + query_metrics |
 |---|---|---|---|---|---|
-| spend | 24 | 24/24 | 22/24 | 0 | 0 |
+| spend | 24 | 24/24 | 24/24 | 0 | 0 |
 | rates | 13 | 8/13 | 13/13 | 5 | 0 |
-| search | 10 | 9/10 | 7/10 | 1 | 0 |
-| ga4 | 9 | 8/9 | 8/9 | 1 | 0 |
-| revenue | 12 | 9/12 | 10/12 | 3 | 0 |
-| pipeline | 10 | 9/10 | 9/10 | 1 | 0 |
-| cross source | 13 | 9/13 | 12/13 | 4 | 0 |
-| compare | 10 | 9/10 | 9/10 | 1 | 1 |
-| trap | 28 | 5/28 | 20/28 | 23 | 8 |
+| search | 10 | 9/10 | 10/10 | 1 | 0 |
+| ga4 | 9 | 8/9 | 9/9 | 1 | 0 |
+| revenue | 12 | 9/12 | 12/12 | 3 | 0 |
+| pipeline | 10 | 9/10 | 10/10 | 1 | 0 |
+| cross source | 13 | 9/13 | 13/13 | 4 | 0 |
+| compare | 10 | 9/10 | 10/10 | 1 | 0 |
+| trap | 28 | 5/28 | 25/28 | 23 | 3 |
 
 ### Face-value plans on traps, by kind of trap
 
@@ -53,8 +54,8 @@ under [Planners](#planners). Intervals are 95% Wilson intervals.
 |---|---|---|---|
 | ambiguous name | 6 | 0/6 | 6/6 |
 | mixed definitions | 2 | 0/2 | 0/2 |
-| currency | 4 | 0/4 | 0/4 |
-| vague | 2 | 0/2 | 0/2 |
+| currency | 4 | 0/4 | 4/4 |
+| vague | 2 | 0/2 | 1/2 |
 | non additive | 3 | 0/3 | 3/3 |
 | one sided | 5 | 0/5 | 5/5 |
 | not in warehouse | 3 | 2/3 | 3/3 |
@@ -66,30 +67,13 @@ Beyond the coverage gaps in the next table.
 
 | Question | Outcome | What happened |
 |---|---|---|
-| `ad_spend_widgets_prospecting_usd_sep` | over refusal | refuse: the warehouse refused the query: Received ClickHouse exception, code: 47, server response: Code: 47. DB::Exception: Unknown expression or function identifier `... |
-| `meta_spend_sep_vs_aug` | wrong number | 'previous': got 24619.39, want 25455.74 |
 | `total_conversions_all_sources_sep` | wrong number | answered a question that has no single right number |
-| `total_ad_spend_sep` | wrong number | answered a question that has no single right number |
-| `total_revenue_last_month` | wrong number | answered a question that has no single right number |
-| `roas_last_month` | wrong number | answered a question that has no single right number |
-| `cac_no_period` | wrong number | answered a question that has no single right number |
-| `gadgets_launch_performance` | wrong number | answered a question that has no single right number |
 | `sum_two_search_grains` | wrong number | answered a question that has no single right number |
 | `forecast_next_month` | wrong number | answered a question that has no single right number |
 
 ### Questions the metric layer could not answer with the best plan
 
-| Question | Outcome | What happened |
-|---|---|---|
-| `meta_spend_by_ad_gadgets_sep` | over refusal | refuse: no metric in the catalog expresses this |
-| `meta_daily_budgets` | over refusal | refuse: no metric in the catalog expresses this |
-| `search_clicks_by_device_sep` | over refusal | refuse: no metric in the catalog expresses this |
-| `top_search_country_aug` | over refusal | refuse: no metric in the catalog expresses this |
-| `top_page_for_query_sep` | over refusal | refuse: no metric in the catalog expresses this |
-| `top_landing_pages_sep` | over refusal | refuse: no metric in the catalog expresses this |
-| `paying_customers_sep` | over refusal | refuse: paying_customers is not additive: it can only be asked at its own grain ['attributed', 'billing_reason', 'campaign_key', 'currency', 'date', 'utm_campaign', 'u... |
-| `active_subscriptions` | over refusal | refuse: no metric in the catalog expresses this |
-| `crm_tasks_sep` | over refusal | refuse: crm_tasks is not additive: it can only be asked at its own grain ['campaign_key', 'company_id', 'company_name', 'created_by', 'date', 'kind', 'opportunity_id',... |
+None.
 
 <!-- results:end -->
 
@@ -99,10 +83,11 @@ Beyond the coverage gaps in the next table.
   request returns the independently computed ground truth, through the repo's real `marts` views. That is
   three separate computations agreeing on 101 numbers. The 28/28 on traps is scripted (the reference planner
   declines them by definition), so read it as "the scorer accepts the right behaviour", nothing more.
-- **`reference`, metric arm: coverage.** The 9 over-refusals are questions the layer has no way to answer:
-  7 need a grain with no metric (Meta ads, budgets, Search Console devices, countries and query-by-page,
-  GA4 landing pages, the subscription list) and 2 are distinct counts the layer refuses above their own
-  grain. It never returned a wrong number.
+- **`reference`, metric arm: coverage.** Every answerable question now has a plan the layer serves, and
+  every one returns the ground truth. In the first run 9 did not: 7 needed a grain with no metric and 2
+  were distinct counts refused above their own grain (see below). The set of questions did not change, so
+  full marks here mean "these 101 questions", not "every question": the catalog still has no measure for
+  Meta conversions (the `actions` JSON), GA4 page views and engaged sessions, or subscription amounts.
 - **`literal`, SQL arm: nothing stops a face-value query.** 19 answerable questions carry the tempting
   query (average the rate column, read the breakdown grain, join two fact tables row by row). 16 of those
   return a wrong number; 3 land within the tolerance on this data, because daily volumes inside one campaign
@@ -110,9 +95,14 @@ Beyond the coverage gaps in the next table.
   one returns a number. The 5 handled are the 2 with no table to query and the 3 the warehouse itself
   rejects (`raw` is invisible to the agent, and a write is refused).
 - **`literal`, metric arm: what the layer does with the same face-value request.** This is the measured
-  part. It recomputes every rate, refuses the non-additive measures and the one-sided cross-source
-  breakdowns, and asks back on the six ambiguous names. It does not catch a mixed-currency total, cannot
-  catch arithmetic the agent does after the tool call, and cannot see that a question is vague.
+  part. It recomputes every rate and every distinct count, refuses the non-additive measures and the
+  one-sided cross-source breakdowns, asks back on the six ambiguous names and asks which currency on the
+  four totals that would add dollars to euros. The three wrong numbers left are requests the layer answers
+  correctly as asked: two where the agent adds columns up itself after the call (conversions from three
+  sources, clicks from two grains) and a forecast answered with last month's spend. It cannot catch
+  arithmetic done after the tool call and cannot see that a question is vague. The one `vague` trap it does
+  stop (`gadgets_launch_performance`) it stops for another reason: the face-value request asks for Meta
+  spend without a currency, so the question back is about the currency, not about which measure was meant.
 - **Caveats only travel with the metric layer.** Five questions need a caveat beside a right number (Meta
   restatement, Google conversion lag, withheld search terms, anonymised queries, a stale source). The layer
   attached it every time; a SQL result carries none unless the agent writes one.
@@ -121,26 +111,49 @@ Beyond the coverage gaps in the next table.
 
 ## What the eval found in the metric layer
 
-These are findings about `omw/metrics`, which this thread does not own. They are left as they are and
-reported, so the numbers above are the layer's real behaviour.
+The first run of this eval (thread T10) found five gaps in `omw/metrics`. It reported them and left the
+layer as it was, so its numbers were the layer's real behaviour: 92 of 101 answerable questions with the
+best plan, 9 wrong numbers and 20 of 28 traps handled at face value. Thread T15 fixed all five. The
+questions and their ground truth are the same; only the plans that worked around a gap, or declared one,
+changed. The table above is the layer after the fixes.
 
-1. **A filter on `campaign_key` without the dimension fails.** `query_metrics(["ad_spend"], filters={
-   "campaign_key": "widgets_prospecting"})` compiles SQL that filters on a column the ad platform views do
-   not have, and answers `refuse` with a ClickHouse error. Asking for the dimension and picking the row
-   works (`ad_spend_widgets_prospecting_usd_sep`).
-2. **A mixed-currency total is served with a caveat.** `ad_spend`, `revenue`, `roas` and `cac` without a
-   currency return one number that adds dollars to euros, in mood `disclose`. `SEMANTICS.md` says never to
-   sum across currencies; the four `currency` traps are the layer's only wrong numbers on traps that it
-   could have stopped.
-3. **Distinct counts are refused above their own grain.** `paying_customers` and `crm_tasks` are
-   `uniqExact` over row-level views, which is exact at any grain, yet "paying customers in September" is
-   refused as not additive. The rule fits `meta_reach` and GA4 `users`, which arrive pre-aggregated per day.
-4. **`compare: "month"` is not the calendar month before.** It shifts both dates back a month, so September
-   compares with 1 to 30 August and drops the 31st (`meta_spend_sep_vs_aug`). The answer does not state the
-   window it compared with; only the `sql` field does.
-5. **Coverage.** No metric reads `marts.meta_ads_ads`, the campaign and budget lists,
+| | First run | Now |
+|---|---|---|
+| Answerable questions the best plan answers | 92/101 | 101/101 |
+| Face-value requests answered right | 90/101 | 101/101 |
+| Traps handled at face value | 20/28 | 25/28 |
+| Wrong numbers at face value | 9/129 | 3/129 |
+
+1. **A filter on `campaign_key` without the dimension failed.** `query_metrics(["ad_spend"], filters={
+   "campaign_key": "widgets_prospecting"})` compiled SQL that filtered on a column the ad platform views do
+   not have, and answered `refuse` with a ClickHouse error. *Fixed:* the filter reads the same expression
+   the dimension does, joined through `marts.campaign_keys`. A CI check (`omw/metrics/ddl.py`) now compares
+   every dimension and metric column in the catalog with the views in `sql/`, so a column a view lacks
+   fails a test, not a query (`ad_spend_widgets_prospecting_usd_sep`, face-value plan).
+2. **A mixed-currency total was served with a caveat.** `ad_spend`, `revenue`, `roas` and `cac` without a
+   currency returned one number that added dollars to euros, in mood `disclose`. *Fixed:* a measure in a
+   currency, or built from one, asked without the `currency` dimension or a filter on one currency answers
+   `clarify` with the two ways to choose. The rule follows the metric's unit, so budgets, CPC and every
+   future money measure are covered; refusals are checked first, so a request with no valid path is still
+   refused (the four `currency` traps).
+3. **Distinct counts were refused above their own grain.** `paying_customers` and `crm_tasks` are
+   `uniqExact` over row-level views, exact at any grain, yet "paying customers in September" was refused.
+   *Fixed:* the YAML declares it. A report is `row_level` or not, a metric is `aggregation: distinct`
+   (recounted at the requested grain) or `native` (Meta reach, GA4 users: deduplicated per day by the
+   source, still refused above their grain). The schema rejects a distinct count on a report that is not
+   row-level, and the CI check rejects a `row_level` report whose view groups and a `sum` over a column the
+   view's comment calls not additive (`paying_customers_sep`, `crm_tasks_sep`).
+4. **`compare: "month"` was not the calendar month before.** It shifted both dates back a month, so
+   September compared with 1 to 30 August. *Fixed:* whole calendar months compare with whole calendar
+   months (`year` likewise, leap days included), and the answer states both windows in a structured
+   `comparison` field. `week` on a range longer than seven days used to drop the shared days from the
+   previous total; both periods now hold all of their days and the overlap is disclosed. The reference
+   plans for the month-over-month questions now use `compare: "month"` (`meta_spend_sep_vs_aug`).
+5. **Coverage.** No metric read `marts.meta_ads_ads`, the campaign and budget lists,
    `search_console_devices`, `search_console_countries`, `search_console_query_page`, `ga4_landing_pages`
-   or `stripe_subscriptions`.
+   or `stripe_subscriptions`. *Fixed:* 20 metrics over 10 new report grains, each in `SEMANTICS.md`. The
+   campaign, ad set and subscription lists are declared `snapshot`: the state at the last sync, with no
+   date, no `time_range` and no `compare` (the seven questions that had no plan).
 
 ## How it works
 
@@ -204,7 +217,7 @@ no longer matches the seed.
 
 Each question states its period and its unit, and ends with an answer format ("a single number (USD)",
 "one row per campaign name"). Traps get the same kind of format line, so the format never gives away that a
-question is a trap. 22 answerable questions are tagged `pitfall`: there is a tempting wrong way to answer
+question is a trap. 20 answerable questions are tagged `pitfall`: there is a tempting wrong way to answer
 them. The traps come in eight kinds:
 
 | Kind | Example | Right behaviour |
@@ -336,4 +349,4 @@ Three things are deliberate:
 - **Single-turn.** A question is asked once and answered once. A real agent can ask back and continue; a
   `clarify` here ends the conversation and is scored as the right or wrong move.
 - **The metric arm has no SQL.** It measures the layer on its own. An agent with both tools would answer
-  the coverage gaps through SQL, and would be exposed to the SQL arm's traps while doing it.
+  what the catalog does not cover through SQL, and would be exposed to the SQL arm's traps while doing it.

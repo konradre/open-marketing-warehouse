@@ -3,6 +3,7 @@ reports:
   - name: invoices
     view: marts.stripe_revenue
     description: One row per paid Stripe invoice with the campaign key resolved invoice, subscription, customer.
+    row_level: true
     dimensions:
       currency: ISO 4217 currency of the invoice, upper case
       customer_id: Stripe customer id
@@ -18,6 +19,7 @@ reports:
   - name: balance
     view: marts.stripe_balance
     description: One row per Stripe balance transaction, the basis for net revenue after refunds and fees.
+    row_level: true
     dimensions:
       currency: ISO 4217 currency of the transaction, upper case
       type: Stripe transaction type (charge, payment, refund, payment_refund, payout, ...)
@@ -25,6 +27,23 @@ reports:
     traps:
       - Balance transactions carry no attribution metadata, so net revenue has no campaign key.
       - Refunds are dated when refunded, not when the original charge was paid.
+  - name: subscriptions
+    view: marts.stripe_subscriptions
+    description: Stripe subscriptions as last synced, one row per subscription in any status.
+    row_level: true
+    snapshot: true
+    dimensions:
+      status: active, trialing, past_due, canceled, unpaid, incomplete, incomplete_expired or paused
+      currency: ISO 4217 currency of the subscription price, upper case
+      interval: Billing interval of the first item (month, year, week, day)
+      product_id: Stripe product id of the first item
+      customer_id: Stripe customer id
+      utm_source: utm_source from the subscription metadata, else the customer; empty when absent
+      utm_medium: utm_medium, same precedence
+      utm_campaign: utm_campaign, same precedence
+    campaign_key: campaign_key
+    traps:
+      - Every status is listed, canceled ones included; filter status (active, trialing, ...) for the live ones.
 metrics:
   - name: revenue
     report: invoices
@@ -43,9 +62,9 @@ metrics:
     report: invoices
     expr: uniqExact(customer_id)
     unit: count
-    aggregation: native
+    aggregation: distinct
     grains: [currency, billing_reason, utm_source, utm_medium, utm_campaign, attributed, campaign_key]
-    description: Distinct customers with a paid invoice at the requested grain. Not additive across days.
+    description: Distinct customers with a paid invoice, recounted at the requested grain. Rows do not add up.
   - name: new_customers
     report: invoices
     expr: countIf(billing_reason = 'subscription_create')
@@ -70,3 +89,9 @@ metrics:
     unit: currency
     grains: [currency]
     description: Stripe processing fees on charges and refunds, net of fees returned on refunds.
+  - name: subscriptions
+    report: subscriptions
+    expr: count()
+    unit: count
+    grains: [status, currency, interval, product_id, customer_id, utm_source, utm_medium, utm_campaign, campaign_key]
+    description: Subscriptions as last synced, in any status; filter status = active for the active ones.

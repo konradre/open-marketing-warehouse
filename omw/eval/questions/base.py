@@ -27,7 +27,8 @@ class MetricStep:
     """One ``query_metrics`` call and how to read its rows."""
 
     metrics: tuple[str, ...]
-    time: Period | str
+    time: Period | str | None
+    """A period, a named range, or ``None`` for a snapshot measure (a campaign list has no dates)."""
     dimensions: tuple[str, ...] = ()
     filters: Mapping[str, Any] = field(default_factory=dict)
     compare: str | None = None
@@ -47,8 +48,9 @@ class MetricStep:
     limit: int = 1000
 
     def request(self) -> dict[str, Any]:
-        time_range: Any = self.time.iso() if isinstance(self.time, Period) else self.time
-        request: dict[str, Any] = {"metrics": list(self.metrics), "time_range": time_range}
+        request: dict[str, Any] = {"metrics": list(self.metrics)}
+        if self.time is not None:
+            request["time_range"] = self.time.iso() if isinstance(self.time, Period) else self.time
         if self.dimensions:
             request["dimensions"] = list(self.dimensions)
         if self.filters:

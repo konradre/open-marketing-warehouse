@@ -117,7 +117,7 @@ allowed to answer.
      expr: sum(spend)
      unit: currency
      grains: [date, account_id, campaign_id]
-     additive: true
+     aggregation: sum                  # or rate, distinct (row-level reports only), native
    - name: roas
      derived: revenue / spend          # combines two measures, never two tables in one scan
      requires_common_grain: [date, campaign_key]
@@ -129,9 +129,17 @@ allowed to answer.
    - `serve` — answered, no material condition.
    - `disclose` — answered, with a caveat that travels with the numbers (an approximate distinct count, data
      inside Meta's 28-day restatement window, a source past its freshness budget).
-   - `clarify` — more than one valid meaning; return the candidates, not a guess.
+   - `clarify` — more than one valid meaning; return the candidates, not a guess. A name that means
+     several metrics, or an amount of money asked without a currency: money is never added up across
+     currencies.
    - `refuse` — no valid path: a metric asked at a grain it does not have, a non-additive measure summed across
      a dimension, a filter that would fan out a join. Return the reason.
+
+**Declared, not inferred.** Whether a count may be served above its own grain is a property in the YAML,
+checked in CI against the views in `sql/`: a report is `row_level` (one row per invoice, opportunity,
+activity) or not, and a metric is `distinct` (recounted at any grain over a row-level report) or `native`
+(already deduplicated per row by the source: reach, daily users; only at its own grain). A `snapshot` report
+(campaign and budget lists, subscriptions) has no dates: no time range, no comparison.
 
 **Cross-source metrics (ROAS, CAC).** Joining ad spend to Stripe or CRM revenue is where fan-out and chasm traps
 happen. Aggregate **each source separately to the shared grain first**, one CTE per source, then join the
