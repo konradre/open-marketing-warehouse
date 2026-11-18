@@ -51,6 +51,27 @@ jobs:
         if: always()
         run: docker compose --env-file .env -f deploy/docker-compose.yml down -v
 
+  scheduler:
+    # The scheduler image is built and must run every job once in fixture mode (sync, checks, backup, restore
+    # drill), then come up healthy as the long-running service. Independent of the gate, like `profiles`.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Build the scheduler image and run it in fixture mode
+        run: |
+          cp .env.example .env
+          deploy/scheduler-smoke.sh .env
+
+      - name: Stack logs
+        if: failure()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml --profile scheduler logs --no-color --tail 300
+
+      - name: Stop stack
+        if: always()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml --profile scheduler down -v
+
   profiles:
     # The optional compose profiles (LibreChat, Langfuse) boot with throwaway secrets and must answer over
     # HTTP. Independent of the gate so a slow image pull never delays it.

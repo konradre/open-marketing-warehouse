@@ -33,6 +33,9 @@ make schedule                            # every job, its next slot, how its las
 make backup-list
 ```
 
+`make scheduler-smoke` does all of this in one go on an empty stack and checks the result (every job ok,
+a backup that passed its restore drill, the service healthy, a clean stop); CI runs it on every push.
+
 Fixture mode refuses a warehouse that holds anything the demo did not load, so it cannot overwrite real
 data. Before going live, remove the synthetic data (the same `docker compose ... run --rm scheduler`
 with `demo drop`) and set `OMW_SCHEDULER_COMMAND=schedule run` again.

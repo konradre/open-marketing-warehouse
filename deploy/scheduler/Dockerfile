@@ -31,7 +31,9 @@ USER 101:101
 ENV HOME=/var/lib/omw \
     PATH=/app/.venv/bin:$PATH \
     OMW_BACKUP_DIR=/backups \
-    OMW_HEARTBEAT=/var/lib/omw/scheduler.heartbeat
+    OMW_HEARTBEAT=/tmp/omw-scheduler.heartbeat
+# The heartbeat is the health check's evidence that this container's loop is alive, so it lives in the
+# container, not on the state volume, where one left by an earlier container would still look fresh.
 
 ENTRYPOINT ["omw"]
 CMD ["schedule", "run"]
