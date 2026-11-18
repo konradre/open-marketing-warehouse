@@ -11,7 +11,7 @@ CREATE OR REPLACE VIEW marts.linkedin_ads_campaigns (
     campaign_name String COMMENT 'Campaign name at the last entity pull, empty when the campaign is no longer listed',
     impressions UInt64 COMMENT 'Times an ad of the campaign was shown',
     clicks UInt64 COMMENT 'Chargeable clicks on the ads',
-    cost Decimal(18, 2) COMMENT 'Amount spent in the account currency (costInLocalCurrency)',
+    cost Decimal(18, 6) COMMENT 'Amount spent in the account currency (costInLocalCurrency), with the decimals LinkedIn reports',
     conversions UInt64 COMMENT 'External website conversions attributed by the LinkedIn Insight Tag (post-click and post-view)',
     landing_page_clicks UInt64 COMMENT 'Clicks that opened the landing page',
     likes UInt64 COMMENT 'Reactions on the sponsored content',
@@ -20,7 +20,7 @@ CREATE OR REPLACE VIEW marts.linkedin_ads_campaigns (
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT a.source AS source, a.report AS report, a.account_id AS account_id, a.currency AS currency, a.date AS date,
        a.campaign_id AS campaign_id, c.name AS campaign_name, toUInt64(a.impressions) AS impressions,
-       toUInt64(a.clicks) AS clicks, toDecimal64(a.cost, 2) AS cost, toUInt64(a.conversions) AS conversions,
+       toUInt64(a.clicks) AS clicks, toDecimal64(a.cost, 6) AS cost, toUInt64(a.conversions) AS conversions,
        toUInt64(a.landing_page_clicks) AS landing_page_clicks, toUInt64(a.likes) AS likes, toUInt64(a.shares) AS shares,
        toUInt64(a.follows) AS follows
 FROM raw.linkedin_ads___ad_analytics AS a
@@ -69,7 +69,7 @@ CREATE OR REPLACE VIEW marts.linkedin_ads_creatives (
     is_serving Bool COMMENT 'Whether LinkedIn reported the creative as serving at the last entity pull',
     impressions UInt64 COMMENT 'Times the creative was shown',
     clicks UInt64 COMMENT 'Chargeable clicks on the creative',
-    cost Decimal(18, 2) COMMENT 'Amount spent in the account currency (costInLocalCurrency)',
+    cost Decimal(18, 6) COMMENT 'Amount spent in the account currency (costInLocalCurrency), with the decimals LinkedIn reports',
     conversions UInt64 COMMENT 'External website conversions attributed by the LinkedIn Insight Tag (post-click and post-view)',
     landing_page_clicks UInt64 COMMENT 'Clicks that opened the landing page',
     likes UInt64 COMMENT 'Reactions on the creative',
@@ -79,7 +79,7 @@ CREATE OR REPLACE VIEW marts.linkedin_ads_creatives (
 SELECT a.source AS source, a.report AS report, a.account_id AS account_id, a.currency AS currency, a.date AS date,
        cr.campaign_id AS campaign_id, c.name AS campaign_name, a.creative_id AS creative_id,
        cr.intended_status AS creative_status, cr.is_serving AS is_serving, toUInt64(a.impressions) AS impressions,
-       toUInt64(a.clicks) AS clicks, toDecimal64(a.cost, 2) AS cost, toUInt64(a.conversions) AS conversions,
+       toUInt64(a.clicks) AS clicks, toDecimal64(a.cost, 6) AS cost, toUInt64(a.conversions) AS conversions,
        toUInt64(a.landing_page_clicks) AS landing_page_clicks, toUInt64(a.likes) AS likes, toUInt64(a.shares) AS shares,
        toUInt64(a.follows) AS follows
 FROM raw.linkedin_ads___ad_analytics_creatives AS a
