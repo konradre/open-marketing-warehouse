@@ -204,6 +204,20 @@ instance URL in `.dlt/secrets.toml` under `[sources.twenty]`. For attribution, a
 `campaignKey`, `utmSource`, `utmMedium` and `utmCampaign` (text) to the objects your sign-up flow writes
 to; the pipeline reads them when present and leaves the columns empty otherwise.
 
+**Closed-won stages**: `marts.twenty_pipeline.is_won` marks the opportunities in a closed-won stage, and the
+`won_opportunities` and `won_amount` metrics read it. Twenty's default pipeline ends in `CUSTOMER`; a
+workspace that renames that stage or closes deals in several names them as Twenty stores them (upper snake
+case), in `.dlt/config.toml` or on the command line. The next sync rewrites the view:
+
+```toml
+[sources.twenty]
+won_stages = ["CLOSED_WON", "RENEWED"]
+```
+
+```bash
+uv run python -m omw.pipelines.twenty daily --won-stage CLOSED_WON --won-stage RENEWED
+```
+
 ```bash
 uv run python -m omw.pipelines.twenty daily    # everything changed since the last run
 ```

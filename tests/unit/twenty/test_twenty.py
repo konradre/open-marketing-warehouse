@@ -5,15 +5,17 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import dlt
 import pytest
 import responses
 
+from omw.metrics import load_catalog
+from omw.pipelines import twenty as twenty_pipeline
 from omw.pipelines.marts import SQL_DIR, statements
-from omw.pipelines.twenty import run_daily
+from omw.pipelines.twenty import DEFAULT_WON_STAGES, MARTS_SQL, render_won_stages, run_daily, won_stages
 from omw.sources.twenty import ATTRIBUTION_FIELDS, shape_company, shape_opportunity, shape_person, twenty
 from omw.sources.twenty.source import default_session, updated_at_filter
 from tests.unit.twenty.conftest import BASE_URL, REST, body, fixture, register_api
@@ -200,3 +202,70 @@ def test_notes_tasks_and_targets_flatten_bodies_and_owners(tmp_path: Path) -> No
     assert hints["x-clickhouse-sort"] == ["id"] and "note_id" in hints["columns"]
     stmts = statements((SQL_DIR / "90_twenty_marts.sql").read_text())
     assert "CREATE OR REPLACE VIEW marts.twenty_activity" in stmts[2] and "UNION ALL" in stmts[2]
+
+
+def test_the_closed_won_stages_are_checked_before_they_reach_a_view() -> None:
+    assert won_stages(None) == DEFAULT_WON_STAGES == ("CUSTOMER",)
+    assert won_stages(["WON", " RENEWED ", "WON"]) == ("WON", "RENEWED")
+    assert won_stages("CLOSED_WON") == ("CLOSED_WON",)  # a bare string in the config is one stage
+    assert won_stages(["Closed - Won EU"]) == ("Closed - Won EU",)
+    with pytest.raises(ValueError, match="at least one stage"):
+        won_stages([])
+    for bad in ("", "WON') OR 1 = 1 --", "a'b", "WON\nX", "*/"):
+        with pytest.raises(ValueError, match="is not a stage name"):
+            won_stages([bad])
+
+
+def test_the_marts_file_is_its_own_default_and_takes_the_configured_stages() -> None:
+    text = MARTS_SQL.read_text()
+    assert render_won_stages(DEFAULT_WON_STAGES)(text) == text  # the committed file is the default, as is
+    assert "o.stage IN (/*won_stages*/'CUSTOMER'/*won_stages*/) AS is_won" in text
+    rendered = render_won_stages(["WON", "RENEWED"])(text)
+    stmts = statements(rendered)
+    assert (
+        len(stmts) == 3 and "o.stage IN (/*won_stages*/'WON', 'RENEWED'/*won_stages*/) AS is_won" in stmts[0]
+    )
+    assert "Closed-won stages here: WON, RENEWED'" in stmts[0] and "'CUSTOMER'" not in stmts[0]
+    # Nothing else moves: every other line of the file is byte for byte the same.
+    changed = [a for a, b in zip(text.splitlines(), rendered.splitlines(), strict=True) if a != b]
+    assert len(changed) == 2 and all("is_won" in line for line in changed)
+    with pytest.raises(ValueError, match="no won_stages marker"):
+        render_won_stages(["WON"])("CREATE OR REPLACE VIEW marts.x AS SELECT 1")
+
+
+def test_a_bad_stage_stops_the_run_before_anything_is_loaded() -> None:
+    class NeverTouched:
+        def __getattr__(self, name: str) -> Any:
+            raise AssertionError(f"the pipeline was used ({name}) before the stages were checked")
+
+    with pytest.raises(ValueError, match="is not a stage name"):
+        run_daily(cast(dlt.Pipeline, NeverTouched()), won=["WON'; DROP TABLE x"])
+
+
+def test_the_command_takes_the_stages_from_the_flag_then_the_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[Any] = []
+    monkeypatch.setattr(twenty_pipeline, "build_pipeline", lambda: "pipeline")
+    monkeypatch.setattr(twenty_pipeline, "run_daily", lambda pipeline, won: seen.append(won) or {})
+    configured: dict[str, Any] = {}
+
+    class Config:
+        @staticmethod
+        def get(key: str, _type: Any) -> Any:
+            return configured.get(key)
+
+    monkeypatch.setattr(dlt, "config", Config())
+    assert twenty_pipeline.main(["daily"]) == 0
+    configured["sources.twenty.won_stages"] = ["WON", "RENEWED"]
+    assert twenty_pipeline.main(["daily"]) == 0
+    assert twenty_pipeline.main(["daily", "--won-stage", "CLOSED_WON"]) == 0
+    assert seen == [("CUSTOMER",), ("WON", "RENEWED"), ("CLOSED_WON",)]
+
+
+def test_the_won_metrics_read_the_flag_not_a_stage_name() -> None:
+    catalog = load_catalog()
+    assert catalog.metrics["won_opportunities"].expr == "countIf(is_won)"
+    assert catalog.metrics["won_amount"].expr == "sumIf(amount, is_won)"
+    assert "is_won" in catalog.reports["twenty.opportunities"].dimensions
+    assert "is_won" in catalog.metrics["opportunities"].grains
+    # Splitting the won count by the flag or the stage it is made of would only restate the filter.
+    assert not {"is_won", "stage"} & set(catalog.metrics["won_opportunities"].grains)

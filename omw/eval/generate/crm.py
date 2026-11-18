@@ -141,6 +141,7 @@ def build_twenty(rng: Rng, world: World) -> None:
                         "opportunity_id": row["id"],
                         "opportunity_name": row["name"],
                         "stage": row["stage"],
+                        "is_won": row["stage"] == "CUSTOMER",
                         "amount": row["amount"],
                         "currency": currency,
                         "company_id": company["id"],

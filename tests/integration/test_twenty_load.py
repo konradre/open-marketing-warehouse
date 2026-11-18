@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -12,6 +13,8 @@ import responses
 from clickhouse_connect.driver.client import Client
 from clickhouse_connect.driver.exceptions import DatabaseError
 
+from omw.metrics import MetricRequest, Mood, TimeRange, load_catalog
+from omw.metrics.runner import answer_request, clickhouse_executor
 from omw.pipelines.twenty import run_daily
 from omw.sources.twenty.source import default_session
 from tests.integration.conftest import setting
@@ -48,13 +51,16 @@ def _drop(admin_client: Client) -> None:
 
 
 def _run(
-    pipeline: dlt.Pipeline, opportunities: str = "opportunities", deleted: str | None = None
+    pipeline: dlt.Pipeline,
+    opportunities: str = "opportunities",
+    deleted: str | None = None,
+    won: list[str] | None = None,
 ) -> dict[str, int]:
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add_passthru("http://127.0.0.1")
         mock.add_passthru("http://localhost")
         register_api(mock, opportunities, deleted)
-        return run_daily(pipeline, base_url=BASE_URL, api_key="k", session=default_session(2, 0.0))
+        return run_daily(pipeline, won=won, base_url=BASE_URL, api_key="k", session=default_session(2, 0.0))
 
 
 @pytest.fixture(scope="module")
@@ -108,6 +114,52 @@ def test_pipeline_views_resolve_attribution_and_amounts(loaded: dlt.Pipeline, ag
     assert by_stage[("PROPOSAL", "EUR")][0] == 1 and Decimal(str(by_stage[("NEW", "USD")][1])) == Decimal(
         "120000"
     )
+
+
+def _won(agent_client: Client, **request: Any) -> tuple[list[tuple[Any, ...]], Any]:
+    answer = answer_request(
+        load_catalog(),
+        MetricRequest(time_range=TimeRange(start=date(2026, 9, 1), end=date(2026, 10, 31)), **request),
+        clickhouse_executor(agent_client),
+        date(2026, 11, 1),
+    )
+    assert answer.mood in (Mood.SERVE, Mood.DISCLOSE), answer.reason
+    return [tuple(row) for row in answer.rows], answer
+
+
+def test_the_won_metrics_follow_the_configured_closed_won_stages(
+    loaded: dlt.Pipeline, agent_client: Client
+) -> None:
+    """The fixture pipeline has opportunities in PROPOSAL (36 000 EUR), MEETING (9 000 EUR) and NEW
+    (120 000 USD), none in Twenty's default closed-won stage."""
+    comment = (
+        "SELECT comment FROM system.columns "
+        "WHERE database = 'marts' AND table = 'twenty_pipeline' AND name = 'is_won'"
+    )
+    assert str(agent_client.command(comment)).endswith("Closed-won stages here: CUSTOMER")
+    rows, _ = _won(agent_client, metrics=["won_opportunities", "opportunities"])
+    assert [tuple(float(v) for v in row) for row in rows] == [(0.0, 3.0)]
+
+    # A workspace that closes deals in two stages of its own names them, and the same metrics follow.
+    _run(loaded, won=["PROPOSAL", "MEETING"])
+    try:
+        assert str(agent_client.command(comment)).endswith("Closed-won stages here: PROPOSAL, MEETING")
+        rows, _ = _won(agent_client, metrics=["won_opportunities", "opportunities"])
+        assert [tuple(float(v) for v in row) for row in rows] == [(2.0, 3.0)]
+        rows, _ = _won(agent_client, metrics=["won_amount"], filters={"currency": "EUR"})
+        assert float(rows[0][0]) == 45000.0
+        rows, _ = _won(agent_client, metrics=["won_amount"], filters={"currency": "USD"})
+        assert float(rows[0][0]) == 0.0
+        by_flag, _ = _won(agent_client, metrics=["opportunities"], dimensions=["is_won"])
+        assert {bool(flag): float(count) for flag, count in by_flag} == {True: 2.0, False: 1.0}
+        won_stages_seen = agent_client.query(
+            "SELECT groupArray(stage) FROM (SELECT DISTINCT stage FROM marts.twenty_pipeline WHERE is_won "
+            "ORDER BY stage)"
+        ).result_rows[0][0]
+        assert won_stages_seen == ["MEETING", "PROPOSAL"]
+    finally:
+        _run(loaded)  # back to the default for the tests that follow
+    assert str(agent_client.command(comment)).endswith("Closed-won stages here: CUSTOMER")
 
 
 def test_activity_attaches_notes_and_tasks_to_their_records(
