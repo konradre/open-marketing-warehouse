@@ -60,7 +60,7 @@ def test_dropping_takes_the_sources_and_leaves_other_tables_alone() -> None:
 def test_raw_tables_are_created_as_dlt_would_and_filled_with_typed_defaults(world: World) -> None:
     warehouse = RecordingWarehouse([], False)
     tables, rows = seed.load_raw(warehouse, world)
-    assert tables == 49 and rows == sum(len(found) for found in world.raw.values()) + 7  # one sync row each
+    assert tables == 50 and rows == sum(len(found) for found in world.raw.values()) + 7  # one sync row each
     ddl = next(c for c in warehouse.commands if "raw.`meta_ads___campaigns`" in c)
     assert "`stop_time` Nullable(DateTime64(6, 'UTC'))" in ddl and ddl.endswith(
         "ENGINE = MergeTree ORDER BY tuple()"

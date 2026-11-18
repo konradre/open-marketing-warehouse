@@ -11,7 +11,7 @@ without the `currency` dimension or a filter on one currency answers **clarify**
 
 - **meta_spend** (currency): Meta Ads amount spent, per account, campaign and day, in the account currency.
   Meta restates spend and conversions for up to **28 days**; recent days change. `meta_clicks` counts every
-  click on the ad, not only link clicks. `meta_reach` is people reached and is **not additive**: ask for it
+  click on the ad, not only link clicks. `meta_reach` is people reached, **not additive**: ask for it
   at its own grain only. `meta_impressions` counts ad views; `meta_cpc` and `meta_ctr` are recomputed from
   spend, clicks and impressions. `meta_age_gender_spend`, `meta_age_gender_clicks`, `meta_country_spend`,
   `meta_country_clicks`, `meta_placement_spend` and `meta_placement_clicks` are breakdown grains that sum
@@ -37,7 +37,7 @@ without the `currency` dimension or a filter on one currency answers **clarify**
   on the campaign or its group (`linkedin_group_daily_budget`, per group only); the other is 0. A shared
   Google budget repeats on each campaign.
 - **ad_spend** = meta_spend + google_spend + linkedin_spend and **blended_cpc** = ad_spend / all clicks
-  are cross-source measures (below).
+  are cross-source measures.
 - `spend`, `cost`, `clicks`, `impressions`, `conversions`, `ctr`, `cpc`, `leads` are ambiguous across
   platforms: name the platform (`meta_spend`, `linkedin_leads`) or the blended measure (`ad_spend`).
 
@@ -47,14 +47,14 @@ without the `currency` dimension or a filter on one currency answers **clarify**
   property and search type. Position is impression-weighted (1 = top).
 - **query_clicks** (per query), **page_clicks** (per page) and `search_query_page_clicks` (per query and
   page) are breakdown grains that **undercount core**: Google withholds anonymised queries.
-  `search_device_clicks`, `search_device_impressions` (device class) and `search_country_clicks`,
+  `search_device_clicks`, `search_device_impressions` (device) and `search_country_clicks`,
   `search_country_impressions` (country) sum to core. The last 3 days are provisional.
 
 ## Site analytics (GA4)
 
 - **sessions**, **engaged_sessions**, **page_views**, **new_users**, **key_events** per property and day.
-  `key_events` are the property's configured key events (formerly conversions). **users** is distinct users
-  per day and is **not additive** across days.
+  `key_events` are the property's key events (formerly conversions). **users** is distinct users
+  per day, **not additive** across days.
 - **channel_sessions**, **campaign_sessions**, `landing_page_sessions` and `landing_page_key_events` (by landing
   page) are breakdown grains. GA4 folds high-cardinality values into an **(other)** row,
   kept and flagged `is_other`, so the breakdown still sums to `core`. `(not set)` means no campaign data.
@@ -79,15 +79,17 @@ without the `currency` dimension or a filter on one currency answers **clarify**
 - **meta_leads** and **linkedin_leads** count lead-ad submissions by submission day (`leads` grains, loaded
   with `--leads`). Answers never leave `raw`.
 
-## Sales pipeline (Twenty CRM)
+## Sales pipeline (Twenty)
 
 - **opportunities** and **pipeline_amount** (currency) count opportunities and sum their amounts by the day
   each was **created**, at its current stage and amount, so past days change as deals move.
   **won_opportunities** and **won_amount** are the ones now in a closed-won stage (`is_won`: `CUSTOMER`
-  unless the deployment configures others). `campaign_key` resolves opportunity, then contact, then
+  unless configured). `campaign_key` resolves opportunity, then contact, then
   company; unattributed pipeline is real pipeline.
-- **crm_activities**, **crm_notes**, **crm_tasks**: distinct notes and tasks by creation day on the `activity`
-  grain (one row per attached record). Distinct counts, like `paying_customers`.
+- **crm_activities**, **crm_notes**, **crm_tasks**: distinct notes and tasks by creation day (`activity`
+  grain, one row per attached record), like `paying_customers`.
+- **crm_events**, **crm_stage_changes**, **crm_wins** (moves into a closed-won stage): Twenty's change
+  feed by event day (`timeline` grain).
 
 ## Cross-source measures
 
@@ -95,16 +97,16 @@ without the `currency` dimension or a filter on one currency answers **clarify**
   opportunities and **cost_per_lead** = ad_spend / (meta_leads + linkedin_leads). Each side is aggregated
   to the common grain (date, campaign_key, currency) first, then joined; a dimension or filter on one side
   only is refused. The campaign key joins platforms
-  through `marts.campaign_keys`: by default the slug of the campaign name (`widgets_prospecting`), so Stripe
-  and Twenty attribution must carry that slug (or a manual mapping) for ROAS and CAC by campaign to join.
+  through `marts.campaign_keys`: by default the campaign name's slug (`widgets_prospecting`), so Stripe
+  and Twenty attribution must carry that slug (or a manual mapping) to join by campaign.
 
 ## Time and trust
 
-- `date` is the day in each source's own time zone (ad account, property, UTC for Stripe and Twenty).
+- `date` is the day in the source's time zone (ad account, property, UTC for Stripe and Twenty).
   `time_range` is `{start, end}` or a name: `today`, `yesterday`, `last_7_days`, `last_30_days`,
   `last_90_days` (ending yesterday), `month_to_date`, `last_month`, `year_to_date`. `compare` adds a
   `period` column (`current` / `previous`) and a `comparison` field stating both windows:
   `previous_period` is as many days just before, `week` 7 days earlier, `month` and `year` the calendar
   period before (September against 1 to 31 August).
 - Post-sync verdicts (`ops.freshness`, `ops.check_verdicts`) travel with the numbers: a stale source or a
-  failed over-count or row-count check on the report used is disclosed as a caveat.
+  failed over-count or row-count check on the report used becomes a caveat.

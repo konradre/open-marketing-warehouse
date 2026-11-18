@@ -55,11 +55,12 @@ def _run(
     opportunities: str = "opportunities",
     deleted: str | None = None,
     won: list[str] | None = None,
+    timeline: str = "timeline_activities",
 ) -> dict[str, int]:
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add_passthru("http://127.0.0.1")
         mock.add_passthru("http://localhost")
-        register_api(mock, opportunities, deleted)
+        register_api(mock, opportunities, deleted, timeline)
         return run_daily(pipeline, won=won, base_url=BASE_URL, api_key="k", session=default_session(2, 0.0))
 
 
@@ -74,6 +75,7 @@ def loaded(admin_client: Client, tmp_path_factory: pytest.TempPathFactory) -> It
     )
     counts = _run(pipeline)
     assert counts["opportunities"] == 3 and counts["notes"] == 2 and counts["task_targets"] == 2
+    assert counts["timeline_activities"] == 7
     yield pipeline
     _drop(admin_client)
 
@@ -162,6 +164,84 @@ def test_the_won_metrics_follow_the_configured_closed_won_stages(
     assert str(agent_client.command(comment)).endswith("Closed-won stages here: CUSTOMER")
 
 
+def _by(rows: list[tuple[Any, ...]]) -> dict[Any, float]:
+    return {(row[0] if len(row) == 2 else tuple(row[:-1])): float(row[-1]) for row in rows}
+
+
+def test_the_timeline_dates_what_happened_to_each_record(loaded: dlt.Pipeline, agent_client: Client) -> None:
+    columns = dict(
+        agent_client.query(
+            "SELECT name, comment FROM system.columns WHERE database = 'marts' AND table = 'twenty_timeline'"
+        ).result_rows
+    )
+    assert columns and all(columns.values())
+    # What a record held before and after an edit, and the names of linked records, never leave raw.
+    assert not {"properties", "linked_record_name", "linked_record_id"} & set(columns)
+    rows = agent_client.query(
+        "SELECT toString(date), event, object, action, is_linked, changed_fields, stage_before, stage_after, "
+        "became_won, opportunity_name, company_name, campaign_key, person_id != '', member_id != '' "
+        "FROM marts.twenty_timeline ORDER BY happens_at"
+    ).result_rows
+    assert [(r[0], r[1]) for r in rows] == [
+        ("2026-09-15", "opportunity.created"),
+        ("2026-09-20", "opportunity.updated"),
+        ("2026-09-26", "opportunity.updated"),
+        ("2026-10-01", "opportunity.updated"),
+        ("2026-10-01", "linked-note.created"),
+        ("2026-10-02", "person.updated"),
+        ("2026-10-02", "company.updated"),
+    ]
+    # Both shapes of the object land in the same columns: the second move comes in the newer one.
+    assert [(r[6], r[7]) for r in rows if r[7]] == [
+        ("NEW", "MEETING"),
+        ("NEW", "MEETING"),
+        ("MEETING", "PROPOSAL"),
+    ]
+    assert rows[2][5] == "amount,stage" and rows[2][9] == "Globex - pilot"
+    acme = [r for r in rows if r[9] == "Acme - 120 seats"]
+    assert len(acme) == 4 and all(r[10] == "Acme Widgets" and r[11] == "meta:23850000000000001" for r in acme)
+    linked = rows[4]
+    assert (linked[2], linked[3], bool(linked[4])) == ("note", "linked", True)
+    person, company = rows[5], rows[6]
+    assert bool(person[12]) and not bool(person[13]) and person[2] == "person" and person[9] == ""
+    assert company[10] == "Acme Widgets" and company[5] == "employees"
+    assert not any(bool(r[8]) for r in rows)  # nothing reached CUSTOMER, Twenty's default closed-won stage
+
+    rows, _ = _won(agent_client, metrics=["crm_events", "crm_stage_changes", "crm_wins"])
+    assert [tuple(float(v) for v in row) for row in rows] == [(7.0, 3.0, 0.0)]
+    by_stage, _ = _won(agent_client, metrics=["crm_stage_changes"], dimensions=["stage_after"])
+    assert {k: v for k, v in _by(by_stage).items() if v} == {"MEETING": 2.0, "PROPOSAL": 1.0}
+    by_object, _ = _won(agent_client, metrics=["crm_events"], dimensions=["object"])
+    assert _by(by_object) == {"opportunity": 4.0, "note": 1.0, "person": 1.0, "company": 1.0}
+    by_key, _ = _won(agent_client, metrics=["crm_events"], dimensions=["campaign_key"])
+    assert _by(by_key)["meta:23850000000000001"] == 5.0  # the four on the Acme opportunity, one on Acme
+
+
+def test_wins_are_dated_by_the_day_the_stage_was_entered(loaded: dlt.Pipeline, agent_client: Client) -> None:
+    """``won_opportunities`` dates a win by the day the opportunity was created. The change feed has the
+    day it moved, and follows the same configured closed-won stages."""
+    _run(loaded, won=["PROPOSAL"])
+    try:
+        by_day, _ = _won(agent_client, metrics=["crm_wins"], dimensions=["date"])
+        assert {str(day): wins for day, wins in _by(by_day).items() if wins} == {"2026-10-01": 1.0}
+        created, _ = _won(agent_client, metrics=["won_opportunities"], dimensions=["date"])
+        assert {str(day): wins for day, wins in _by(created).items() if wins} == {"2026-09-15": 1.0}
+        _run(loaded, won=["PROPOSAL", "MEETING"])
+        by_day, _ = _won(agent_client, metrics=["crm_wins"], dimensions=["date"])
+        # Two opportunities entered MEETING. Acme moving on to PROPOSAL was already won: not a second win.
+        assert {str(day): wins for day, wins in _by(by_day).items() if wins} == {
+            "2026-09-20": 1.0,
+            "2026-09-26": 1.0,
+        }
+        comment = agent_client.command(
+            "SELECT comment FROM system.columns "
+            "WHERE database = 'marts' AND table = 'twenty_timeline' AND name = 'became_won'"
+        )
+        assert str(comment).endswith("Closed-won stages here: PROPOSAL, MEETING")
+    finally:
+        _run(loaded)
+
+
 def test_activity_attaches_notes_and_tasks_to_their_records(
     loaded: dlt.Pipeline, agent_client: Client
 ) -> None:
@@ -187,9 +267,13 @@ def test_activity_attaches_notes_and_tasks_to_their_records(
 def test_a_moved_opportunity_is_merged_not_duplicated(
     loaded: dlt.Pipeline, admin_client: Client, agent_client: Client
 ) -> None:
-    counts = _run(loaded, opportunities="opportunities_updated")
-    assert counts.get("opportunities", 0) == 1
+    counts = _run(loaded, opportunities="opportunities_updated", timeline="timeline_activities_won")
+    assert counts.get("opportunities", 0) == 1 and counts.get("timeline_activities", 0) == 1
     assert admin_client.query("SELECT count() FROM raw.twenty___opportunities").result_rows[0][0] == 3
+    # The move into CUSTOMER is one more event in the feed, and a win on the day it happened.
+    assert admin_client.query("SELECT count() FROM raw.twenty___timeline_activities").result_rows[0][0] == 8
+    by_day, _ = _won(agent_client, metrics=["crm_wins"], dimensions=["date"])
+    assert {str(row[0]): float(row[1]) for row in by_day if float(row[1])} == {"2026-10-04": 1.0}
     stage = agent_client.query(
         "SELECT stage, close_date FROM marts.twenty_pipeline WHERE opportunity_name = 'Acme - 120 seats'"
     ).result_rows[0]

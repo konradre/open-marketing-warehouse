@@ -2,6 +2,7 @@
 
 uv run python -m omw.pipelines.twenty daily
 uv run python -m omw.pipelines.twenty daily --won-stage WON --won-stage RENEWED
+uv run python -m omw.pipelines.twenty daily --no-timeline
 
 The closed-won stages (``is_won`` in ``marts.twenty_pipeline``, which the ``won_*`` metrics read) are
 configuration: ``sources.twenty.won_stages`` or ``--won-stage``, ``CUSTOMER`` by default.
@@ -19,13 +20,15 @@ from typing import Any
 
 import dlt
 
-from omw.pipelines.marts import SQL_DIR, apply_marts
+from omw.pipelines.marts import SQL_DIR, apply_marts, raw_table_exists
 from omw.sources.twenty import SOURCE_NAME, twenty
 
 log = logging.getLogger(__name__)
 
 PIPELINE_NAME = "twenty"
 MARTS_SQL = SQL_DIR / "90_twenty_marts.sql"
+TIMELINE_SQL = SQL_DIR / "90_twenty_marts_timeline.sql"
+TIMELINE_TABLE = "timeline_activities"
 DEFAULT_WON_STAGES: tuple[str, ...] = ("CUSTOMER",)
 """Twenty's default pipeline ends in CUSTOMER. A workspace that renames or adds a closed-won stage sets
 ``sources.twenty.won_stages``."""
@@ -90,17 +93,22 @@ def run_daily(
     pipeline: dlt.Pipeline,
     marts_sql: Path | None = MARTS_SQL,
     won: Sequence[str] | None = None,
+    timeline: bool = True,
     **source_kwargs: Any,
 ) -> dict[str, int]:
-    """``won`` names the closed-won stages (default ``CUSTOMER``); they are checked before anything loads."""
+    """``won`` names the closed-won stages (default ``CUSTOMER``); they are checked before anything loads.
+    ``timeline=False`` leaves Twenty's change feed out of the run; its view is applied whenever the table
+    exists, so a later run without the feed still follows a change of ``won``."""
     render = render_won_stages(won_stages(won))
     if pipeline.has_pending_data:
         log.warning("loading a pending package from an earlier run first")
         pipeline.load()
-    pipeline.run(twenty(**source_kwargs))
+    pipeline.run(twenty(timeline=timeline, **source_kwargs))
     counts = row_counts(pipeline)
     if marts_sql is not None:
         apply_marts(pipeline, marts_sql, render)
+        if counts.get(TIMELINE_TABLE, 0) or raw_table_exists(pipeline, TIMELINE_TABLE):
+            apply_marts(pipeline, TIMELINE_SQL, render)
     return counts
 
 
@@ -113,10 +121,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="a closed-won stage as Twenty names it (repeatable); "
         "default: sources.twenty.won_stages, else CUSTOMER",
     )
+    parser.add_argument(
+        "--no-timeline",
+        action="store_true",
+        help="leave out timeline activities, Twenty's change feed (also sources.twenty.timeline = false)",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     won = won_stages(args.won_stage or dlt.config.get("sources.twenty.won_stages", list))
-    counts = run_daily(build_pipeline(), won=won)
+    configured = dlt.config.get("sources.twenty.timeline", bool)
+    timeline = not args.no_timeline and (configured is None or bool(configured))
+    counts = run_daily(build_pipeline(), won=won, timeline=timeline)
     log.info("closed-won stages: %s", ", ".join(won))
     log.info("daily sync loaded %s", counts)
     return 0

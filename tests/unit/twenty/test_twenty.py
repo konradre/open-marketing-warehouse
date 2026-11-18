@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -15,9 +16,17 @@ import responses
 from omw.metrics import load_catalog
 from omw.pipelines import twenty as twenty_pipeline
 from omw.pipelines.marts import SQL_DIR, statements
-from omw.pipelines.twenty import DEFAULT_WON_STAGES, MARTS_SQL, render_won_stages, run_daily, won_stages
+from omw.pipelines.twenty import (
+    DEFAULT_WON_STAGES,
+    MARTS_SQL,
+    TIMELINE_SQL,
+    render_won_stages,
+    run_daily,
+    won_stages,
+)
 from omw.sources.twenty import ATTRIBUTION_FIELDS, shape_company, shape_opportunity, shape_person, twenty
 from omw.sources.twenty.source import default_session, updated_at_filter
+from omw.sources.twenty.timeline import TIMELINE_ACTIVITY_COLUMNS, shape_timeline_activity
 from tests.unit.twenty.conftest import BASE_URL, REST, body, fixture, register_api
 
 
@@ -70,6 +79,7 @@ def test_resources_page_with_the_cursor_and_carry_the_key() -> None:
         "tasks",
         "note_targets",
         "task_targets",
+        "timeline_activities",
         "deleted_companies",
         "deleted_people",
         "deleted_opportunities",
@@ -77,6 +87,7 @@ def test_resources_page_with_the_cursor_and_carry_the_key() -> None:
         "deleted_tasks",
         "deleted_note_targets",
         "deleted_task_targets",
+        "deleted_timeline_activities",
         "sync_windows",
     }
     companies = list(source.resources["companies"])
@@ -245,7 +256,9 @@ def test_a_bad_stage_stops_the_run_before_anything_is_loaded() -> None:
 def test_the_command_takes_the_stages_from_the_flag_then_the_config(monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[Any] = []
     monkeypatch.setattr(twenty_pipeline, "build_pipeline", lambda: "pipeline")
-    monkeypatch.setattr(twenty_pipeline, "run_daily", lambda pipeline, won: seen.append(won) or {})
+    monkeypatch.setattr(
+        twenty_pipeline, "run_daily", lambda pipeline, won, timeline: seen.append((won, timeline)) or {}
+    )
     configured: dict[str, Any] = {}
 
     class Config:
@@ -258,7 +271,15 @@ def test_the_command_takes_the_stages_from_the_flag_then_the_config(monkeypatch:
     configured["sources.twenty.won_stages"] = ["WON", "RENEWED"]
     assert twenty_pipeline.main(["daily"]) == 0
     assert twenty_pipeline.main(["daily", "--won-stage", "CLOSED_WON"]) == 0
-    assert seen == [("CUSTOMER",), ("WON", "RENEWED"), ("CLOSED_WON",)]
+    assert [won for won, _ in seen] == [("CUSTOMER",), ("WON", "RENEWED"), ("CLOSED_WON",)]
+    # The change feed is pulled unless the flag or the config says not to.
+    assert [timeline for _, timeline in seen] == [True, True, True]
+    assert twenty_pipeline.main(["daily", "--no-timeline"]) == 0
+    configured["sources.twenty.timeline"] = False
+    assert twenty_pipeline.main(["daily"]) == 0
+    configured["sources.twenty.timeline"] = True
+    assert twenty_pipeline.main(["daily"]) == 0
+    assert [timeline for _, timeline in seen[3:]] == [False, False, True]
 
 
 def test_the_won_metrics_read_the_flag_not_a_stage_name() -> None:
@@ -269,3 +290,93 @@ def test_the_won_metrics_read_the_flag_not_a_stage_name() -> None:
     assert "is_won" in catalog.metrics["opportunities"].grains
     # Splitting the won count by the flag or the stage it is made of would only restate the filter.
     assert not {"is_won", "stage"} & set(catalog.metrics["won_opportunities"].grains)
+
+
+def test_a_timeline_activity_is_read_in_either_shape_twenty_has_shipped() -> None:
+    """Older instances name the event in ``name`` and the record in ``opportunityId``; newer ones carry a
+    type snapshot and ``targetOpportunityId``. The fixture feed holds both."""
+    by_event = {
+        row["id"][-1]: shape_timeline_activity(row)
+        for row in fixture("timeline_activities")["data"]["timelineActivities"]
+    }
+    assert all(set(row) == set(TIMELINE_ACTIVITY_COLUMNS) for row in by_event.values())
+    created, old_move, both, new_move, linked, person, company = (by_event[str(n)] for n in range(1, 8))
+    assert (created["event"], created["object_name"], created["action"]) == (
+        "opportunity.created",
+        "opportunity",
+        "created",
+    )
+    assert created["changed_fields"] == "" and created["stage_after"] == ""  # a creation is not a move
+    assert created["happens_at"] == datetime(2026, 9, 15, 9, 0, tzinfo=UTC)
+    for move, before, after in ((old_move, "NEW", "MEETING"), (new_move, "MEETING", "PROPOSAL")):
+        assert (move["event"], move["action"]) == ("opportunity.updated", "updated")
+        assert (move["stage_before"], move["stage_after"], move["changed_fields"]) == (before, after, "stage")
+        assert move["opportunity_id"].endswith("0001") and move["person_id"] == "" and not move["is_linked"]
+    assert both["changed_fields"] == "amount,stage" and both["opportunity_id"].endswith("0002")
+    assert json.loads(both["properties"])["diff"]["amount"]["after"]["amountMicros"] == 9000000000
+    assert (linked["event"], linked["object_name"], linked["action"], linked["is_linked"]) == (
+        "linked-note.created",
+        "note",
+        "linked",
+        True,
+    )
+    assert linked["linked_record_name"] == "Kick-off call" and linked["linked_record_id"].startswith("4444")
+    assert linked["opportunity_id"].endswith("0001") and linked["properties"] == ""
+    assert person["person_id"].endswith("0001") and person["member_id"] == ""  # an API key, no member
+    assert person["changed_fields"] == "jobTitle" and person["stage_after"] == ""
+    # Properties that arrive as a JSON string are read the same way.
+    assert company["company_id"].endswith("0001") and company["changed_fields"] == "employees"
+    # A stage that is not a name (a cleared field) is not a stage; an event with no name still loads.
+    odd = shape_timeline_activity(
+        {
+            "id": "x",
+            "properties": {"diff": {"stage": {"before": None, "after": {"x": 1}}}},
+            "createdAt": "2026-10-01T00:00:00Z",
+        }
+    )
+    assert (odd["stage_before"], odd["stage_after"], odd["event"], odd["action"]) == ("", "", "", "")
+    assert odd["happens_at"] == datetime(2026, 10, 1, tzinfo=UTC) and odd["changed_fields"] == "stage"
+
+
+@responses.activate
+def test_the_timeline_is_a_resource_like_the_others_and_can_be_left_out() -> None:
+    register_api(responses)
+    source = twenty(base_url=BASE_URL, api_key="twenty-key", session=_session())
+    events = list(source.resources["timeline_activities"])
+    assert len(events) == 7 and [e["stage_after"] for e in events if e["stage_after"]] == [
+        "MEETING",
+        "MEETING",
+        "PROPOSAL",
+    ]
+    request = next(c.request for c in responses.calls if "/rest/timelineActivities" in str(c.request.url))
+    query = parse_qs(urlparse(str(request.url)).query)
+    assert query["filter"] == ['updatedAt[gte]:"1970-01-01T00:00:00Z"'] and query["limit"] == ["60"]
+    hints: dict[str, Any] = dict(source.resources["timeline_activities"].compute_table_schema())
+    assert hints["write_disposition"] == "merge" and hints["x-clickhouse-sort"] == ["id"]
+    deleted: dict[str, Any] = dict(source.resources["deleted_timeline_activities"].compute_table_schema())
+    assert deleted["name"] == "timeline_activities"
+    without = twenty(base_url=BASE_URL, api_key="twenty-key", session=_session(), timeline=False)
+    assert not [name for name in without.resources if "timeline" in name]
+    assert set(without.resources) == set(source.resources) - {
+        "timeline_activities",
+        "deleted_timeline_activities",
+    }
+
+
+def test_the_timeline_view_dates_stage_moves_and_follows_the_closed_won_stages() -> None:
+    text = TIMELINE_SQL.read_text()
+    stmts = statements(text)
+    assert len(stmts) == 1 and "CREATE OR REPLACE VIEW marts.twenty_timeline" in stmts[0]
+    assert "DEFINER = CURRENT_USER SQL SECURITY DEFINER AS" in stmts[0] and "properties" not in stmts[0]
+    assert "linked_record_name" not in stmts[0]  # names of linked records stay in raw with the diffs
+    assert render_won_stages(DEFAULT_WON_STAGES)(text) == text
+    rendered = statements(render_won_stages(["WON", "RENEWED"])(text))[0]
+    assert (
+        "(t.stage_after IN (/*won_stages*/'WON', 'RENEWED'/*won_stages*/) "
+        "AND t.stage_before NOT IN (/*won_stages*/'WON', 'RENEWED'/*won_stages*/)) AS became_won" in rendered
+    )
+    assert "Closed-won stages here: WON, RENEWED'" in rendered and "'CUSTOMER'" not in rendered
+    catalog = load_catalog()
+    assert catalog.reports["twenty.timeline"].view == "marts.twenty_timeline"
+    assert catalog.metrics["crm_wins"].expr == "countIf(became_won)"
+    assert catalog.metrics["crm_stage_changes"].expr == "countIf(stage_after != '')"

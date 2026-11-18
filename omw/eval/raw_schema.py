@@ -253,6 +253,13 @@ RAW_TABLES: dict[str, str] = {
         "opportunity_id String, created_at DateTime64(6, 'UTC'), updated_at DateTime64(6, 'UTC'), "
         "deleted_at DateTime64(6, 'UTC')"
     ),
+    "twenty___timeline_activities": (
+        "source String, id String, happens_at DateTime64(6, 'UTC'), event String, object_name String, "
+        "action String, is_linked Bool, changed_fields String, stage_before String, stage_after String, "
+        "linked_record_id String, linked_record_name String, member_id String, person_id String, "
+        "company_id String, opportunity_id String, note_id String, task_id String, properties String, "
+        "created_at DateTime64(6, 'UTC'), updated_at DateTime64(6, 'UTC'), deleted_at DateTime64(6, 'UTC')"
+    ),
     "twenty___tasks": (
         "source String, id String, title String, body String, status String, due_at DateTime64(6, "
         "'UTC'), assignee_id String, created_by String, created_at DateTime64(6, 'UTC'), "

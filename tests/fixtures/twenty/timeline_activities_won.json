@@ -1,0 +1,51 @@
+{
+ "data": {
+  "timelineActivities": [
+   {
+    "id": "77777777-aaaa-4bbb-8ccc-000000000008",
+    "happensAt": "2026-10-04T15:00:00.000Z",
+    "properties": {
+     "diff": {
+      "stage": {
+       "before": "PROPOSAL",
+       "after": "CUSTOMER"
+      },
+      "closeDate": {
+       "before": null,
+       "after": "2026-10-04T00:00:00.000Z"
+      }
+     }
+    },
+    "timelineActivityTypeId": "88888888-aaaa-4bbb-8ccc-000000000008",
+    "timelineActivityTypeSnapshot": {
+     "id": "88888888-aaaa-4bbb-8ccc-000000000008",
+     "universalIdentifier": "88888888-0000-4000-8000-000000000008",
+     "name": "opportunity.updated",
+     "label": "Updated",
+     "action": "updated",
+     "icon": "IconPencil",
+     "objectUniversalIdentifier": null,
+     "frontComponentUniversalIdentifier": null
+    },
+    "linkedRecordCachedName": null,
+    "linkedRecordId": null,
+    "linkedObjectMetadataId": null,
+    "workspaceMemberId": "99999999-aaaa-4bbb-8ccc-000000000001",
+    "targetPersonId": null,
+    "targetCompanyId": null,
+    "targetOpportunityId": "33333333-aaaa-4bbb-8ccc-000000000001",
+    "targetNoteId": null,
+    "targetTaskId": null,
+    "createdAt": "2026-10-04T15:00:00.000Z",
+    "updatedAt": "2026-10-04T15:00:00.000Z",
+    "deletedAt": null
+   }
+  ]
+ },
+ "pageInfo": {
+  "hasNextPage": false,
+  "startCursor": "77777777-aaaa-4bbb-8ccc-000000000008",
+  "endCursor": "77777777-aaaa-4bbb-8ccc-000000000008"
+ },
+ "totalCount": 1
+}

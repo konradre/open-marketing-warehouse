@@ -34,6 +34,28 @@ reports:
     campaign_key: campaign_key
     traps:
       - A note or task attached to several records is one row per record; the counts here are distinct activities.
+  - name: timeline
+    view: marts.twenty_timeline
+    description: Twenty CRM change feed, one row per event Twenty recorded on a record, dated by the day it happened.
+    row_level: true
+    dimensions:
+      event: Event name as Twenty records it (opportunity.updated, linked-note.created)
+      object: Kind of record the event is about (opportunity, person, company, note, task)
+      action: created, updated, deleted, restored, linked or unlinked
+      is_linked: True when the event is about a note or task linked to the record
+      stage_before: Stage an opportunity left, empty when the event did not change its stage
+      stage_after: Stage an opportunity entered, empty when the event did not change its stage
+      member_id: Workspace member who caused the event, empty for the system or an API key
+      person_id: Person the event happened on, empty when none
+      company_id: Company the event happened on, else the company of its opportunity
+      company_name: Company name at the last sync
+      opportunity_id: Opportunity the event happened on, empty when none
+      opportunity_name: Opportunity name at the last sync
+    campaign_key: campaign_key
+    traps:
+      - Twenty may fold quick successive edits of one record by one member into a single event, so events undercount edits.
+      - An opportunity created directly in a closed-won stage has no stage move; crm_wins misses it and won_opportunities counts it.
+      - The feed starts when the record was first synced with timeline activities on; older moves are only there if Twenty kept them.
 metrics:
   - name: opportunities
     report: opportunities
@@ -87,3 +109,24 @@ metrics:
     grains: [kind, status, created_by, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
     aliases: [tasks]
     description: Distinct tasks created, by creation day; filter status for open ones.
+  - name: crm_events
+    report: timeline
+    expr: count()
+    unit: count
+    grains: [event, object, action, is_linked, stage_before, stage_after, member_id, person_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
+    aliases: [timeline_events]
+    description: Events in Twenty's change feed (records created, updated, deleted, notes and tasks linked), by the day they happened.
+  - name: crm_stage_changes
+    report: timeline
+    expr: countIf(stage_after != '')
+    unit: count
+    grains: [stage_before, stage_after, member_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
+    aliases: [stage_changes, stage_moves]
+    description: Opportunity stage moves, by the day the opportunity moved; split by stage_before and stage_after.
+  - name: crm_wins
+    report: timeline
+    expr: countIf(became_won)
+    unit: count
+    grains: [stage_before, member_id, company_id, company_name, opportunity_id, opportunity_name, campaign_key]
+    aliases: [wins, deals_won]
+    description: Moves of an opportunity into a closed-won stage (CUSTOMER unless configured), by the day it moved. won_opportunities counts by creation day instead.

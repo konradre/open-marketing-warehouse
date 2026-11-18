@@ -15,6 +15,9 @@ BASE_URL = "https://twenty.example.test"
 REST = f"{BASE_URL}/rest/"
 
 
+OBJECT_PATHS = ("companies", "people", "opportunities", "notes", "tasks", "noteTargets", "taskTargets")
+
+
 def fixture(name: str) -> Any:
     return json.loads((FIXTURES / f"{name}.json").read_text())
 
@@ -36,10 +39,13 @@ def _empty(path: str) -> str:
 
 
 def register_api(
-    mock: Any, opportunities: str = "opportunities", deleted_opportunities: str | None = None
+    mock: Any,
+    opportunities: str = "opportunities",
+    deleted_opportunities: str | None = None,
+    timeline: str = "timeline_activities",
 ) -> None:
     # The deleted pass first: its requests also carry limit=60 and would match the live mocks below.
-    for path in ("companies", "people", "opportunities", "notes", "tasks", "noteTargets", "taskTargets"):
+    for path in (*OBJECT_PATHS, "timelineActivities"):
         deleted = deleted_opportunities if path == "opportunities" and deleted_opportunities else None
         mock.add(
             responses.GET,
@@ -83,6 +89,7 @@ def register_api(
         ("tasks", "tasks"),
         ("noteTargets", "note_targets"),
         ("taskTargets", "task_targets"),
+        ("timelineActivities", timeline),
     ):
         mock.add(
             responses.GET,

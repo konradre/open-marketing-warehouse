@@ -168,7 +168,7 @@ question it still cannot answer, kept as a declared gap so that coverage stays a
 ### The seed
 
 `omw eval seed` loads a synthetic company into ClickHouse: four months (1 June to 30 September 2026), every
-source and every report grain, about 33 000 rows in 49 `raw` tables. The evaluation pretends today is
+source and every report grain, about 33 000 rows in 50 `raw` tables. The evaluation pretends today is
 **1 October 2026**, so "last month" and Meta's 28-day restatement window mean the same thing on every run.
 
 - **Deterministic.** Every number is a hash of the seed (`20260601`), an entity, a day and a field name
