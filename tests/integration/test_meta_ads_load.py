@@ -308,3 +308,27 @@ def test_pausing_an_ad_set_keeps_the_ad_rows_of_the_days_it_ran(
     both = sync(frozenset())
     assert both == [(date(2026, 10, day), Decimal("40"), 2) for day in (1, 2, 3)]
     assert sync(frozenset({"23860000000000009"})) == both
+
+
+def test_budgets_of_an_account_in_rupiah_are_whole_units(loaded: dlt.Pipeline, agent_client: Client) -> None:
+    """Meta gives IDR an offset of 1: a budget of "5000" is Rp 5 000, not Rp 50.00. The last test of the
+    module, because it turns the fixture account into a rupiah account."""
+    pacer = MetaPacer(sleep=lambda _: None)
+    account = FakeAccount(pacer=pacer, currency="IDR")
+    run(loaded, "daily", [ACCOUNT], today=TODAY, pacer=pacer, accounts={ACCOUNT: account})
+    listed = agent_client.query(
+        f"SELECT campaign_id, currency, daily_budget, lifetime_budget FROM marts.{DATASET}_campaign_list"
+    ).result_rows
+    reported = {c["id"]: c for c in fixture_rows("campaigns")}
+    assert listed and {currency for _, currency, _, _ in listed} == {"IDR"}
+    for campaign_id, _, daily, lifetime in listed:
+        assert Decimal(str(daily)) == Decimal(reported[campaign_id].get("daily_budget") or 0), campaign_id
+        assert Decimal(str(lifetime)) == Decimal(reported[campaign_id].get("lifetime_budget") or 0)
+    assert any(Decimal(str(daily)) > 0 for _, _, daily, _ in listed)
+    ad_sets = agent_client.query(
+        f"SELECT adset_id, daily_budget, bid_amount FROM marts.{DATASET}_ad_set_list"
+    ).result_rows
+    reported_sets = {s["id"]: s for s in fixture_rows("ad_sets")}
+    for adset_id, daily, bid in ad_sets:
+        assert Decimal(str(daily)) == Decimal(reported_sets[adset_id].get("daily_budget") or 0), adset_id
+        assert Decimal(str(bid)) == Decimal(reported_sets[adset_id].get("bid_amount") or 0), adset_id

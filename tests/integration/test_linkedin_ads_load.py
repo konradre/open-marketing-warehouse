@@ -204,3 +204,22 @@ def test_restated_day_is_replaced_and_entities_merge(
     ]
     assert Decimal(str(rows[1][2])) == Decimal("375.60")
     assert admin_client.query("SELECT count() FROM raw.linkedin_ads___campaigns").result_rows[0][0] == 3
+
+
+def test_cost_keeps_the_decimals_linkedin_reports(loaded: dlt.Pipeline, agent_client: Client) -> None:
+    """LinkedIn reports ``costInLocalCurrency`` as a decimal string with more than two places (its own
+    reporting documentation shows "19.91833"). Cut to cents per campaign and day, every row loses up to a
+    cent and the sum drifts below what LinkedIn bills."""
+    _run(loaded, analytics="ad_analytics_fractional_2026-10-03")
+    rows = agent_client.query(
+        "SELECT campaign_id, cost FROM marts.linkedin_ads_campaigns WHERE date = '2026-10-03' "
+        "ORDER BY campaign_id"
+    ).result_rows
+    assert [(c, Decimal(str(cost))) for c, cost in rows] == [
+        ("800001", Decimal("19.91833")),
+        ("800002", Decimal("0.00467")),
+    ]
+    total = agent_client.query(
+        "SELECT sum(cost) FROM marts.linkedin_ads_campaigns WHERE date = '2026-10-03'"
+    ).result_rows[0][0]
+    assert Decimal(str(total)) == Decimal("19.923")
