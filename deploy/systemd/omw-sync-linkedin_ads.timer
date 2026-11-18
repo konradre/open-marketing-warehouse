@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: linkedin_ads (04:45 UTC, re-fetch the last 7 days)
+
+[Timer]
+OnCalendar=*-*-* 04:45:00 UTC
+Persistent=true
+Unit=omw-sync@linkedin_ads.service
+
+[Install]
+WantedBy=timers.target

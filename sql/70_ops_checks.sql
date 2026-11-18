@@ -2,11 +2,11 @@
 CREATE TABLE IF NOT EXISTS ops.check_results (
     checked_at DateTime COMMENT 'When the check ran, UTC',
     source LowCardinality(String) COMMENT 'Source the check concerns: search_console, meta_ads, google_ads, ga4, stripe',
-    check LowCardinality(String) COMMENT 'overcount, freshness or rowcount',
-    report LowCardinality(String) COMMENT 'Report grain the check looked at, or sync for freshness',
+    check LowCardinality(String) COMMENT 'overcount, freshness, rowcount or expiry',
+    report LowCardinality(String) COMMENT 'Report grain the check looked at, sync for freshness, token or api_version for expiry',
     status LowCardinality(String) COMMENT 'pass, warn or fail',
-    observed Float64 COMMENT 'What was measured: max breakdown/core ratio, hours since the last sync, rows in the current window',
-    expected Float64 COMMENT 'The bound: 1 + tolerance, the freshness budget in hours, rows in the previous window',
+    observed Float64 COMMENT 'What was measured: max breakdown/core ratio, hours since the last sync, rows in the current window, days until a credential expires',
+    expected Float64 COMMENT 'The bound: 1 + tolerance, the freshness budget in hours, rows in the previous window, the days ahead an expiry warns',
     detail String COMMENT 'Human-readable outcome'
 )
 ENGINE = MergeTree
@@ -34,8 +34,8 @@ FROM (
 
 CREATE OR REPLACE VIEW ops.check_verdicts (
     source LowCardinality(String) COMMENT 'Source the check concerns',
-    check LowCardinality(String) COMMENT 'overcount, freshness or rowcount',
-    report LowCardinality(String) COMMENT 'Report grain the check looked at, or sync for freshness',
+    check LowCardinality(String) COMMENT 'overcount, freshness, rowcount or expiry',
+    report LowCardinality(String) COMMENT 'Report grain the check looked at, sync for freshness, token or api_version for expiry',
     status LowCardinality(String) COMMENT 'pass, warn or fail at the latest run of this check',
     observed Float64 COMMENT 'What the latest run measured',
     expected Float64 COMMENT 'The bound the latest run compared against',

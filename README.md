@@ -324,6 +324,29 @@ pipeline has no lost stage, so the default is none; an opportunity that is neith
 uv run python -m omw.pipelines.twenty daily    # everything changed since the last run
 ```
 
+## Running it on a host
+
+[`docs/DEPLOY.md`](docs/DEPLOY.md) is the operator's guide: a VPS or a laptop, where each secret lives, the
+schedule, alerts, backup and restore, log rotation and upgrades. In short:
+
+```bash
+make scheduler                  # the `scheduler` profile: every source on its cadence, one job at a time
+make schedule                   # every job, its next slot and how its last run ended
+make job JOB=ga4                # one job now: the sync, its post-sync checks, the run log, the failure hook
+make backup && make backup-verify   # BACKUP ... TO Disk, then the restore drill into scratch databases
+```
+
+- **Cadences** (`[schedule]` in `.dlt/config.toml`, UTC): every source once a day on its own rolling window;
+  Meta daily with a 7-day re-pull and weekly with the 28-day reconcile, which replaces the daily run on its
+  day. `"off"` takes a source out of the schedule and out of the checks.
+- **After every sync**, the checks of that source run. `omw sync <job>` exits 1 when the sync failed and 3
+  when it loaded but a check failed, and sends a webhook and/or an e-mail (`[alerts]` in
+  `.dlt/secrets.toml`) either way.
+- **systemd timers** instead of the container loop: `deploy/systemd/`, rendered from the same schedule by
+  `omw schedule systemd`.
+- **Rehearsal without credentials:** `omw schedule run --fixtures <dir>` runs the same loop against the
+  demo's fixture files.
+
 ## Post-sync checks
 
 `omw check` runs after the syncs and exits non-zero on any failure, so a scheduler sees it:
@@ -334,7 +357,12 @@ uv run python -m omw.pipelines.twenty daily    # everything changed since the la
 - **freshness**: every source's last successful sync must be within its budget (`[checks.freshness_hours]`
   in `.dlt/config.toml`); a source that never synced, an empty sync log or an expired Meta token fails;
 - **row-count sanity**: the last 7 days of each core grain against the 7 before: a collapse to zero fails,
-  a swing beyond 3x warns.
+  a swing beyond 3x warns;
+- **expiry**: a credential with a recorded end date (`token_expires_at` in the source's section of
+  `.dlt/secrets.toml`) warns 14 days ahead and fails after the day; LinkedIn's pinned API version warns
+  three months before it leaves support.
+
+A source whose jobs are all `"off"` in `[schedule]` is left out of the checks.
 
 Results go to `ops.check_results`; `ops.freshness` is the view the agent can read (one row per source
 with the latest verdict).
@@ -405,11 +433,12 @@ offline planners through both arms and rewrites the results. A real-model run is
 ## Layout
 
 ```
-omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server), eval/ (read-path evaluation harness), demo/ (synthetic fixtures, fixture mode, `make demo`)
+omw/            Python package: sources/, pacing/ (Meta header-aware pacer), pipelines/, checks/, metrics/ (schema, compiler, MCP server), eval/ (read-path evaluation harness), demo/ (synthetic fixtures, fixture mode, `make demo`), scheduler/ (job table, `omw sync`, the loop, failure hook, systemd units), backup/ (backup, restore drill, restore)
 metrics/        metric definitions (YAML), validated by omw/metrics/schema.py
 SEMANTICS.md    business semantics for the agent
 eval/           read-path evaluation: README.md (results), questions.json (ground truth), results/
 sql/            ClickHouse DDL; 00_* is the bootstrap (databases, users, profile, quota, grants), NN_<source>_* marts views
-deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config
+deploy/         docker-compose.yml, ClickHouse config and init script, LibreChat config, scheduler/ (image), systemd/ (timer units)
+docs/           DEPLOY.md (running it on one host), THREADS.md (build briefs)
 tests/          unit/ (no services), integration/ (ClickHouse + mcp-clickhouse), fixtures/<source>/
 ```

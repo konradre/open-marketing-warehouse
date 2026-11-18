@@ -9,7 +9,17 @@ REPO = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize(
-    "name", ["omw", "omw.sources", "omw.pacing", "omw.pipelines", "omw.checks", "omw.metrics"]
+    "name",
+    [
+        "omw",
+        "omw.sources",
+        "omw.pacing",
+        "omw.pipelines",
+        "omw.checks",
+        "omw.metrics",
+        "omw.scheduler",
+        "omw.backup",
+    ],
 )
 def test_subpackage_imports(name: str) -> None:
     assert importlib.import_module(name).__doc__

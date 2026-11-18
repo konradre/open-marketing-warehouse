@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: stripe (04:30 UTC, merge customers, subscriptions and recent invoices; append balance transactions)
+
+[Timer]
+OnCalendar=*-*-* 04:30:00 UTC
+Persistent=true
+Unit=omw-sync@stripe.service
+
+[Install]
+WantedBy=timers.target

@@ -39,3 +39,30 @@ won_stages = ["CUSTOMER"]
 lost_stages = []
 # Twenty's change feed (timeline activities -> marts.twenty_timeline). It grows with every edit; false leaves it out.
 timeline = true
+
+[checks]
+# Days ahead of a recorded credential end date (sources.<source>.token_expires_at) the expiry check warns.
+expiry_warn_days = 14
+
+[schedule]
+# When each job runs, in UTC: "HH:MM" every day, "sun HH:MM" or "mon,thu HH:MM" on those days, "off" never.
+# A source whose jobs are all off is not checked either. The scheduler reads this at start
+# (`omw schedule list` prints it; `omw schedule systemd` renders it as timer units).
+search_console = "03:00"
+meta_ads_weekly = "sun 03:15"      # the 28-day reconcile; it replaces the daily re-pull on its days
+meta_ads_daily = "03:15"           # the 7-day re-pull
+google_ads = "04:00"
+ga4 = "04:15"
+stripe = "04:30"
+linkedin_ads = "04:45"
+twenty = "05:00"
+backup = "06:00"
+backup_verify = "sun 06:30"        # restore drill of the newest backup, into scratch databases
+
+[scheduler]
+# A job still running after this many minutes is stopped and reported as crashed.
+timeout_minutes = 360
+
+[backup]
+# Scheduled backups to keep; older ones are deleted after each new one.
+keep = 7

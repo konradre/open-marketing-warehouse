@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: google_ads (04:00 UTC, re-fetch the last 30 days)
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 UTC
+Persistent=true
+Unit=omw-sync@google_ads.service
+
+[Install]
+WantedBy=timers.target

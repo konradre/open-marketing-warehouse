@@ -5,6 +5,7 @@ secrets.toml
 .env.*
 *.pem
 *.key
+.dlt/keys/
 
 # python
 __pycache__/
@@ -20,6 +21,7 @@ build/
 # local data
 *.duckdb
 data/
+backups/
 
 # keep the documented examples
 !.env.example

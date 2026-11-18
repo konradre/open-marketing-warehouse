@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
+from omw.checks.expiry import DEFAULT_WARN_DAYS, expiry_checks
 from omw.checks.freshness import freshness_checks
 from omw.checks.overcount import overcount_checks
 from omw.checks.results import CheckResult, Status, Warehouse, write_results
@@ -59,10 +62,13 @@ def run_checks(
     sources: set[str] | None = None,
     write: bool = True,
     today: date | None = None,
+    expiries: Mapping[str, Any] | None = None,
+    expiry_warn_days: int = DEFAULT_WARN_DAYS,
 ) -> CheckRun:
     """``now`` is the wall clock freshness is judged against (an instant, or a naive UTC time); ``today``
     (default: its UTC date) anchors the over-count and row-count windows, so tests can check fixture days
-    loaded at another time."""
+    loaded at another time. ``expiries`` (source -> the day its credential ends, or ``None``) adds the
+    expiry check for those sources; it is always judged against the real day."""
     now = utc_wall_clock(now)
     today = today or now.date()
     existing = existing_objects(client)
@@ -70,6 +76,8 @@ def run_checks(
     run.results += freshness_checks(client, now, budgets, existing)
     run.results += overcount_checks(client, today, existing_views=existing)
     run.results += rowcount_checks(client, today, existing_views=existing)
+    if expiries is not None:
+        run.results += expiry_checks(expiries, now.date(), expiry_warn_days)
     if sources:
         run.results = [r for r in run.results if r.source in sources]
     if write:

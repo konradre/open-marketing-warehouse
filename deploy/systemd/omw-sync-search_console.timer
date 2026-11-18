@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: search_console (03:00 UTC, re-fetch the rolling 10 days)
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 UTC
+Persistent=true
+Unit=omw-sync@search_console.service
+
+[Install]
+WantedBy=timers.target

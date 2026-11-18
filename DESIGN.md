@@ -172,6 +172,14 @@ accident guard, not the boundary.
 - Over-count: a breakdown grain may not exceed `core` by more than 1%.
 - Freshness per source: last successful sync within its budget. A dead token or a silent empty pull fails here.
 - Row-count sanity against the previous window.
+- Expiry: a credential with a recorded end date warns ahead of it and fails after it.
+
+**Scheduling** (`docs/DEPLOY.md`): one job at a time, the checks of a source after every sync of it, each
+attempt in `ops.sync_runs`, a webhook or e-mail and a non-zero exit code on failure. The scheduler container
+and systemd timers are two triggers for the same `omw sync <job>`.
+
+**Backups:** `BACKUP ... TO Disk` of `raw`, `marts` and `ops` nightly, with a manifest of row counts inside;
+a weekly restore drill into scratch databases compares against it.
 
 **Secrets:** `.dlt/secrets.toml` and `.env` are never committed; `*.example` files document every key.
 
@@ -188,9 +196,12 @@ omw/                    Python package (uv, Python 3.12)
   metrics/              metric-definition schema, compiler, MCP server
   eval/                 read-path evaluation: seed, questions, arms, planners, scoring
   demo/                 synthetic fixtures for all seven sources, fixture mode (replay), `make demo`
+  scheduler/            job table and cadences, `omw sync <job>`, the scheduler loop, failure hook, systemd units
+  backup/               `BACKUP ... TO Disk`, the restore drill, restore
 metrics/                metric definitions (YAML)
 sql/                    ClickHouse DDL: databases, marts views, users, profiles, quotas
-deploy/                 docker-compose.yml (+ profiles chat, observability), ClickHouse config
+deploy/                 docker-compose.yml (+ profiles scheduler, chat, observability), ClickHouse config,
+                        the scheduler image, systemd timer units; `docs/DEPLOY.md` is the operator's guide
 tests/                  unit tests with recorded API fixtures; integration tests against ClickHouse in Docker
 SEMANTICS.md            business semantics for the agent
 eval/                   evaluation report, questions with ground truth, recorded runs

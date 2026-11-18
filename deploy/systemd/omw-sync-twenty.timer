@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: twenty (05:00 UTC, everything changed since the last run)
+
+[Timer]
+OnCalendar=*-*-* 05:00:00 UTC
+Persistent=true
+Unit=omw-sync@twenty.service
+
+[Install]
+WantedBy=timers.target

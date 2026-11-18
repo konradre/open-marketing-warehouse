@@ -63,6 +63,10 @@ def test_grants_match_the_boundary() -> None:
         ("ALL", "ops.*", "pipeline"),
         ("ALL", "marts.*", "pipeline"),
         ("SELECT", "INFORMATION_SCHEMA.*", "pipeline"),
+        ("ALL", "omw_drill_raw.*", "pipeline"),  # the scratch databases of the restore drill
+        ("ALL", "omw_drill_marts.*", "pipeline"),
+        ("ALL", "omw_drill_ops.*", "pipeline"),
+        ("SELECT", "system.backups", "pipeline"),
         ("SELECT", "marts.*", "agent"),
         ("SELECT", "ops.freshness", "agent"),
         ("SELECT", "ops.check_verdicts", "agent"),

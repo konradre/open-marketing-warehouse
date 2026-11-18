@@ -4,10 +4,13 @@
 - **freshness**: every source's last successful sync is within its budget; a dead token or a silent
   empty pull fails here.
 - **row-count sanity**: the current window against the previous one, flagging collapses and explosions.
+- **expiry**: a credential with a recorded end date (``sources.<source>.token_expires_at``) warns ahead of
+  it and fails after it; so does LinkedIn's pinned API version.
 
 ``omw check`` runs them all and exits non-zero on any failure, for the scheduler.
 """
 
+from omw.checks.expiry import expiry_checks
 from omw.checks.freshness import DEFAULT_BUDGET_HOURS, freshness_checks
 from omw.checks.overcount import OVERCOUNT_RULES, OvercountRule, overcount_checks
 from omw.checks.results import CheckResult, Status, write_results
@@ -23,6 +26,7 @@ __all__ = [
     "OvercountRule",
     "RowcountRule",
     "Status",
+    "expiry_checks",
     "freshness_checks",
     "overcount_checks",
     "rowcount_checks",

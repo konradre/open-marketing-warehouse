@@ -1,0 +1,11 @@
+# Rendered by `omw schedule systemd`; edit [schedule] in .dlt/config.toml and render again.
+[Unit]
+Description=open-marketing-warehouse: backup (06:00 UTC, back up raw, marts and ops; keep the newest few)
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 UTC
+Persistent=true
+Unit=omw-sync@backup.service
+
+[Install]
+WantedBy=timers.target
