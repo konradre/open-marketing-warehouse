@@ -381,6 +381,7 @@ def test_the_timeline_view_dates_stage_moves_and_follows_the_closed_won_stages()
     text = TIMELINE_SQL.read_text()
     stmts = statements(text)
     assert len(stmts) == 1 and "CREATE OR REPLACE VIEW marts.twenty_timeline" in stmts[0]
+    assert ";" not in stmts[0]  # dlt's ClickHouse client splits what it is given on every semicolon
     assert "DEFINER = CURRENT_USER SQL SECURITY DEFINER AS" in stmts[0] and "properties" not in stmts[0]
     assert "linked_record_name" not in stmts[0]  # names of linked records stay in raw with the diffs
     assert render_won_stages(DEFAULT_WON_STAGES)(text) == text

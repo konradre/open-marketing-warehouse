@@ -26,7 +26,7 @@ CREATE OR REPLACE VIEW marts.twenty_timeline (
     company_name String COMMENT 'Company name at the last sync',
     opportunity_id String COMMENT 'Opportunity the event happened on, empty when none',
     opportunity_name String COMMENT 'Opportunity name at the last sync',
-    campaign_key String COMMENT 'Campaign key for cross-source joins (DESIGN.md §6). For an event on an opportunity, the key twenty_pipeline gives that opportunity (the opportunity, else its point of contact, else its company); otherwise the key of the person, else the company, the event happened on. Empty when unattributed'
+    campaign_key String COMMENT 'Campaign key for cross-source joins (DESIGN.md §6). For an event on an opportunity, the key twenty_pipeline gives that opportunity (the opportunity, else its point of contact, else its company). Otherwise the key of the person, else the company, the event happened on. Empty when unattributed'
 ) DEFINER = CURRENT_USER SQL SECURITY DEFINER AS
 SELECT t.source AS source, 'timeline' AS report, toDate(t.happens_at) AS date, t.id AS event_id, t.happens_at AS happens_at,
        t.event AS event, t.object_name AS object, t.action AS action, t.is_linked AS is_linked, t.changed_fields AS changed_fields,
