@@ -5,12 +5,14 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import clickhouse_connect
 import dlt
 from clickhouse_connect.driver.client import Client
+
+from omw.pipelines.instants import instant
 
 PACING_EVENTS = "ops.pacing_events"
 PACING_EVENT_COLUMNS = (
@@ -36,10 +38,13 @@ class PacingEvent:
     utilisation: float = 0.0
     sleep_seconds: float = 0.0
     detail: str = ""
-    recorded_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC).replace(tzinfo=None))
+    recorded_at: datetime = field(default_factory=instant)
+    """When the event happened. Written as an instant: a naive value is taken as UTC wall-clock."""
 
     def row(self) -> list[Any]:
-        return [getattr(self, name) for name in PACING_EVENT_COLUMNS]
+        values = {name: getattr(self, name) for name in PACING_EVENT_COLUMNS}
+        values["recorded_at"] = instant(self.recorded_at)
+        return list(values.values())
 
 
 @contextmanager

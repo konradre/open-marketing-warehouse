@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
 import dlt
 
 from omw.checks.results import Warehouse
+from omw.pipelines.instants import instant
 from omw.pipelines.marts import SQL_DIR, statements
 from omw.pipelines.ops_log import warehouse_client
 
@@ -66,17 +67,6 @@ def manual_keys(client: Warehouse) -> set[tuple[str, str]]:
         f"SELECT source, native_id FROM {CAMPAIGN_KEYS} FINAL WHERE origin = 'manual'"
     ).result_rows
     return {(str(source), str(native_id)) for source, native_id in rows}
-
-
-def instant(now: datetime | None = None) -> datetime:
-    """``now`` as an instant in UTC: the current time when unset, a naive value taken as UTC wall-clock.
-
-    The driver reads a naive datetime in the host's time zone, so a naive UTC time written from a host that
-    is not on UTC lands shifted by the offset. ``updated_at`` decides which mapping row wins, and rows
-    written in SQL get the server's own ``now()``, so the two must be the same clock.
-    """
-    now = now or datetime.now(tz=UTC)
-    return now if now.tzinfo else now.replace(tzinfo=UTC)
 
 
 def loaded_campaigns(client: Warehouse, table: CampaignTable) -> list[tuple[str, str]]:

@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from omw.checks.freshness import freshness_checks
 from omw.checks.overcount import overcount_checks
 from omw.checks.results import CheckResult, Status, Warehouse, write_results
 from omw.checks.rowcount import rowcount_checks
+from omw.pipelines.instants import utc_wall_clock
 from omw.pipelines.marts import SQL_DIR, statements
 
 OPS_SQL = SQL_DIR / "70_ops_checks.sql"
@@ -59,9 +60,10 @@ def run_checks(
     write: bool = True,
     today: date | None = None,
 ) -> CheckRun:
-    """``now`` is the wall clock freshness is judged against; ``today`` (default: its date) anchors the
-    over-count and row-count windows, so tests can check fixture days loaded at another time."""
-    now = now or datetime.now(tz=UTC).replace(tzinfo=None)
+    """``now`` is the wall clock freshness is judged against (an instant, or a naive UTC time); ``today``
+    (default: its UTC date) anchors the over-count and row-count windows, so tests can check fixture days
+    loaded at another time."""
+    now = utc_wall_clock(now)
     today = today or now.date()
     existing = existing_objects(client)
     run = CheckRun()

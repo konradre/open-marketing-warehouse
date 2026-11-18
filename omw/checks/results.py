@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import StrEnum
 from typing import Any, Protocol
+
+from omw.pipelines.instants import instant
 
 
 class Status(StrEnum):
@@ -46,7 +48,8 @@ class CheckResult:
     observed: float
     expected: float
     detail: str
-    checked_at: datetime = field(default_factory=lambda: datetime.now(tz=UTC).replace(tzinfo=None))
+    checked_at: datetime = field(default_factory=instant)
+    """When the check ran. Written as an instant: a naive value is taken as UTC wall-clock."""
 
     @property
     def failed(self) -> bool:
@@ -54,7 +57,7 @@ class CheckResult:
 
     def row(self) -> list[Any]:
         return [
-            self.checked_at,
+            instant(self.checked_at),
             self.source,
             self.check,
             self.report,
