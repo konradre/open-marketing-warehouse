@@ -29,7 +29,7 @@ from pathlib import Path
 from omw.pipelines.instants import instant
 from omw.scheduler.jobs import Job, Planned
 from omw.scheduler.notify import Alert, Notifier
-from omw.scheduler.runs import HANDLED_EXITS, RETRYABLE, Outcome, RunStatus, RunStore, SlotState
+from omw.scheduler.runs import HANDLED_EXITS, Outcome, RunStatus, RunStore, SlotState
 
 log = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ class Scheduler:
                     found.append((planned, slot, 0))
             elif (
                 slot == state.slot
-                and state.status in RETRYABLE
+                and not state.settled
                 and max(state.attempts, here) <= self.retries
                 and now >= state.finished_at + self.retry_after
             ):

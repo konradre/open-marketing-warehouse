@@ -7,7 +7,7 @@ from datetime import datetime
 import pytest
 
 from omw.scheduler.notify import Notifier
-from omw.scheduler.runs import Outcome, SlotState
+from omw.scheduler.runs import RETRYABLE, Outcome, SlotState
 from tests.unit.checks.conftest import FakeWarehouse
 
 
@@ -32,7 +32,8 @@ class MemoryStore:
         found: dict[str, SlotState] = {}
         for job, slot in latest.items():
             tries = [o for o in self.outcomes if o.job == job and o.slot == slot]
-            found[job] = SlotState(slot, len(tries), str(tries[-1].status), tries[-1].finished_at)
+            settled = any(o.status not in RETRYABLE for o in tries)
+            found[job] = SlotState(slot, len(tries), settled, max(o.finished_at for o in tries))
         return found
 
     def statuses(self) -> list[tuple[str, str]]:

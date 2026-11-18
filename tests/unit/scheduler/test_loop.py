@@ -251,6 +251,23 @@ def test_a_failed_job_is_tried_again_after_the_pause_and_only_that_job(
     assert [status for job, status in store.statuses() if job == "ga4"] == ["failed", "ok"]
 
 
+def test_a_retry_that_succeeded_in_the_same_second_as_the_failure_settles_the_slot(
+    store: MemoryStore, notifier: Notifier
+) -> None:
+    """Seen in CI: both attempts carried the same second, so "the latest attempt" had no answer and the
+    slot was run a third time. Any attempt that did not fail settles it."""
+    clock = [SUNDAY_NOON]
+    launcher = Launcher(store, {"ga4": EXIT_FAILED})
+    loop = retrying(store, launcher, notifier, clock)
+    loop.retry_after = timedelta(0)
+    loop.tick()
+    launcher.codes = {}
+    assert loop.tick() == {"ga4": 0}  # no time has passed on the clock
+    assert [o.finished_at for o in store.outcomes if o.job == "ga4"] == [SUNDAY_NOON, SUNDAY_NOON]
+    store.outcomes.reverse()  # whichever order the log returns them in
+    assert loop.tick() == {} and retrying(store, launcher, notifier, clock).tick() == {}
+
+
 def test_retries_are_bounded_and_the_last_attempt_is_told_so(store: MemoryStore, notifier: Notifier) -> None:
     clock = [SUNDAY_NOON]
     launcher = Launcher(store, {"stripe": EXIT_FAILED})

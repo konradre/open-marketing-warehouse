@@ -96,9 +96,12 @@ class SlotState:
 
     slot: datetime
     attempts: int
-    status: str
-    """How the latest attempt ended."""
+    settled: bool
+    """Whether any attempt ended in something a retry cannot improve (``ok``, ``check_failed``, ``skipped``).
+    Asked this way, and not "how did the latest attempt end", because two attempts can carry the same
+    second and then have no order."""
     finished_at: datetime
+    """When the latest attempt ended."""
 
 
 @dataclass(frozen=True)
@@ -132,14 +135,15 @@ class RunStore:
     def slot_states(self) -> dict[str, SlotState]:
         """job -> the latest slot any run of it answered, with how often it was tried and how that ended."""
         self.ensure()
+        retryable = ", ".join(f"'{status}'" for status in RETRYABLE)
         rows = self.client.query(
-            f"SELECT job, toUnixTimestamp(slot), count(), argMax(status, started_at), "
+            f"SELECT job, toUnixTimestamp(slot), count(), countIf(status NOT IN ({retryable})), "
             f"toUnixTimestamp(max(finished_at)) FROM {SYNC_RUNS} "
             f"WHERE (job, slot) IN (SELECT job, max(slot) FROM {SYNC_RUNS} GROUP BY job) GROUP BY job, slot"
         ).result_rows
         return {
-            str(job): SlotState(_utc(slot), int(attempts), str(status), _utc(finished))
-            for job, slot, attempts, status, finished in rows
+            str(job): SlotState(_utc(slot), int(attempts), bool(settled), _utc(finished))
+            for job, slot, attempts, settled, finished in rows
         }
 
     def last_runs(self) -> dict[str, LastRun]:
