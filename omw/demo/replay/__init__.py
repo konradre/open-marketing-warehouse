@@ -1,8 +1,8 @@
 """Fixture mode: everything the real pipelines need to run against fixture files instead of the platforms.
 
 ``Replay`` wires one snapshot directory to the clients: a session whose transport answers from the files
-(``transport``, with the per-API handlers in ``google`` and ``rest``) and fixture account objects for Meta
-(``meta``). ``omw.demo.load`` hands them to the pipelines' own entry points.
+(``transport``, with the per-API handlers in ``google``, ``rest`` and ``meta``). ``omw.demo.load`` hands it
+to the pipelines' own entry points.
 """
 
 from __future__ import annotations
@@ -14,17 +14,14 @@ from urllib.parse import urlsplit
 
 import requests
 
-from omw.demo.replay import google, rest
-from omw.demo.replay.meta import FixtureAccount, fixture_lead_fetcher
+from omw.demo.replay import google, meta, rest
 from omw.demo.replay.transport import TOKEN, FixtureAdapter, Fixtures, fixture_session, token_provider
 
 __all__ = [
     "TOKEN",
-    "FixtureAccount",
     "FixtureAdapter",
     "Fixtures",
     "Replay",
-    "fixture_lead_fetcher",
     "token_provider",
 ]
 
@@ -55,6 +52,7 @@ class Replay:
                 google.GOOGLE_ADS_HOST: google.google_ads(
                     self.fixtures, accounts["google_ads"]["customer_ids"]
                 ),
+                meta.GRAPH_HOST: meta.graph(self.fixtures, accounts["meta_ads"]["account_ids"]),
                 rest.STRIPE_HOST: rest.stripe(self.fixtures),
                 rest.LINKEDIN_HOST: rest.linkedin(self.fixtures),
                 urlsplit(accounts["twenty"]["base_url"]).netloc: rest.twenty(self.fixtures),
@@ -62,8 +60,7 @@ class Replay:
         )
         self.session = fixture_session(self.adapter)
 
-    def meta_accounts(self) -> dict[str, FixtureAccount]:
-        return {
-            account_id: FixtureAccount(self.fixtures, account_id)
-            for account_id in self.accounts["meta_ads"]["account_ids"]
-        }
+    def new_session(self) -> requests.Session:
+        """Another session on the same transport, for a client that changes the session it is given (the
+        Meta source sets its access token on it and wraps it with the pacer)."""
+        return fixture_session(self.adapter)

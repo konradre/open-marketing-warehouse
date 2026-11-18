@@ -10,12 +10,13 @@ from decimal import Decimal
 from typing import Any
 
 import dlt
+import requests
 from dlt.common.schema.typing import TMergeDispositionDict
 from dlt.destinations.adapters import clickhouse_adapter
 from dlt.extract import DltResource
 
 from omw.pacing import MetaPacer, PacerStop
-from omw.sources.meta_ads.api import connect
+from omw.sources.meta_ads.api import connect, paced_session
 from omw.sources.meta_ads.cadences import SyncMode, cadence_window
 from omw.sources.meta_ads.helpers import DEFAULT_POLLING, JobPolling, export, page_entities, wait_for_job
 from omw.sources.meta_ads.leads import LeadFetcher, leads_resource, sdk_lead_fetcher
@@ -253,6 +254,7 @@ def meta_ads(
     today: date | None = None,
     leads: bool = False,
     lead_fetcher: LeadFetcher = sdk_lead_fetcher,
+    session: requests.Session | None = None,
 ) -> Iterator[DltResource]:
     """Meta Ads entities and insights for ``window`` (default: the cadence's trailing window).
 
@@ -260,7 +262,8 @@ def meta_ads(
     sets only). ``breakdowns``: campaign-level presets (``age_gender``, ``countries``, ``placements``), each
     its own table. ``leads`` also pulls the lead-ads submissions per ad (needs ``leads_retrieval``).
     ``accounts`` injects SDK-like account objects for tests; otherwise each account is connected through
-    a session wrapped by ``pacer``.
+    a session wrapped by ``pacer``. ``session`` replaces the HTTP session under the SDK (fixture mode): it
+    is paced once and shared by every account.
     """
     import time
 
@@ -284,8 +287,11 @@ def meta_ads(
     if accounts is None:
         if not access_token:
             raise ValueError("meta_ads needs access_token (sources.meta_ads.access_token)")
+        paced = paced_session(pacer, access_token, session=session) if session is not None else None
         accounts = {
-            account_id.removeprefix("act_"): connect(account_id, access_token, pacer, api_version)
+            account_id.removeprefix("act_"): connect(
+                account_id, access_token, pacer, api_version, session=paced
+            )
             for account_id in account_ids
         }
     window = window or cadence_window(mode, today or date.today())

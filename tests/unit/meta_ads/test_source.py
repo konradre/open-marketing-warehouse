@@ -222,3 +222,23 @@ def test_leads_are_pulled_per_ad_after_the_cursor_without_exposing_answers(
     hints: dict[str, Any] = dict(source.resources["leads"].compute_table_schema())
     assert hints["write_disposition"] == "merge" and hints["x-clickhouse-sort"] == ["id"]
     assert "leads" not in _source(account, pacer).resources
+
+
+def test_an_injected_session_is_paced_once_and_shared_by_every_account() -> None:
+    """``session`` is the HTTP seam under the SDK (fixture mode). Pacing it once per account would count
+    and delay every response as many times as there are accounts."""
+    from omw.demo.replay.transport import Call, FixtureAdapter, fixture_session
+
+    def graph(call: Call) -> tuple[int, dict[str, str]]:
+        return 200, {"id": call.path.rsplit("/", 2)[-2], "currency": "EUR"}
+
+    adapter = FixtureAdapter({"graph.facebook.com": graph})
+    session = fixture_session(adapter)
+    pacer = MetaPacer(sleep=lambda _: None)
+    source = meta_ads(account_ids=["1", "act_2"], access_token="tok", session=session, pacer=pacer)
+
+    assert set(source.resources) >= {"campaigns", "insights_campaigns"}
+    lookups = [call for call in adapter.calls if call.query.get("fields") == "currency"]
+    assert [call.path.rstrip("/").rsplit("/", 1)[-1] for call in lookups] == ["act_1", "act_2"]
+    assert all(call.query["access_token"] == "tok" for call in lookups)
+    assert pacer.summary.requests == len(adapter.calls) == 2  # each response paced exactly once

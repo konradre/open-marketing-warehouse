@@ -1,10 +1,10 @@
 """Fixture mode: a ``requests`` transport that answers from fixture files instead of the network.
 
 The session it is mounted on goes to the real clients (``SearchConsoleClient``, ``GA4Client``,
-``GoogleAdsClient``, ``StripeClient``, dlt's ``RESTClient`` for LinkedIn and Twenty), so their request
-building, paging and parsing all run as in production. Only the socket is replaced: every ``http://`` and
-``https://`` request of the session ends here, and a request no handler knows gets a 404, never a real
-call.
+``GoogleAdsClient``, ``StripeClient``, dlt's ``RESTClient`` for LinkedIn and Twenty, the
+``facebook_business`` SDK for Meta), so their request building, paging and parsing all run as in
+production. Only the socket is replaced: every ``http://`` and ``https://`` request of the session ends
+here, and a request no handler knows gets a 404, never a real call.
 """
 
 from __future__ import annotations
@@ -43,7 +43,8 @@ class Call:
     """The JSON body, or ``None``."""
 
 
-Answer = tuple[int, Any]
+Answer = tuple[int, Any] | tuple[int, Any, Mapping[str, str]]
+"""(status, JSON payload), optionally with response headers (Meta's usage headers)."""
 Handler = Callable[[Call], Answer]
 
 
@@ -101,7 +102,7 @@ class FixtureAdapter(BaseAdapter):
             body=body,
         )
         self.calls.append(call)
-        status, payload = self.routes.get(call.host, not_found)(call)
+        status, payload, *extra = self.routes.get(call.host, not_found)(call)
         response = requests.Response()
         response.status_code = status
         response.reason = "OK" if status < 400 else "Fixture error"
@@ -109,6 +110,8 @@ class FixtureAdapter(BaseAdapter):
         response.request = request
         response.encoding = "utf-8"
         response.headers["Content-Type"] = "application/json"
+        for headers in extra:
+            response.headers.update(headers)
         response._content = json.dumps(payload).encode()
         return response
 
