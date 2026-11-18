@@ -29,7 +29,10 @@ wait_http() {  # wait_http <name> <url> <attempts>
 wait_http "LibreChat" "http://127.0.0.1:${chat_port}/health" 60
 wait_http "Langfuse" "http://127.0.0.1:${langfuse_port}/api/public/health" 120
 # LibreChat must have loaded librechat.yaml and listed the warehouse MCP server's tools (DESIGN.md §6).
-if ! "${compose[@]}" logs --no-color librechat | grep -qE "\[MCP\]\[warehouse\] Tools: [a-z_]+"; then
+# The log is read first and searched afterwards. Under pipefail, `logs | grep -q` fails for a line that is
+# there: grep exits at the first match while docker compose is still writing, which then dies of SIGPIPE.
+librechat_log="$("${compose[@]}" logs --no-color librechat)"
+if ! grep -qE "\[MCP\]\[warehouse\] Tools: [a-z_]+" <<<"$librechat_log"; then
   echo "profiles-smoke: LibreChat did not list the warehouse MCP server's tools" >&2
   "${compose[@]}" logs --no-color --tail 100 librechat >&2
   exit 1

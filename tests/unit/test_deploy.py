@@ -204,3 +204,20 @@ def test_the_deploy_guide_covers_what_an_operator_needs() -> None:
         assert heading in guide, heading
     for job in JOBS:
         assert f"`{job.name}`" in guide, job.name
+
+
+def test_no_deploy_script_pipes_a_command_into_grep_q_under_pipefail() -> None:
+    """``command | grep -q`` under ``set -o pipefail`` fails for a line that is there: grep exits at the
+    first match, the command still writing dies of SIGPIPE, and the pipeline takes its status. The
+    profiles smoke test read LibreChat's log that way and failed in CI on a log that listed the tools."""
+    for script in sorted((REPO / "deploy").glob("*.sh")):
+        text = script.read_text()
+        if "pipefail" not in text:
+            continue
+        piped = [
+            line.strip()
+            for line in text.splitlines()
+            if not line.lstrip().startswith("#")
+            if re.search(r"\|\s*grep\s+-[A-Za-z]*q", line)
+        ]
+        assert not piped, (script.name, piped)
