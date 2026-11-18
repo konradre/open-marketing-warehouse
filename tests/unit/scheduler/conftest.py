@@ -7,7 +7,7 @@ from datetime import datetime
 import pytest
 
 from omw.scheduler.notify import Notifier
-from omw.scheduler.runs import Outcome
+from omw.scheduler.runs import Outcome, SlotState
 from tests.unit.checks.conftest import FakeWarehouse
 
 
@@ -23,12 +23,16 @@ class MemoryStore:
             raise ConnectionError("warehouse is down")
         self.outcomes.append(outcome)
 
-    def last_slots(self) -> dict[str, datetime]:
+    def slot_states(self) -> dict[str, SlotState]:
         if self.down:
             raise ConnectionError("warehouse is down")
-        found: dict[str, datetime] = {}
+        latest: dict[str, datetime] = {}
         for outcome in self.outcomes:
-            found[outcome.job] = max(outcome.slot, found.get(outcome.job, outcome.slot))
+            latest[outcome.job] = max(outcome.slot, latest.get(outcome.job, outcome.slot))
+        found: dict[str, SlotState] = {}
+        for job, slot in latest.items():
+            tries = [o for o in self.outcomes if o.job == job and o.slot == slot]
+            found[job] = SlotState(slot, len(tries), str(tries[-1].status), tries[-1].finished_at)
         return found
 
     def statuses(self) -> list[tuple[str, str]]:

@@ -126,7 +126,7 @@ def test_the_committed_schedule_is_the_default_one_and_names_every_job() -> None
         assert parse(schedule[job.name]) == parse(job.default), job.name
     assert [p.job.name for p in build_plan(schedule)] == [p.job.name for p in build_plan()]
     assert CONFIG["backup"]["keep"] == 7 and CONFIG["checks"]["expiry_warn_days"] == 14
-    assert CONFIG["scheduler"]["timeout_minutes"] == 360
+    assert CONFIG["scheduler"] == {"timeout_minutes": 360, "retries": 2, "retry_minutes": 30}
 
 
 def test_the_examples_document_alerts_expiry_dates_and_where_keys_go() -> None:

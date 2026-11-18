@@ -85,6 +85,22 @@ class Outcome:
         ]
 
 
+RETRYABLE = (RunStatus.FAILED, RunStatus.CRASHED)
+"""Outcomes a second attempt can change. A failed check is not one: the data loaded, and loading it again
+gives the same verdict."""
+
+
+@dataclass(frozen=True)
+class SlotState:
+    """Where a job stands on the latest slot it was run for."""
+
+    slot: datetime
+    attempts: int
+    status: str
+    """How the latest attempt ended."""
+    finished_at: datetime
+
+
 @dataclass(frozen=True)
 class LastRun:
     status: str
@@ -113,13 +129,18 @@ class RunStore:
         self.ensure()
         self.client.insert(SYNC_RUNS, [outcome.row()], column_names=list(RUN_COLUMNS))
 
-    def last_slots(self) -> dict[str, datetime]:
-        """job -> the latest slot any run of it answered."""
+    def slot_states(self) -> dict[str, SlotState]:
+        """job -> the latest slot any run of it answered, with how often it was tried and how that ended."""
         self.ensure()
         rows = self.client.query(
-            f"SELECT job, toUnixTimestamp(max(slot)) FROM {SYNC_RUNS} GROUP BY job"
+            f"SELECT job, toUnixTimestamp(slot), count(), argMax(status, started_at), "
+            f"toUnixTimestamp(max(finished_at)) FROM {SYNC_RUNS} "
+            f"WHERE (job, slot) IN (SELECT job, max(slot) FROM {SYNC_RUNS} GROUP BY job) GROUP BY job, slot"
         ).result_rows
-        return {str(job): _utc(slot) for job, slot in rows}
+        return {
+            str(job): SlotState(_utc(slot), int(attempts), str(status), _utc(finished))
+            for job, slot, attempts, status, finished in rows
+        }
 
     def last_runs(self) -> dict[str, LastRun]:
         """job -> its most recent attempt."""

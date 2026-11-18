@@ -128,8 +128,11 @@ How the loop behaves:
   `ops.check_results`. The checks also run after a sync that failed, so the freshness verdict keeps moving.
 - **A slot runs once.** Attempts are recorded in `ops.sync_runs`; a restart neither repeats a finished slot
   nor forgets one that passed while the host was down. Several missed days are caught up with one run.
-- **A failed slot is not retried** until the job's next slot. Run it by hand when the cause is fixed:
-  `make job JOB=stripe`.
+- **A job that failed is tried again**, for the same slot: `[scheduler] retries` (2) more times,
+  `retry_minutes` (30) apart, because most failures of a pull are an API having a bad minute. The hook
+  stays quiet until the last attempt has failed too, and every attempt is in `ops.sync_runs`. A failed
+  post-sync check is not retried: the data loaded, and loading it again gives the same verdict. After the
+  last attempt the slot is over; `make job JOB=stripe` runs the job by hand once the cause is fixed.
 - **Each job is its own process** (`omw sync <job>`). A job still running after `[scheduler]
   timeout_minutes` (360) is stopped and reported.
 - On the weekly reconcile's day the daily Meta re-pull is skipped: the 28-day window contains it.
@@ -137,7 +140,9 @@ How the loop behaves:
 `omw sync <job>` is the unit everything else is built from. Its exit code is `0`, `1` when the job itself
 failed, or `3` when it loaded but a post-sync check failed; in both failure cases it has already fired the
 hook and written the run. `omw schedule run --once` runs whatever is due and exits non-zero when any of it
-failed, for a host that prefers one cron line.
+failed, for a host that prefers one cron line. It fires the hook on every failure (nobody promises it a
+later attempt), and the next invocation retries a failed slot if the pause has passed. systemd timers do
+not retry: a failed unit waits for its next slot.
 
 ```sql
 -- as the pipeline or admin user: the last runs
@@ -203,11 +208,11 @@ webhooks display as it is; the other fields are for anything that wants to route
 
 | `kind` | When |
 |---|---|
-| `sync_failed` | A sync raised: a dead token, an API error, the warehouse unreachable. Exit 1. |
+| `sync_failed` | A sync raised: a dead token, an API error, the warehouse unreachable. Exit 1. Under the loop: after the last retry. |
 | `check_failed` | The sync loaded, a post-sync check failed (stale, over-count, a collapse to zero rows, an expired credential). Exit 3. |
 | `expiry_warning` | A credential or LinkedIn's API version is inside its warning window. The job still succeeds. |
 | `backup_failed` | The backup or the restore drill failed. |
-| `job_crashed` | A job's process died or ran out of time before it could report itself. |
+| `job_crashed` | A job's process died or ran out of time before it could report itself, on its last attempt. |
 | `scheduler_error` | The loop cannot read its run log (the warehouse is down). Sent once per outage. |
 
 A hook that cannot be reached is logged and never changes a job's exit code. Nothing alerts when the

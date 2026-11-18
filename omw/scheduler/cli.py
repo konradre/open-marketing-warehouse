@@ -19,7 +19,7 @@ import logging
 import os
 import signal
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +28,14 @@ import dlt
 from omw.pipelines.instants import instant
 from omw.scheduler import systemd
 from omw.scheduler.jobs import JOB_NAMES, Planned, job_named, read_plan
-from omw.scheduler.loop import DEFAULT_TIMEOUT_MINUTES, Scheduler, heartbeat_path, subprocess_launcher
+from omw.scheduler.loop import (
+    DEFAULT_RETRIES,
+    DEFAULT_RETRY_MINUTES,
+    DEFAULT_TIMEOUT_MINUTES,
+    Scheduler,
+    heartbeat_path,
+    subprocess_launcher,
+)
 from omw.scheduler.modes import FixtureMode, LiveMode, Mode
 from omw.scheduler.notify import Alert, Notifier
 from omw.scheduler.runs import RunStore
@@ -47,7 +54,9 @@ def mode_of(args: argparse.Namespace) -> Mode:
 def cmd_sync(args: argparse.Namespace) -> int:
     job = job_named(args.job)
     slot = datetime.fromisoformat(args.slot) if args.slot else None
-    outcome = run_job(job, mode_of(args), Notifier.from_config(), slot, args.trigger)
+    outcome = run_job(
+        job, mode_of(args), Notifier.from_config(), slot, args.trigger, retries_left=args.retries_left
+    )
     log.info("%s: %s (exit %d)", job.name, outcome.status, outcome.exit_code)
     return outcome.exit_code
 
@@ -75,6 +84,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
     plan = _selected(read_plan(), args.job)
     timeout = float(dlt.config.get("scheduler.timeout_minutes", float) or DEFAULT_TIMEOUT_MINUTES)
+    retries = dlt.config.get("scheduler.retries", int)
+    pause = float(dlt.config.get("scheduler.retry_minutes", float) or DEFAULT_RETRY_MINUTES)
     heartbeat = heartbeat_path()
     scheduler = Scheduler(
         plan,
@@ -82,10 +93,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         lambda: RunStore(mode.client()),
         Notifier.from_config(),
         heartbeat=heartbeat,
+        retries=DEFAULT_RETRIES if retries is None else max(int(retries), 0),
+        retry_after=timedelta(minutes=pause),
     )
     for planned in plan:
         log.info("%-16s %-14s UTC  %s", planned.job.name, planned.schedule, planned.job.summary)
     log.info("scheduler started in %s mode with %d jobs", mode.name, len(plan))
+    log.info("a job that fails is tried again %d time(s), %g minutes apart", scheduler.retries, pause)
     signal.signal(signal.SIGTERM, _stop)
     try:
         return scheduler.run(once=args.once)
@@ -171,6 +185,13 @@ def add_parsers(commands: Any) -> None:
     )
     sync.add_argument(
         "--trigger", choices=("manual", "schedule", "timer"), default="manual", help="what started the run"
+    )
+    sync.add_argument(
+        "--retries-left",
+        type=int,
+        default=0,
+        help="attempts the scheduler loop will still make at this slot; while any are left a failed job "
+        "does not fire the hook (set by the loop)",
     )
     sync.set_defaults(handler=handle, scheduler_handler=cmd_sync)
 

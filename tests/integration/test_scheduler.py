@@ -92,15 +92,23 @@ class Stack:
     def notifier(self) -> Notifier:
         return Notifier(AlertConfig(webhook_url=self.hook.url))
 
-    def scheduler(self, now: datetime, mode: FixtureMode | None = None) -> Scheduler:
+    def scheduler(self, now: datetime, mode: FixtureMode | None = None, retries: int = 0) -> Scheduler:
         """The loop with each job run in this process, as ``omw sync`` runs it in its own."""
         mode = mode or self.mode()
         notifier = self.notifier()
 
-        def launch(job: Job, slot: datetime) -> int:
-            return run_job(job, mode, notifier, slot, "schedule").exit_code
+        def launch(job: Job, slot: datetime, retries_left: int = 0) -> int:
+            return run_job(job, mode, notifier, slot, "schedule", retries_left=retries_left).exit_code
 
-        return Scheduler(build_plan(), launch, lambda: RunStore(mode.client()), notifier, clock=lambda: now)
+        return Scheduler(
+            build_plan(),
+            launch,
+            lambda: RunStore(mode.client()),
+            notifier,
+            clock=lambda: now,
+            retries=retries,
+            retry_after=timedelta(seconds=0),
+        )
 
 
 @pytest.fixture(scope="module")
@@ -242,6 +250,37 @@ def test_a_sync_that_fails_fires_the_hook_exits_1_and_the_next_job_still_runs(
     assert checked == 2
 
 
+def test_a_failed_sync_is_retried_quietly_and_the_hook_fires_after_the_last_attempt(
+    stack: Stack, pipeline_client: Client, tmp_path: Path
+) -> None:
+    broken = tmp_path / "broken"
+    shutil.copytree(stack.out, broken)
+    (broken / "restated" / "stripe" / "customers.json").unlink()
+    thursday = stack.sunday + timedelta(days=4)
+    since = f"job = 'stripe' AND slot >= toDateTime({int(thursday.replace(hour=0).timestamp())})"
+    only = [planned for planned in build_plan() if planned.job.name == "stripe"]
+    stack.hook.received.clear()
+
+    # An outage that ends: the first attempt fails without a word, the second one loads.
+    failing = stack.scheduler(thursday, stack.mode(broken), retries=2)
+    failing.plan = only
+    assert failing.tick() == {"stripe": 1} and stack.hook.received == []
+    recovered = stack.scheduler(thursday, retries=2)  # a restarted loop: the run log alone says "retry"
+    recovered.plan = only
+    assert recovered.tick() == {"stripe": 0} and recovered.tick() == {}
+    assert [row[1] for row in runs(pipeline_client, since)] == ["failed", "ok"]
+    assert stack.hook.received == []
+
+    # An outage that does not: three attempts, one alert.
+    friday = thursday + timedelta(days=1)
+    dead = stack.scheduler(friday, stack.mode(broken), retries=2)
+    dead.plan = only
+    assert [dead.tick() for _ in range(4)] == [{"stripe": 1}, {"stripe": 1}, {"stripe": 1}, {}]
+    assert stack.hook.kinds() == [("sync_failed", "stripe")]
+    later = f"job = 'stripe' AND slot >= toDateTime({int(friday.replace(hour=0).timestamp())})"
+    assert [row[1] for row in runs(pipeline_client, later)] == ["failed", "failed", "failed"]
+
+
 def test_a_failed_post_sync_check_fires_the_hook_and_exits_3(
     stack: Stack, pipeline_client: Client, agent_client: Client, tmp_path: Path
 ) -> None:
@@ -288,12 +327,14 @@ def test_each_job_runs_as_its_own_omw_sync_process(stack: Stack, pipeline_client
     """The loop's real launcher: ``python -m omw.cli sync <job> --slot ... --fixtures ...``."""
     slot = stack.sunday + timedelta(days=3, hours=-7)
     launch = subprocess_launcher(stack.mode().child_args(), timeout_minutes=5)
-    assert launch(job_named("ga4"), slot) == 0
+    assert launch(job_named("ga4"), slot, 0) == 0
     row = runs(pipeline_client, f"job = 'ga4' AND slot = toDateTime({int(slot.timestamp())})")
     assert len(row) == 1 and row[0][1:3] == ("ok", "schedule") and row[0][3] > 0
-    assert launch(job_named("ga4"), slot) == 0  # a process, so nothing of the first run is left in this one
+    assert (
+        launch(job_named("ga4"), slot, 2) == 0
+    )  # a process, so nothing of the first run is left in this one
     missing = subprocess_launcher(["--fixtures", str(stack.out / "nowhere")], timeout_minutes=5)
-    assert missing(job_named("ga4"), slot) == 2  # not an exit code `omw sync` uses for a job it handled
+    assert missing(job_named("ga4"), slot, 0) == 2  # not an exit code `omw sync` uses for a job it handled
 
 
 def test_schedule_run_once_from_the_cli(stack: Stack, pipeline_client: Client, capsys: Any) -> None:

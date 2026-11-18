@@ -85,8 +85,13 @@ def run_job(
     slot: datetime | None = None,
     trigger: str = "manual",
     clock: Clock = instant,
+    retries_left: int = 0,
 ) -> Outcome:
-    """Run ``job`` once and report it everywhere it has to be reported. Never raises for a failed job."""
+    """Run ``job`` once and report it everywhere it has to be reported. Never raises for a failed job.
+
+    ``retries_left`` is the scheduler loop saying it will try this slot again: a job that failed is then
+    logged and recorded, and the hook waits for the last attempt.
+    """
     started = clock()
     outcome = Outcome(job.name, job.source, RunStatus.OK, slot or started, started, started, trigger)
     client: Any = None
@@ -131,12 +136,16 @@ def run_job(
             RunStore(client).record(outcome)
         except Exception:  # noqa: BLE001 - the run still ends with its own exit code and alert
             log.exception("could not write the run of %s to ops.sync_runs", job.name)
-    _alert(job, outcome, checks, notifier)
+    _alert(job, outcome, checks, notifier, retries_left)
     return outcome
 
 
-def _alert(job: Job, outcome: Outcome, checks: CheckRun | None, notifier: Notifier) -> None:
-    if outcome.status is RunStatus.FAILED:
+def _alert(
+    job: Job, outcome: Outcome, checks: CheckRun | None, notifier: Notifier, retries_left: int = 0
+) -> None:
+    if outcome.status is RunStatus.FAILED and retries_left > 0:
+        log.warning("%s failed; the scheduler will try again (%d more attempt(s))", job.name, retries_left)
+    elif outcome.status is RunStatus.FAILED:
         kind = "sync_failed" if job.kind == "sync" else "backup_failed"
         notifier.send(
             Alert(kind, "error", job.name, outcome.problems[0], job.source, tuple(outcome.problems[1:]))
